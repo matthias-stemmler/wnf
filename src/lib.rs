@@ -1,7 +1,6 @@
 #![deny(improper_ctypes)]
 #![deny(improper_ctypes_definitions)]
 
-use ntdll_sys::ERROR_BUFFER_TOO_SMALL;
 use pod::Pod;
 
 use std::{
@@ -14,7 +13,7 @@ use std::{
 use thiserror::Error;
 use windows::{
     core::GUID,
-    Win32::Foundation::{ERROR_INVALID_FUNCTION, NO_ERROR, WIN32_ERROR},
+    Win32::Foundation::{NTSTATUS, STATUS_BUFFER_TOO_SMALL, STATUS_SUCCESS, STATUS_WAIT_1},
 };
 
 mod ntdll_sys;
@@ -153,7 +152,7 @@ impl<T: Pod> WnfState<T> {
             &mut size,
         );
 
-        if result.is_err() && (result != ERROR_BUFFER_TOO_SMALL || size as usize <= buffer_size) {
+        if result.is_err() && (result != STATUS_BUFFER_TOO_SMALL || size as usize <= buffer_size) {
             Err(result.into())
         } else {
             Ok((size as usize, change_stamp))
@@ -195,7 +194,7 @@ impl<T: Pod> WnfState<T> {
             )
         };
 
-        if expected_change_stamp.is_some() && result == ERROR_INVALID_FUNCTION {
+        if expected_change_stamp.is_some() && result == STATUS_WAIT_1 {
             Ok(false)
         } else {
             result.ok()?;
@@ -256,7 +255,7 @@ impl<T: Pod> WnfState<T> {
             context: *mut c_void,
             buffer: *const c_void,
             buffer_size: u32,
-        ) -> WIN32_ERROR {
+        ) -> NTSTATUS {
             let _ = panic::catch_unwind(|| {
                 let context: &WnfSubscriptionContext<F> = unsafe { &*context.cast() };
 
@@ -272,10 +271,10 @@ impl<T: Pod> WnfState<T> {
                 });
             });
 
-            NO_ERROR
+            STATUS_SUCCESS
         }
 
-        let mut subscription = ptr::null();
+        let mut subscription = 0;
         let context = Box::new(WnfSubscriptionContext::new(listener));
 
         unsafe {
@@ -325,7 +324,7 @@ pub struct WnfSubscriptionHandle<F: ?Sized>(Option<WnfSubscriptionHandleInner<F>
 #[derive(Debug)]
 pub struct WnfSubscriptionHandleInner<F: ?Sized> {
     context: ManuallyDrop<Box<WnfSubscriptionContext<F>>>,
-    subscription: *const c_void,
+    subscription: u64,
 }
 
 #[derive(Debug)]
