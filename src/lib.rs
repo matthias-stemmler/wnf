@@ -1,7 +1,9 @@
 #![deny(improper_ctypes)]
 #![deny(improper_ctypes_definitions)]
 
+use ntdll_sys::{WnfDataScope, WnfStateNameLifetime};
 use pod::Pod;
+use security::{SecurityCreateError, SecurityDescriptor};
 
 use std::{
     ffi::c_void,
@@ -18,10 +20,30 @@ use windows::{
 
 mod ntdll_sys;
 mod pod;
+mod security;
 
 // TODO allow specifying minimum change_stamp for subscribe
 // TODO maybe extract trait similar to FromBuffer also for query?
-// TODO check ntapi crate
+
+pub fn create_temporary_wnf_state_name() -> Result<WnfStateName, WnfCreateError> {
+    let mut opaque_value = 0;
+    let security_descriptor = SecurityDescriptor::create_everyone_generic_all()?;
+
+    unsafe {
+        ntdll_sys::ZwCreateWnfStateName(
+            &mut opaque_value,
+            WnfStateNameLifetime::Temporary as u32,
+            WnfDataScope::Machine as u32,
+            0,
+            ptr::null(),
+            0x1000,
+            security_descriptor.as_void_ptr(),
+        )
+    }
+    .ok()?;
+
+    Ok(WnfStateName::from_opaque_value(opaque_value))
+}
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct WnfStateName(u64);
@@ -389,6 +411,15 @@ impl<F: ?Sized> Drop for WnfSubscriptionHandle<F> {
 }
 
 #[derive(Error, Debug)]
+pub enum WnfCreateError {
+    #[error("failed to create WNF state name: security error {0}")]
+    Security(#[from] SecurityCreateError),
+
+    #[error("failed to create WNF state name: Windows error code {:#010x}", .0.code().0)]
+    Windows(#[from] windows::core::Error),
+}
+
+#[derive(Error, Debug)]
 pub enum WnfQueryError {
     #[error(
         "failed to query WNF state data: data has wrong size (expected {expected}, got {actual})"
@@ -473,12 +504,16 @@ impl<T: Pod> FromBuffer for [T] {
 
 #[cfg(test)]
 mod tests {
+    use std::{thread, time::Duration};
+
     use super::*;
 
     #[test]
     fn test() {
-        const STATE_NAME: WnfStateName = WnfStateName::from_opaque_value(0x41c6013da3bc3075);
-        let state: WnfState<u32> = WnfState::from_state_name(STATE_NAME);
+        let state_name = create_temporary_wnf_state_name().unwrap();
+        println!("{:#010x}", state_name.opaque_value());
+
+        let state: WnfState<u32> = WnfState::from_state_name(state_name);
 
         let _handle = state
             .subscribe(Box::new(|data: Option<WnfStampedData<&u32>>| {
@@ -486,6 +521,16 @@ mod tests {
             }))
             .unwrap();
 
-        loop {}
+        state.set(&100).unwrap();
+
+        let join_handle = thread::spawn(move || {
+            loop {
+                thread::sleep(Duration::from_millis(500));
+                state.apply(|x| x + 1).unwrap();
+            }
+
+        });
+
+        join_handle.join().unwrap();
     }
 }

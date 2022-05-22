@@ -10,6 +10,25 @@ pub(crate) type WnfUserCallback = extern "system" fn(
     buffer_size: u32,
 ) -> NTSTATUS;
 
+#[derive(Debug)]
+#[repr(u32)]
+pub enum WnfStateNameLifetime {
+    WellKnown = 0,
+    Permanent = 1,
+    Persistent = 2,
+    Temporary = 3,
+}
+
+#[derive(Debug)]
+#[repr(u32)]
+pub enum WnfDataScope {
+    System = 0,
+    Session = 1,
+    User = 2,
+    Process = 3,
+    Machine = 4,
+}
+
 #[link(name = "ntdll")]
 extern "system" {
     pub(crate) fn RtlSubscribeWnfStateChangeNotification(
@@ -24,6 +43,18 @@ extern "system" {
     ) -> NTSTATUS;
 
     pub(crate) fn RtlUnsubscribeWnfStateChangeNotification(subscription: u64) -> NTSTATUS;
+
+    pub(crate) fn ZwCreateWnfStateName(
+        state_name: *mut u64,
+        name_lifetime: u32,
+        data_scope: u32,
+        persist_data: u8,
+        type_id: *const GUID,
+        maximum_state_size: u32,
+        security_descriptor: *const c_void,
+    ) -> NTSTATUS;
+
+    pub(crate) fn ZwDeleteWnfStateName(state_name: *const u64) -> NTSTATUS;
 
     pub(crate) fn ZwQueryWnfStateData(
         state_name: *const u64,
