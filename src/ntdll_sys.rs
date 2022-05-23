@@ -10,25 +10,6 @@ pub(crate) type WnfUserCallback = extern "system" fn(
     buffer_size: u32,
 ) -> NTSTATUS;
 
-#[derive(Debug)]
-#[repr(u32)]
-pub enum WnfStateNameLifetime {
-    WellKnown = 0,
-    Permanent = 1,
-    Persistent = 2,
-    Temporary = 3,
-}
-
-#[derive(Debug)]
-#[repr(u32)]
-pub enum WnfDataScope {
-    System = 0,
-    Session = 1,
-    User = 2,
-    Process = 3,
-    Machine = 4,
-}
-
 #[link(name = "ntdll")]
 extern "system" {
     pub(crate) fn RtlSubscribeWnfStateChangeNotification(

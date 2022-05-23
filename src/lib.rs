@@ -1,10 +1,14 @@
 #![deny(improper_ctypes)]
 #![deny(improper_ctypes_definitions)]
 
-use ntdll_sys::{WnfDataScope, WnfStateNameLifetime};
+#[macro_use]
+extern crate num_derive;
+
 use pod::Pod;
 use security::{SecurityCreateError, SecurityDescriptor};
 
+use crate::change_stamp::{WnfChangeStamp, WnfStampedData};
+use crate::state_name::{WnfDataScope, WnfStateName, WnfStateNameLifetime};
 use std::{
     ffi::c_void,
     marker::PhantomData,
@@ -18,9 +22,11 @@ use windows::{
     Win32::Foundation::{NTSTATUS, STATUS_BUFFER_TOO_SMALL, STATUS_SUCCESS, STATUS_WAIT_1},
 };
 
+mod change_stamp;
 mod ntdll_sys;
 mod pod;
 mod security;
+mod state_name;
 
 // TODO allow specifying minimum change_stamp for subscribe
 // TODO maybe extract trait similar to FromBuffer also for query?
@@ -43,36 +49,6 @@ pub fn create_temporary_wnf_state_name() -> Result<WnfStateName, WnfCreateError>
     .ok()?;
 
     Ok(WnfStateName::from_opaque_value(opaque_value))
-}
-
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct WnfStateName(u64);
-
-impl WnfStateName {
-    pub const fn from_opaque_value(opaque_value: u64) -> Self {
-        Self(opaque_value)
-    }
-
-    pub const fn opaque_value(self) -> u64 {
-        self.0
-    }
-}
-
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
-pub struct WnfChangeStamp(u32);
-
-impl WnfChangeStamp {
-    pub const fn from_value(value: u32) -> Self {
-        Self(value)
-    }
-
-    pub const fn value(self) -> u32 {
-        self.0
-    }
-
-    fn as_mut_ptr(&mut self) -> *mut u32 {
-        &mut self.0
-    }
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -103,7 +79,7 @@ impl<T: Pod> WnfState<T> {
 
         if size == mem::size_of::<T>() {
             let data = unsafe { buffer.assume_init() };
-            Ok(WnfStampedData { data, change_stamp })
+            Ok(WnfStampedData::from_data_and_change_stamp(data, change_stamp))
         } else {
             Err(WnfQueryError::WrongSize {
                 expected: mem::size_of::<T>(),
@@ -149,10 +125,10 @@ impl<T: Pod> WnfState<T> {
             buffer.set_len(len);
         }
 
-        Ok(WnfStampedData {
-            data: buffer.into_boxed_slice(),
+        Ok(WnfStampedData::from_data_and_change_stamp(
+            buffer.into_boxed_slice(),
             change_stamp,
-        })
+        ))
     }
 
     unsafe fn query_internal(
@@ -205,7 +181,7 @@ impl<T: Pod> WnfState<T> {
                 (data.len() * mem::size_of::<T>()) as u32,
                 ptr::null(),
                 ptr::null(),
-                expected_change_stamp.unwrap_or_default().value(),
+                expected_change_stamp.unwrap_or_default().into(),
                 expected_change_stamp.is_some() as u32,
             )
         };
@@ -221,7 +197,7 @@ impl<T: Pod> WnfState<T> {
     pub fn apply(&self, mut op: impl FnMut(&T) -> T) -> Result<(), WnfApplyError> {
         loop {
             let query_result = self.query()?;
-            if self.update(&op(&query_result.data), Some(query_result.change_stamp))? {
+            if self.update(&op(query_result.data()), Some(query_result.change_stamp()))? {
                 break;
             }
         }
@@ -232,7 +208,7 @@ impl<T: Pod> WnfState<T> {
     pub fn apply_slice(&self, mut op: impl FnMut(&[T]) -> Box<[T]>) -> Result<(), WnfApplyError> {
         loop {
             let query_result = self.query_slice()?;
-            if self.update_slice(&op(&query_result.data), Some(query_result.change_stamp))? {
+            if self.update_slice(&op(query_result.data()), Some(query_result.change_stamp()))? {
                 break;
             }
         }
@@ -274,12 +250,8 @@ impl<T: Pod> WnfState<T> {
 
                 context.with_listener(|listener| {
                     let maybe_data = unsafe { D::from_buffer(buffer, buffer_size) };
-
-                    let stamped_data = maybe_data.map(|data| WnfStampedData {
-                        data,
-                        change_stamp: WnfChangeStamp::from_value(change_stamp),
-                    });
-
+                    let stamped_data =
+                        maybe_data.map(|data| WnfStampedData::from_data_and_change_stamp(data, change_stamp));
                     (*listener)(stamped_data);
                 });
             });
@@ -308,26 +280,6 @@ impl<T: Pod> WnfState<T> {
             context: ManuallyDrop::new(context),
             subscription,
         })))
-    }
-}
-
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct WnfStampedData<T> {
-    data: T,
-    change_stamp: WnfChangeStamp,
-}
-
-impl<T> WnfStampedData<T> {
-    pub fn data(&self) -> &T {
-        &self.data
-    }
-
-    pub fn into_data(self) -> T {
-        self.data
-    }
-
-    pub fn change_stamp(&self) -> WnfChangeStamp {
-        self.change_stamp
     }
 }
 
