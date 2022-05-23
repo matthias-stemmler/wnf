@@ -99,8 +99,7 @@ impl<T: Pod> WnfState<T> {
 
     pub fn query(&self) -> Result<WnfStampedData<T>, WnfQueryError> {
         let mut buffer = MaybeUninit::<T>::uninit();
-        let (size, change_stamp) =
-            unsafe { self.query_internal(buffer.as_mut_ptr(), mem::size_of::<T>())? };
+        let (size, change_stamp) = unsafe { self.query_internal(buffer.as_mut_ptr(), mem::size_of::<T>())? };
 
         if size == mem::size_of::<T>() {
             let data = unsafe { buffer.assume_init() };
@@ -117,9 +116,8 @@ impl<T: Pod> WnfState<T> {
         let mut buffer = Vec::new();
 
         let (len, change_stamp) = loop {
-            let (size, change_stamp) = unsafe {
-                self.query_internal(buffer.as_mut_ptr(), buffer.capacity() * mem::size_of::<T>())?
-            };
+            let (size, change_stamp) =
+                unsafe { self.query_internal(buffer.as_mut_ptr(), buffer.capacity() * mem::size_of::<T>())? };
 
             if size == 0 {
                 break (0, change_stamp);
@@ -191,11 +189,7 @@ impl<T: Pod> WnfState<T> {
         Ok(())
     }
 
-    pub fn update(
-        &self,
-        data: &T,
-        expected_change_stamp: Option<WnfChangeStamp>,
-    ) -> Result<bool, WnfUpdateError> {
+    pub fn update(&self, data: &T, expected_change_stamp: Option<WnfChangeStamp>) -> Result<bool, WnfUpdateError> {
         self.update_slice(slice::from_ref(data), expected_change_stamp)
     }
 
@@ -260,10 +254,7 @@ impl<T: Pod> WnfState<T> {
         self.subscribe_internal(listener)
     }
 
-    fn subscribe_internal<
-        D: FromBuffer + ?Sized,
-        F: FnMut(Option<WnfStampedData<&D>>) + Send + ?Sized + 'static,
-    >(
+    fn subscribe_internal<D: FromBuffer + ?Sized, F: FnMut(Option<WnfStampedData<&D>>) + Send + ?Sized + 'static>(
         &self,
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError> {
@@ -386,8 +377,7 @@ impl<F: ?Sized> WnfSubscriptionHandle<F> {
 
     fn try_unsubscribe(&mut self) -> Result<(), WnfUnsubscribeError> {
         if let Some(inner) = self.0.take() {
-            let result =
-                unsafe { ntdll_sys::RtlUnsubscribeWnfStateChangeNotification(inner.subscription) };
+            let result = unsafe { ntdll_sys::RtlUnsubscribeWnfStateChangeNotification(inner.subscription) };
 
             if result.is_ok() {
                 ManuallyDrop::into_inner(inner.context);
@@ -421,18 +411,13 @@ pub enum WnfCreateError {
 
 #[derive(Error, Debug)]
 pub enum WnfQueryError {
-    #[error(
-        "failed to query WNF state data: data has wrong size (expected {expected}, got {actual})"
-    )]
+    #[error("failed to query WNF state data: data has wrong size (expected {expected}, got {actual})")]
     WrongSize { expected: usize, actual: usize },
 
     #[error(
         "failed to query WNF state data: data has wrong size (expected multiple of {expected_modulus}, got {actual})"
     )]
-    WrongSizeMultiple {
-        expected_modulus: usize,
-        actual: usize,
-    },
+    WrongSizeMultiple { expected_modulus: usize, actual: usize },
 
     #[error("failed to query WNF state data: Windows error code {:#010x}", .0.code().0)]
     Windows(#[from] windows::core::Error),
@@ -471,9 +456,7 @@ trait FromBuffer {
 
 impl<T: Pod> FromBuffer for T {
     unsafe fn from_buffer<'a>(buffer: *const c_void, buffer_size: u32) -> Option<&'a Self> {
-        if buffer as usize % mem::align_of::<T>() == 0
-            && buffer_size as usize == mem::size_of::<T>()
-        {
+        if buffer as usize % mem::align_of::<T>() == 0 && buffer_size as usize == mem::size_of::<T>() {
             Some(&*buffer.cast())
         } else {
             None
@@ -523,12 +506,9 @@ mod tests {
 
         state.set(&100).unwrap();
 
-        let join_handle = thread::spawn(move || {
-            loop {
-                thread::sleep(Duration::from_millis(500));
-                state.apply(|x| x + 1).unwrap();
-            }
-
+        let join_handle = thread::spawn(move || loop {
+            thread::sleep(Duration::from_millis(500));
+            state.apply(|x| x + 1).unwrap();
         });
 
         join_handle.join().unwrap();
