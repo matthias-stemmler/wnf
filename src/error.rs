@@ -16,6 +16,12 @@ pub enum WnfCreateError {
 }
 
 #[derive(Debug, Error)]
+pub enum WnfInfoError {
+    #[error("failed to determine WNF state info: Windows error code {:#010x}", .0.code().0)]
+    Windows(#[from] windows::core::Error),
+}
+
+#[derive(Debug, Error)]
 pub enum WnfDeleteError {
     #[error("failed to delete WNF state name: Windows error code {:#010x}", .0.code().0)]
     Windows(#[from] windows::core::Error),

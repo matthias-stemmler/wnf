@@ -1,25 +1,38 @@
 use std::marker::PhantomData;
 use std::mem::ManuallyDrop;
 
-use crate::error::{WnfApplyError, WnfDeleteError, WnfQueryError, WnfSubscribeError, WnfUpdateError};
+use crate::data::WnfStateInfo;
+use crate::error::{WnfApplyError, WnfDeleteError, WnfInfoError, WnfQueryError, WnfSubscribeError, WnfUpdateError};
 use crate::raw_state::RawWnfState;
 use crate::subscription::WnfSubscriptionHandle;
 use crate::{Pod, WnfChangeStamp, WnfCreateError, WnfStampedData, WnfStateName};
 
 // conceptually: Box<State<T>>
-#[derive(Debug, Eq, Hash, PartialEq)]
+#[derive(Debug)]
 pub struct OwnedWnfState<T> {
     raw: RawWnfState<T>,
 }
 
 // conceptually: &'a State<T>
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug)]
 pub struct BorrowedWnfState<'a, T> {
     raw: RawWnfState<T>,
     _marker: PhantomData<&'a ()>,
 }
 
 impl<T> OwnedWnfState<T> {
+    pub fn state_name(&self) -> WnfStateName {
+        self.raw.state_name()
+    }
+
+    pub fn exists(&self) -> Result<bool, WnfInfoError> {
+        self.raw.exists()
+    }
+
+    pub fn info(&self) -> Result<Option<WnfStateInfo>, WnfInfoError> {
+        self.raw.info()
+    }
+
     pub fn create_temporary() -> Result<Self, WnfCreateError> {
         RawWnfState::create_temporary().map(Self::from_raw)
     }
@@ -112,6 +125,18 @@ impl<T> Drop for OwnedWnfState<T> {
 }
 
 impl<T> BorrowedWnfState<'_, T> {
+    pub fn state_name(&self) -> WnfStateName {
+        self.raw.state_name()
+    }
+
+    pub fn exists(&self) -> Result<bool, WnfInfoError> {
+        self.raw.exists()
+    }
+
+    pub fn info(&self) -> Result<Option<WnfStateInfo>, WnfInfoError> {
+        self.raw.info()
+    }
+
     pub fn into_owned(self) -> OwnedWnfState<T> {
         OwnedWnfState::from_raw(self.into_raw())
     }

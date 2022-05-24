@@ -1,4 +1,24 @@
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+pub struct WnfStateInfo {
+    size: u32,
+    change_stamp: WnfChangeStamp,
+}
+
+impl WnfStateInfo {
+    pub(crate) fn from_size_change_stamp(size: u32, change_stamp: WnfChangeStamp) -> Self {
+        Self { size, change_stamp }
+    }
+
+    pub fn change_stamp(&self) -> WnfChangeStamp {
+        self.change_stamp
+    }
+
+    pub fn size(&self) -> u32 {
+        self.size
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct WnfChangeStamp(u32);
 
 impl WnfChangeStamp {

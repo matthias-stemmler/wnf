@@ -4,9 +4,12 @@ use std::mem::MaybeUninit;
 use std::{mem, panic, ptr, slice};
 
 use windows::core::GUID;
-use windows::Win32::Foundation::{NTSTATUS, STATUS_BUFFER_TOO_SMALL, STATUS_SUCCESS, STATUS_WAIT_1};
+use windows::Win32::Foundation::{
+    NTSTATUS, STATUS_BUFFER_TOO_SMALL, STATUS_OBJECT_NAME_NOT_FOUND, STATUS_SUCCESS, STATUS_WAIT_1,
+};
 
-use crate::error::{WnfApplyError, WnfDeleteError, WnfQueryError, WnfSubscribeError, WnfUpdateError};
+use crate::data::WnfStateInfo;
+use crate::error::{WnfApplyError, WnfDeleteError, WnfInfoError, WnfQueryError, WnfSubscribeError, WnfUpdateError};
 use crate::subscription::{WnfSubscriptionContext, WnfSubscriptionHandle};
 use crate::{
     ntdll_sys, Pod, SecurityDescriptor, WnfChangeStamp, WnfCreateError, WnfDataScope, WnfStampedData, WnfStateName,
@@ -14,7 +17,7 @@ use crate::{
 };
 
 // conceptually: *mut State<T>
-#[derive(Debug, Eq, Hash, PartialEq)]
+#[derive(Debug)]
 pub(crate) struct RawWnfState<T> {
     state_name: WnfStateName,
     _marker: PhantomData<fn(T) -> T>,
@@ -34,6 +37,10 @@ impl<T> RawWnfState<T> {
             state_name,
             _marker: PhantomData,
         }
+    }
+
+    pub(crate) fn state_name(&self) -> WnfStateName {
+        self.state_name
     }
 
     pub(crate) fn create_temporary() -> Result<Self, WnfCreateError> {
@@ -59,6 +66,33 @@ impl<T> RawWnfState<T> {
 
     pub(crate) fn delete(self) -> Result<(), WnfDeleteError> {
         Ok(unsafe { ntdll_sys::ZwDeleteWnfStateName(&self.state_name.opaque_value()) }.ok()?)
+    }
+
+    pub fn exists(&self) -> Result<bool, WnfInfoError> {
+        Ok(self.info()?.is_some())
+    }
+
+    pub fn info(&self) -> Result<Option<WnfStateInfo>, WnfInfoError> {
+        let mut change_stamp = WnfChangeStamp::default();
+        let mut size = 0;
+
+        let result = unsafe {
+            ntdll_sys::ZwQueryWnfStateData(
+                &self.state_name.opaque_value(),
+                ptr::null(),
+                ptr::null(),
+                change_stamp.as_mut_ptr(),
+                ptr::null_mut(),
+                &mut size,
+            )
+        };
+
+        Ok(if result == STATUS_OBJECT_NAME_NOT_FOUND {
+            None
+        } else {
+            result.ok()?;
+            Some(WnfStateInfo::from_size_change_stamp(size, change_stamp))
+        })
     }
 }
 

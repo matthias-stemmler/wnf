@@ -5,13 +5,15 @@
 #[macro_use]
 extern crate num_derive;
 
-use change_stamp::{WnfChangeStamp, WnfStampedData};
+use data::{WnfChangeStamp, WnfStampedData};
 use error::WnfCreateError;
-use pod::Pod;
 use security::SecurityDescriptor;
-use state_name::{WnfDataScope, WnfStateName, WnfStateNameLifetime};
 
-mod change_stamp;
+pub use pod::Pod;
+pub use state::{BorrowedWnfState, OwnedWnfState};
+pub use state_name::{WnfDataScope, WnfStateName, WnfStateNameDescriptor, WnfStateNameLifetime};
+
+mod data;
 mod error;
 mod ntdll_sys;
 mod pod;
