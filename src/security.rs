@@ -1,6 +1,5 @@
 use std::{alloc, alloc::Layout, ffi::c_void, mem};
 
-use thiserror::Error;
 use windows::Win32::{
     Foundation::PSID,
     Security::{
@@ -9,6 +8,8 @@ use windows::Win32::{
     },
     System::SystemServices::{GENERIC_ALL, SECURITY_DESCRIPTOR_REVISION},
 };
+
+use crate::error::SecurityCreateError;
 
 #[derive(Debug)]
 pub(crate) struct SecurityDescriptor {
@@ -60,10 +61,4 @@ impl Drop for SecurityDescriptor {
     fn drop(&mut self) {
         unsafe { alloc::dealloc(self.acl_buffer, self.acl_layout) };
     }
-}
-
-#[derive(Error, Debug)]
-pub enum SecurityCreateError {
-    #[error("failed to create security descriptor: Windows error code {:#010x}", .0.code().0)]
-    Windows(#[from] windows::core::Error),
 }

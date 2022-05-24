@@ -1,4 +1,5 @@
 use std::ffi::c_void;
+
 use windows::{core::GUID, Win32::Foundation::NTSTATUS};
 
 pub(crate) type WnfUserCallback = extern "system" fn(

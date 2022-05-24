@@ -26,7 +26,7 @@ pub struct WnfStampedData<T> {
 }
 
 impl<T> WnfStampedData<T> {
-    pub fn from_data_and_change_stamp(data: T, change_stamp: impl Into<WnfChangeStamp>) -> Self {
+    pub fn from_data_change_stamp(data: T, change_stamp: impl Into<WnfChangeStamp>) -> Self {
         Self {
             data,
             change_stamp: change_stamp.into(),
