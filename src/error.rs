@@ -37,6 +37,9 @@ pub enum WnfQueryError {
     )]
     WrongSizeMultiple { expected_modulus: usize, actual: usize },
 
+    #[error("failed to query WNF state data: data has invalid bit pattern")]
+    InvalidBitPattern,
+
     #[error("failed to query WNF state data: Windows error code {:#010x}", .0.code().0)]
     Windows(#[from] windows::core::Error),
 }

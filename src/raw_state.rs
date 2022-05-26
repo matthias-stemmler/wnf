@@ -1,5 +1,4 @@
 use std::ffi::c_void;
-use std::marker::PhantomData;
 use std::mem::MaybeUninit;
 use std::{mem, panic, ptr, slice};
 
@@ -8,35 +7,23 @@ use windows::Win32::Foundation::{
     NTSTATUS, STATUS_BUFFER_TOO_SMALL, STATUS_OBJECT_NAME_NOT_FOUND, STATUS_SUCCESS, STATUS_WAIT_1,
 };
 
+use crate::bytes::{CheckedBitPattern, NoUninit};
 use crate::data::WnfStateInfo;
 use crate::error::{WnfApplyError, WnfDeleteError, WnfInfoError, WnfQueryError, WnfSubscribeError, WnfUpdateError};
 use crate::subscription::{WnfSubscriptionContext, WnfSubscriptionHandle};
 use crate::{
-    ntdll_sys, Pod, SecurityDescriptor, WnfChangeStamp, WnfCreateError, WnfDataScope, WnfStampedData, WnfStateName,
+    ntdll_sys, SecurityDescriptor, WnfChangeStamp, WnfCreateError, WnfDataScope, WnfStampedData, WnfStateName,
     WnfStateNameLifetime,
 };
 
-// conceptually: *mut State<T>
-#[derive(Debug)]
-pub(crate) struct RawWnfState<T> {
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct RawWnfState {
     state_name: WnfStateName,
-    _marker: PhantomData<fn(T) -> T>,
 }
 
-impl<T> Copy for RawWnfState<T> {}
-
-impl<T> Clone for RawWnfState<T> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-impl<T> RawWnfState<T> {
+impl RawWnfState {
     pub(crate) fn from_state_name(state_name: WnfStateName) -> Self {
-        Self {
-            state_name,
-            _marker: PhantomData,
-        }
+        Self { state_name }
     }
 
     pub(crate) fn state_name(&self) -> WnfStateName {
@@ -96,56 +83,74 @@ impl<T> RawWnfState<T> {
     }
 }
 
-impl<T: Pod> RawWnfState<T> {
-    pub fn get(&self) -> Result<T, WnfQueryError> {
+impl RawWnfState {
+    pub fn get<T>(&self) -> Result<T, WnfQueryError>
+    where
+        T: CheckedBitPattern,
+    {
         self.query().map(WnfStampedData::into_data)
     }
 
-    pub fn get_slice(&self) -> Result<Box<[T]>, WnfQueryError> {
+    pub fn get_slice<T>(&self) -> Result<Box<[T]>, WnfQueryError>
+    where
+        T: CheckedBitPattern,
+    {
         self.query_slice().map(WnfStampedData::into_data)
     }
 
-    pub fn query(&self) -> Result<WnfStampedData<T>, WnfQueryError> {
-        let mut buffer = MaybeUninit::<T>::uninit();
-        let (size, change_stamp) = unsafe { self.query_internal(buffer.as_mut_ptr(), mem::size_of::<T>())? };
+    pub fn query<T>(&self) -> Result<WnfStampedData<T>, WnfQueryError>
+    where
+        T: CheckedBitPattern,
+    {
+        let mut buffer = MaybeUninit::<T::Bits>::uninit();
+        let (size, change_stamp) = unsafe { self.query_internal(buffer.as_mut_ptr(), mem::size_of::<T::Bits>())? };
 
-        if size == mem::size_of::<T>() {
-            let data = unsafe { buffer.assume_init() };
+        if size != mem::size_of::<T::Bits>() {
+            return Err(WnfQueryError::WrongSize {
+                expected: mem::size_of::<T::Bits>(),
+                actual: size,
+            });
+        }
+
+        let bits = unsafe { buffer.assume_init() };
+
+        if T::is_valid_bit_pattern(&bits) {
+            let data = unsafe { *(&bits as *const T::Bits as *const T) };
             Ok(WnfStampedData::from_data_change_stamp(data, change_stamp))
         } else {
-            Err(WnfQueryError::WrongSize {
-                expected: mem::size_of::<T>(),
-                actual: size,
-            })
+            Err(WnfQueryError::InvalidBitPattern)
         }
     }
 
-    pub fn query_slice(&self) -> Result<WnfStampedData<Box<[T]>>, WnfQueryError> {
-        let mut buffer = Vec::new();
+    pub fn query_slice<T>(&self) -> Result<WnfStampedData<Box<[T]>>, WnfQueryError>
+    where
+        T: CheckedBitPattern,
+    {
+        let mut buffer: Vec<T::Bits> = Vec::new();
 
         let (len, change_stamp) = loop {
             let (size, change_stamp) =
-                unsafe { self.query_internal(buffer.as_mut_ptr(), buffer.capacity() * mem::size_of::<T>())? };
+                unsafe { self.query_internal(buffer.as_mut_ptr(), buffer.capacity() * mem::size_of::<T::Bits>())? };
 
             if size == 0 {
                 break (0, change_stamp);
             }
 
-            if mem::size_of::<T>() == 0 {
+            if mem::size_of::<T::Bits>() == 0 {
                 return Err(WnfQueryError::WrongSize {
                     expected: 0,
                     actual: size,
                 });
             }
 
-            if size % mem::size_of::<T>() != 0 {
+            if size % mem::size_of::<T::Bits>() != 0 {
                 return Err(WnfQueryError::WrongSizeMultiple {
-                    expected_modulus: mem::size_of::<T>(),
+                    expected_modulus: mem::size_of::<T::Bits>(),
                     actual: size,
                 });
             }
 
-            let len = size / mem::size_of::<T>();
+            let len = size / mem::size_of::<T::Bits>();
             if len > buffer.capacity() {
                 buffer.reserve(len - buffer.capacity());
             } else {
@@ -157,13 +162,16 @@ impl<T: Pod> RawWnfState<T> {
             buffer.set_len(len);
         }
 
-        Ok(WnfStampedData::from_data_change_stamp(
-            buffer.into_boxed_slice(),
-            change_stamp,
-        ))
+        if buffer.iter().all(T::is_valid_bit_pattern) {
+            let data = buffer.into_boxed_slice();
+            let data = unsafe { Box::from_raw(Box::into_raw(data) as *mut [T]) };
+            Ok(WnfStampedData::from_data_change_stamp(data, change_stamp))
+        } else {
+            Err(WnfQueryError::InvalidBitPattern)
+        }
     }
 
-    unsafe fn query_internal(
+    unsafe fn query_internal<T>(
         &self,
         buffer: *mut T,
         buffer_size: usize,
@@ -187,25 +195,37 @@ impl<T: Pod> RawWnfState<T> {
         }
     }
 
-    pub fn set(&self, data: &T) -> Result<(), WnfUpdateError> {
+    pub fn set<T>(&self, data: &T) -> Result<(), WnfUpdateError>
+    where
+        T: NoUninit,
+    {
         self.update(data, None)?;
         Ok(())
     }
 
-    pub fn set_slice(&self, data: &[T]) -> Result<(), WnfUpdateError> {
+    pub fn set_slice<T>(&self, data: &[T]) -> Result<(), WnfUpdateError>
+    where
+        T: NoUninit,
+    {
         self.update_slice(data, None)?;
         Ok(())
     }
 
-    pub fn update(&self, data: &T, expected_change_stamp: Option<WnfChangeStamp>) -> Result<bool, WnfUpdateError> {
+    pub fn update<T>(&self, data: &T, expected_change_stamp: Option<WnfChangeStamp>) -> Result<bool, WnfUpdateError>
+    where
+        T: NoUninit,
+    {
         self.update_slice(slice::from_ref(data), expected_change_stamp)
     }
 
-    pub fn update_slice(
+    pub fn update_slice<T>(
         &self,
         data: &[T],
         expected_change_stamp: Option<WnfChangeStamp>,
-    ) -> Result<bool, WnfUpdateError> {
+    ) -> Result<bool, WnfUpdateError>
+    where
+        T: NoUninit,
+    {
         let result = unsafe {
             ntdll_sys::ZwUpdateWnfStateData(
                 &self.state_name.opaque_value(),
@@ -226,7 +246,10 @@ impl<T: Pod> RawWnfState<T> {
         }
     }
 
-    pub fn apply(&self, mut op: impl FnMut(&T) -> T) -> Result<(), WnfApplyError> {
+    pub fn apply<T>(&self, mut op: impl FnMut(&T) -> T) -> Result<(), WnfApplyError>
+    where
+        T: CheckedBitPattern + NoUninit,
+    {
         loop {
             let query_result = self.query()?;
             if self.update(&op(query_result.data()), Some(query_result.change_stamp()))? {
@@ -237,7 +260,10 @@ impl<T: Pod> RawWnfState<T> {
         Ok(())
     }
 
-    pub fn apply_slice(&self, mut op: impl FnMut(&[T]) -> Box<[T]>) -> Result<(), WnfApplyError> {
+    pub fn apply_slice<T>(&self, mut op: impl FnMut(&[T]) -> Box<[T]>) -> Result<(), WnfApplyError>
+    where
+        T: CheckedBitPattern + NoUninit,
+    {
         loop {
             let query_result = self.query_slice()?;
             if self.update_slice(&op(query_result.data()), Some(query_result.change_stamp()))? {
@@ -248,28 +274,27 @@ impl<T: Pod> RawWnfState<T> {
         Ok(())
     }
 
-    pub fn subscribe<'a, F: FnMut(Option<WnfStampedData<&T>>) + Send + ?Sized + 'static>(
-        &self,
-        listener: Box<F>,
-    ) -> Result<WnfSubscriptionHandle<'a, F>, WnfSubscribeError> {
+    pub fn subscribe<'a, T, F>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<'a, F>, WnfSubscribeError>
+    where
+        T: CheckedBitPattern,
+        F: FnMut(Option<WnfStampedData<&T>>) + Send + ?Sized + 'static,
+    {
         self.subscribe_internal(listener)
     }
 
-    pub fn subscribe_slice<'a, F: FnMut(Option<WnfStampedData<&[T]>>) + Send + ?Sized + 'static>(
-        &self,
-        listener: Box<F>,
-    ) -> Result<WnfSubscriptionHandle<'a, F>, WnfSubscribeError> {
+    pub fn subscribe_slice<'a, T, F>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<'a, F>, WnfSubscribeError>
+    where
+        T: CheckedBitPattern,
+        F: FnMut(Option<WnfStampedData<&[T]>>) + Send + ?Sized + 'static,
+    {
         self.subscribe_internal(listener)
     }
 
-    fn subscribe_internal<
-        'a,
+    fn subscribe_internal<'a, D, F>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<'a, F>, WnfSubscribeError>
+    where
         D: FromBuffer + ?Sized,
         F: FnMut(Option<WnfStampedData<&D>>) + Send + ?Sized + 'static,
-    >(
-        &self,
-        listener: Box<F>,
-    ) -> Result<WnfSubscriptionHandle<'a, F>, WnfSubscribeError> {
+    {
         extern "system" fn callback<
             D: FromBuffer + ?Sized,
             F: FnMut(Option<WnfStampedData<&D>>) + Send + ?Sized + 'static,
@@ -320,9 +345,18 @@ trait FromBuffer {
     unsafe fn from_buffer<'a>(buffer: *const c_void, buffer_size: u32) -> Option<&'a Self>;
 }
 
-impl<T: Pod> FromBuffer for T {
+impl<T> FromBuffer for T
+where
+    T: CheckedBitPattern,
+{
     unsafe fn from_buffer<'a>(buffer: *const c_void, buffer_size: u32) -> Option<&'a Self> {
-        if buffer as usize % mem::align_of::<T>() == 0 && buffer_size as usize == mem::size_of::<T>() {
+        if buffer as usize % mem::align_of::<T>() != 0 || buffer_size as usize != mem::size_of::<T>() {
+            return None;
+        }
+
+        let bits: &T::Bits = &*buffer.cast();
+
+        if T::is_valid_bit_pattern(bits) {
             Some(&*buffer.cast())
         } else {
             None
@@ -330,7 +364,10 @@ impl<T: Pod> FromBuffer for T {
     }
 }
 
-impl<T: Pod> FromBuffer for [T] {
+impl<T> FromBuffer for [T]
+where
+    T: CheckedBitPattern,
+{
     unsafe fn from_buffer<'a>(buffer: *const c_void, buffer_size: u32) -> Option<&'a Self> {
         if buffer as usize % mem::align_of::<T>() != 0 {
             return None;
@@ -344,9 +381,13 @@ impl<T: Pod> FromBuffer for [T] {
             return None;
         }
 
-        Some(slice::from_raw_parts(
-            buffer.cast(),
-            buffer_size as usize / mem::size_of::<T>(),
-        ))
+        let data = slice::from_raw_parts(buffer.cast(), buffer_size as usize / mem::size_of::<T>());
+
+        if data.iter().all(T::is_valid_bit_pattern) {
+            let data = &*(data as *const [T::Bits] as *const [T]);
+            Some(data)
+        } else {
+            None
+        }
     }
 }
