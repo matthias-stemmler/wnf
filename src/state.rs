@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::marker::PhantomData;
 use std::mem::ManuallyDrop;
 
@@ -8,12 +9,12 @@ use crate::raw_state::RawWnfState;
 use crate::subscription::WnfSubscriptionHandle;
 use crate::{WnfChangeStamp, WnfCreateError, WnfStampedData, WnfStateName};
 
-#[derive(Debug)]
+#[derive(Debug, Eq, Hash, PartialEq)]
 pub struct OwnedWnfState {
     raw: RawWnfState,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct BorrowedWnfState<'a> {
     raw: RawWnfState,
     _marker: PhantomData<&'a ()>,
@@ -63,6 +64,13 @@ impl OwnedWnfState {
         self.raw.get()
     }
 
+    pub fn get_boxed<T>(&self) -> Result<Box<T>, WnfQueryError>
+    where
+        T: CheckedBitPattern,
+    {
+        self.raw.get_boxed()
+    }
+
     pub fn get_slice<T>(&self) -> Result<Box<[T]>, WnfQueryError>
     where
         T: CheckedBitPattern,
@@ -75,6 +83,13 @@ impl OwnedWnfState {
         T: CheckedBitPattern,
     {
         self.raw.query()
+    }
+
+    pub fn query_boxed<T>(&self) -> Result<WnfStampedData<Box<T>>, WnfQueryError>
+    where
+        T: CheckedBitPattern,
+    {
+        self.raw.query_boxed()
     }
 
     pub fn query_slice<T>(&self) -> Result<WnfStampedData<Box<[T]>>, WnfQueryError>
@@ -116,32 +131,50 @@ impl OwnedWnfState {
         self.raw.update_slice(data, expected_change_stamp)
     }
 
-    pub fn apply<T>(&self, op: impl FnMut(&T) -> T) -> Result<(), WnfApplyError>
+    pub fn apply<T, R>(&self, op: impl FnMut(T) -> R) -> Result<(), WnfApplyError>
     where
         T: CheckedBitPattern + NoUninit,
+        R: Borrow<T>,
     {
         self.raw.apply(op)
     }
 
-    pub fn apply_slice<T>(&self, op: impl FnMut(&[T]) -> Box<[T]>) -> Result<(), WnfApplyError>
+    pub fn apply_boxed<T, R>(&self, op: impl FnMut(Box<T>) -> R) -> Result<(), WnfApplyError>
     where
         T: CheckedBitPattern + NoUninit,
+        R: Borrow<T>,
+    {
+        self.raw.apply_boxed(op)
+    }
+
+    pub fn apply_slice<T, R>(&self, op: impl FnMut(Box<[T]>) -> R) -> Result<(), WnfApplyError>
+    where
+        T: CheckedBitPattern + NoUninit,
+        R: Borrow<[T]>,
     {
         self.raw.apply_slice(op)
     }
 
-    pub fn subscribe<T, F>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<'_, F>, WnfSubscribeError>
+    pub fn subscribe<T, F>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
         T: CheckedBitPattern,
-        F: FnMut(Option<WnfStampedData<&T>>) + Send + ?Sized + 'static,
+        F: FnMut(Option<WnfStampedData<T>>) + Send + ?Sized + 'static,
     {
         self.raw.subscribe(listener)
     }
 
-    pub fn subscribe_slice<T, F>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<'_, F>, WnfSubscribeError>
+    pub fn subscribe_slice_boxed<T, F>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
         T: CheckedBitPattern,
-        F: FnMut(Option<WnfStampedData<&[T]>>) + Send + ?Sized + 'static,
+        F: FnMut(Option<WnfStampedData<Box<T>>>) + Send + ?Sized + 'static,
+    {
+        self.raw.subscribe_boxed(listener)
+    }
+
+    pub fn subscribe_slice<T, F>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
+    where
+        T: CheckedBitPattern,
+        F: FnMut(Option<WnfStampedData<Box<[T]>>>) + Send + ?Sized + 'static,
     {
         self.raw.subscribe_slice(listener)
     }
@@ -200,6 +233,13 @@ impl<'a> BorrowedWnfState<'a> {
         self.raw.get()
     }
 
+    pub fn get_boxed<T>(&self) -> Result<Box<T>, WnfQueryError>
+    where
+        T: CheckedBitPattern,
+    {
+        self.raw.get_boxed()
+    }
+
     pub fn get_slice<T>(&self) -> Result<Box<[T]>, WnfQueryError>
     where
         T: CheckedBitPattern,
@@ -212,6 +252,13 @@ impl<'a> BorrowedWnfState<'a> {
         T: CheckedBitPattern,
     {
         self.raw.query()
+    }
+
+    pub fn query_boxed<T>(&self) -> Result<WnfStampedData<Box<T>>, WnfQueryError>
+    where
+        T: CheckedBitPattern,
+    {
+        self.raw.query_boxed()
     }
 
     pub fn query_slice<T>(&self) -> Result<WnfStampedData<Box<[T]>>, WnfQueryError>
@@ -253,32 +300,50 @@ impl<'a> BorrowedWnfState<'a> {
         self.raw.update_slice(data, expected_change_stamp)
     }
 
-    pub fn apply<T>(&self, op: impl FnMut(&T) -> T) -> Result<(), WnfApplyError>
+    pub fn apply<T, R>(&self, op: impl FnMut(T) -> R) -> Result<(), WnfApplyError>
     where
         T: CheckedBitPattern + NoUninit,
+        R: Borrow<T>,
     {
         self.raw.apply(op)
     }
 
-    pub fn apply_slice<T>(&self, op: impl FnMut(&[T]) -> Box<[T]>) -> Result<(), WnfApplyError>
+    pub fn apply_boxed<T, R>(&self, op: impl FnMut(Box<T>) -> R) -> Result<(), WnfApplyError>
     where
         T: CheckedBitPattern + NoUninit,
+        R: Borrow<T>,
+    {
+        self.raw.apply_boxed(op)
+    }
+
+    pub fn apply_slice<T, R>(&self, op: impl FnMut(Box<[T]>) -> R) -> Result<(), WnfApplyError>
+    where
+        T: CheckedBitPattern + NoUninit,
+        R: Borrow<[T]>,
     {
         self.raw.apply_slice(op)
     }
 
-    pub fn subscribe<T, F>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<'a, F>, WnfSubscribeError>
+    pub fn subscribe<T, F>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
         T: CheckedBitPattern,
-        F: FnMut(Option<WnfStampedData<&T>>) + Send + ?Sized + 'static,
+        F: FnMut(Option<WnfStampedData<T>>) + Send + ?Sized + 'static,
     {
         self.raw.subscribe(listener)
     }
 
-    pub fn subscribe_slice<T, F>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<'a, F>, WnfSubscribeError>
+    pub fn subscribe_boxed<T, F>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
         T: CheckedBitPattern,
-        F: FnMut(Option<WnfStampedData<&[T]>>) + Send + ?Sized + 'static,
+        F: FnMut(Option<WnfStampedData<Box<T>>>) + Send + ?Sized + 'static,
+    {
+        self.raw.subscribe_boxed(listener)
+    }
+
+    pub fn subscribe_slice<T, F>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
+    where
+        T: CheckedBitPattern,
+        F: FnMut(Option<WnfStampedData<Box<[T]>>>) + Send + ?Sized + 'static,
     {
         self.raw.subscribe_slice(listener)
     }

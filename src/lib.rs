@@ -12,7 +12,6 @@ use security::SecurityDescriptor;
 pub use state::{BorrowedWnfState, OwnedWnfState};
 pub use state_name::{WnfDataScope, WnfStateName, WnfStateNameDescriptor, WnfStateNameLifetime};
 
-mod buffer;
 mod bytes;
 mod data;
 mod error;
@@ -24,5 +23,4 @@ mod state_name;
 mod subscription;
 
 // TODO allow specifying minimum change_stamp for subscribe
-// TODO maybe extract trait similar to FromBuffer also for query?
 // TODO tracing

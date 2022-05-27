@@ -53,12 +53,16 @@ impl<T> WnfStampedData<T> {
         }
     }
 
-    pub fn data(&self) -> &T {
-        &self.data
+    pub fn into_data_change_stamp(self) -> (T, WnfChangeStamp) {
+        (self.data, self.change_stamp)
     }
 
     pub fn into_data(self) -> T {
         self.data
+    }
+
+    pub fn data(&self) -> &T {
+        &self.data
     }
 
     pub fn change_stamp(&self) -> WnfChangeStamp {
