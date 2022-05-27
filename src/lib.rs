@@ -12,6 +12,7 @@ use security::SecurityDescriptor;
 pub use state::{BorrowedWnfState, OwnedWnfState};
 pub use state_name::{WnfDataScope, WnfStateName, WnfStateNameDescriptor, WnfStateNameLifetime};
 
+mod buffer;
 mod bytes;
 mod data;
 mod error;
