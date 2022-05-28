@@ -16,7 +16,7 @@ fn set_and_get_by_value() {
     let state: OwnedWnfState = OwnedWnfState::create_temporary().unwrap();
 
     let value = 0x12345678;
-    state.set(&value).unwrap();
+    state.set(value).unwrap();
     let read_value: u32 = state.get().unwrap();
 
     assert_eq!(read_value, value);
@@ -27,7 +27,7 @@ fn set_and_get_boxed() {
     let state: OwnedWnfState = OwnedWnfState::create_temporary().unwrap();
 
     let value = Box::new(0x12345678);
-    state.set(&*value).unwrap();
+    state.set::<u32, _>(&*value).unwrap();
     let read_value: Box<u32> = state.get_boxed().unwrap();
 
     assert_eq!(read_value, value);
@@ -38,7 +38,7 @@ fn set_and_get_slice() {
     let state: OwnedWnfState = OwnedWnfState::create_temporary().unwrap();
 
     let value = vec![0x12345678, 0xABCDEF01, 0x23456789];
-    state.set_slice(&value).unwrap();
+    state.set_slice(&*value).unwrap();
     let read_value: Box<[u32]> = state.get_slice().unwrap();
 
     assert_eq!(*read_value, *value);
@@ -50,7 +50,7 @@ macro_rules! apply_tests {
             #[test]
             fn $name() {
                 let state: OwnedWnfState = OwnedWnfState::create_temporary().unwrap();
-                state.set(&0u32).unwrap();
+                state.set(0u32).unwrap();
 
                 let num_threads = 2;
                 let num_iterations = 128;
@@ -83,7 +83,7 @@ apply_tests! {
 #[test]
 fn apply_slice_to_vec() {
     let state: OwnedWnfState = OwnedWnfState::create_temporary().unwrap();
-    state.set_slice(&[0u32, 0u32]).unwrap();
+    state.set_slice([0u32, 0u32]).unwrap();
 
     let num_threads = 2;
     let num_iterations = 128;

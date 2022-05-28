@@ -235,37 +235,43 @@ impl RawWnfState {
         }
     }
 
-    pub fn set<T>(&self, data: &T) -> Result<(), WnfUpdateError>
+    pub fn set<T, D>(&self, data: D) -> Result<(), WnfUpdateError>
     where
         T: NoUninit,
+        D: Borrow<T>,
     {
         self.update(data, None)?;
         Ok(())
     }
 
-    pub fn set_slice<T>(&self, data: &[T]) -> Result<(), WnfUpdateError>
+    pub fn set_slice<T, D>(&self, data: D) -> Result<(), WnfUpdateError>
     where
         T: NoUninit,
+        D: Borrow<[T]>,
     {
         self.update_slice(data, None)?;
         Ok(())
     }
 
-    pub fn update<T>(&self, data: &T, expected_change_stamp: Option<WnfChangeStamp>) -> Result<bool, WnfUpdateError>
+    pub fn update<T, D>(&self, data: D, expected_change_stamp: Option<WnfChangeStamp>) -> Result<bool, WnfUpdateError>
     where
         T: NoUninit,
+        D: Borrow<T>,
     {
-        self.update_slice(slice::from_ref(data), expected_change_stamp)
+        self.update_slice(slice::from_ref(data.borrow()), expected_change_stamp)
     }
 
-    pub fn update_slice<T>(
+    pub fn update_slice<T, D>(
         &self,
-        data: &[T],
+        data: D,
         expected_change_stamp: Option<WnfChangeStamp>,
     ) -> Result<bool, WnfUpdateError>
     where
         T: NoUninit,
+        D: Borrow<[T]>,
     {
+        let data = data.borrow();
+
         let result = unsafe {
             ntdll_sys::ZwUpdateWnfStateData(
                 &self.state_name.opaque_value(),
@@ -286,14 +292,14 @@ impl RawWnfState {
         }
     }
 
-    pub fn apply<T, R>(&self, mut op: impl FnMut(T) -> R) -> Result<(), WnfApplyError>
+    pub fn apply<T, D>(&self, mut op: impl FnMut(T) -> D) -> Result<(), WnfApplyError>
     where
         T: CheckedBitPattern + NoUninit,
-        R: Borrow<T>,
+        D: Borrow<T>,
     {
         loop {
             let (data, change_stamp) = self.query()?.into_data_change_stamp();
-            if self.update(op(data).borrow(), Some(change_stamp))? {
+            if self.update(op(data), Some(change_stamp))? {
                 break;
             }
         }
@@ -301,14 +307,14 @@ impl RawWnfState {
         Ok(())
     }
 
-    pub fn apply_boxed<T, R>(&self, mut op: impl FnMut(Box<T>) -> R) -> Result<(), WnfApplyError>
+    pub fn apply_boxed<T, D>(&self, mut op: impl FnMut(Box<T>) -> D) -> Result<(), WnfApplyError>
     where
         T: CheckedBitPattern + NoUninit,
-        R: Borrow<T>,
+        D: Borrow<T>,
     {
         loop {
             let (data, change_stamp) = self.query_boxed()?.into_data_change_stamp();
-            if self.update(op(data).borrow(), Some(change_stamp))? {
+            if self.update(op(data), Some(change_stamp))? {
                 break;
             }
         }
@@ -316,14 +322,14 @@ impl RawWnfState {
         Ok(())
     }
 
-    pub fn apply_slice<T, R>(&self, mut op: impl FnMut(Box<[T]>) -> R) -> Result<(), WnfApplyError>
+    pub fn apply_slice<T, D>(&self, mut op: impl FnMut(Box<[T]>) -> D) -> Result<(), WnfApplyError>
     where
         T: CheckedBitPattern + NoUninit,
-        R: Borrow<[T]>,
+        D: Borrow<[T]>,
     {
         loop {
             let (data, change_stamp) = self.query_slice()?.into_data_change_stamp();
-            if self.update_slice(op(data).borrow(), Some(change_stamp))? {
+            if self.update_slice(op(data), Some(change_stamp))? {
                 break;
             }
         }
@@ -355,14 +361,14 @@ impl RawWnfState {
         self.subscribe_internal::<BoxedSlice<T>, F>(listener)
     }
 
-    fn subscribe_internal<D, F>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
+    fn subscribe_internal<B, F>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        D: FromByteBuffer,
-        F: FnMut(Option<WnfStampedData<D::Data>>) + Send + ?Sized + 'static,
+        B: FromByteBuffer,
+        F: FnMut(Option<WnfStampedData<B::Data>>) + Send + ?Sized + 'static,
     {
         extern "system" fn callback<
-            D: FromByteBuffer,
-            F: FnMut(Option<WnfStampedData<D::Data>>) + Send + ?Sized + 'static,
+            B: FromByteBuffer,
+            F: FnMut(Option<WnfStampedData<B::Data>>) + Send + ?Sized + 'static,
         >(
             _state_name: u64,
             change_stamp: u32,
@@ -375,7 +381,7 @@ impl RawWnfState {
                 let context: &WnfSubscriptionContext<F> = unsafe { &*context.cast() };
 
                 context.with_listener(|listener| {
-                    let maybe_data = unsafe { D::from_byte_buffer(buffer, buffer_size) };
+                    let maybe_data = unsafe { B::from_byte_buffer(buffer, buffer_size) };
                     let stamped_data =
                         maybe_data.map(|data| WnfStampedData::from_data_change_stamp(data, change_stamp));
                     (*listener)(stamped_data);
@@ -393,7 +399,7 @@ impl RawWnfState {
                 &mut subscription,
                 self.state_name.opaque_value(),
                 0,
-                callback::<D, F>,
+                callback::<B, F>,
                 &*context as *const _ as *mut c_void,
                 ptr::null(),
                 0,
