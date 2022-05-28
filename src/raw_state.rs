@@ -12,7 +12,9 @@ use windows::Win32::Foundation::{
 
 use crate::bytes::{CheckedBitPattern, NoUninit};
 use crate::data::WnfStateInfo;
-use crate::error::{WnfApplyError, WnfDeleteError, WnfInfoError, WnfQueryError, WnfSubscribeError, WnfUpdateError};
+use crate::error::{
+    WnfApplyError, WnfDeleteError, WnfInfoError, WnfQueryError, WnfSubscribeError, WnfTransformError, WnfUpdateError,
+};
 use crate::subscription::{WnfSubscriptionContext, WnfSubscriptionHandle};
 use crate::{
     ntdll_sys, SecurityDescriptor, WnfChangeStamp, WnfCreateError, WnfDataScope, WnfStampedData, WnfStateName,
@@ -292,14 +294,15 @@ impl RawWnfState {
         }
     }
 
-    pub fn apply<T, D>(&self, mut op: impl FnMut(T) -> D) -> Result<(), WnfApplyError>
+    pub fn apply<T, D, F>(&self, mut transform: F) -> Result<(), WnfApplyError>
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
+        F: FnMut(T) -> D,
     {
         loop {
             let (data, change_stamp) = self.query()?.into_data_change_stamp();
-            if self.update(op(data), Some(change_stamp))? {
+            if self.update(transform(data), Some(change_stamp))? {
                 break;
             }
         }
@@ -307,14 +310,15 @@ impl RawWnfState {
         Ok(())
     }
 
-    pub fn apply_boxed<T, D>(&self, mut op: impl FnMut(Box<T>) -> D) -> Result<(), WnfApplyError>
+    pub fn apply_boxed<T, D, F>(&self, mut transform: F) -> Result<(), WnfApplyError>
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
+        F: FnMut(Box<T>) -> D,
     {
         loop {
             let (data, change_stamp) = self.query_boxed()?.into_data_change_stamp();
-            if self.update(op(data), Some(change_stamp))? {
+            if self.update(transform(data), Some(change_stamp))? {
                 break;
             }
         }
@@ -322,14 +326,63 @@ impl RawWnfState {
         Ok(())
     }
 
-    pub fn apply_slice<T, D>(&self, mut op: impl FnMut(Box<[T]>) -> D) -> Result<(), WnfApplyError>
+    pub fn apply_slice<T, D, F>(&self, mut transform: F) -> Result<(), WnfApplyError>
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<[T]>,
+        F: FnMut(Box<[T]>) -> D,
     {
         loop {
             let (data, change_stamp) = self.query_slice()?.into_data_change_stamp();
-            if self.update_slice(op(data), Some(change_stamp))? {
+            if self.update_slice(transform(data), Some(change_stamp))? {
+                break;
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn try_apply<T, D, E, F>(&self, mut transform: F) -> Result<(), WnfApplyError<E>>
+    where
+        T: CheckedBitPattern + NoUninit,
+        D: Borrow<T>,
+        F: FnMut(T) -> Result<D, E>,
+    {
+        loop {
+            let (data, change_stamp) = self.query()?.into_data_change_stamp();
+            if self.update(transform(data).map_err(WnfTransformError::from)?, Some(change_stamp))? {
+                break;
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn try_apply_boxed<T, D, E, F>(&self, mut transform: F) -> Result<(), WnfApplyError<E>>
+    where
+        T: CheckedBitPattern + NoUninit,
+        D: Borrow<T>,
+        F: FnMut(Box<T>) -> Result<D, E>,
+    {
+        loop {
+            let (data, change_stamp) = self.query_boxed()?.into_data_change_stamp();
+            if self.update(transform(data).map_err(WnfTransformError::from)?, Some(change_stamp))? {
+                break;
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn try_apply_slice<T, D, E, F>(&self, mut transform: F) -> Result<(), WnfApplyError<E>>
+    where
+        T: CheckedBitPattern + NoUninit,
+        D: Borrow<[T]>,
+        F: FnMut(Box<[T]>) -> Result<D, E>,
+    {
+        loop {
+            let (data, change_stamp) = self.query_slice()?.into_data_change_stamp();
+            if self.update_slice(transform(data).map_err(WnfTransformError::from)?, Some(change_stamp))? {
                 break;
             }
         }

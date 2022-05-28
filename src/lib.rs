@@ -6,9 +6,12 @@
 extern crate num_derive;
 
 use data::{WnfChangeStamp, WnfStampedData};
-use error::WnfCreateError;
 use security::SecurityDescriptor;
 
+pub use error::{
+    SecurityCreateError, WnfApplyError, WnfCreateError, WnfDeleteError, WnfInfoError, WnfQueryError, WnfSubscribeError,
+    WnfTransformError, WnfUnsubscribeError, WnfUpdateError,
+};
 pub use state::{BorrowedWnfState, OwnedWnfState};
 pub use state_name::{WnfDataScope, WnfStateName, WnfStateNameDescriptor, WnfStateNameLifetime};
 

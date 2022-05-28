@@ -135,28 +135,58 @@ impl OwnedWnfState {
         self.raw.update_slice(data, expected_change_stamp)
     }
 
-    pub fn apply<T, R>(&self, op: impl FnMut(T) -> R) -> Result<(), WnfApplyError>
+    pub fn apply<T, D, F>(&self, transform: F) -> Result<(), WnfApplyError>
     where
         T: CheckedBitPattern + NoUninit,
-        R: Borrow<T>,
+        D: Borrow<T>,
+        F: FnMut(T) -> D,
     {
-        self.raw.apply(op)
+        self.raw.apply(transform)
     }
 
-    pub fn apply_boxed<T, R>(&self, op: impl FnMut(Box<T>) -> R) -> Result<(), WnfApplyError>
+    pub fn apply_boxed<T, D, F>(&self, transform: F) -> Result<(), WnfApplyError>
     where
         T: CheckedBitPattern + NoUninit,
-        R: Borrow<T>,
+        D: Borrow<T>,
+        F: FnMut(Box<T>) -> D,
     {
-        self.raw.apply_boxed(op)
+        self.raw.apply_boxed(transform)
     }
 
-    pub fn apply_slice<T, R>(&self, op: impl FnMut(Box<[T]>) -> R) -> Result<(), WnfApplyError>
+    pub fn apply_slice<T, D, F>(&self, transform: F) -> Result<(), WnfApplyError>
     where
         T: CheckedBitPattern + NoUninit,
-        R: Borrow<[T]>,
+        D: Borrow<[T]>,
+        F: FnMut(Box<[T]>) -> D,
     {
-        self.raw.apply_slice(op)
+        self.raw.apply_slice(transform)
+    }
+
+    pub fn try_apply<T, D, E, F>(&self, tranform: F) -> Result<(), WnfApplyError<E>>
+    where
+        T: CheckedBitPattern + NoUninit,
+        D: Borrow<T>,
+        F: FnMut(T) -> Result<D, E>,
+    {
+        self.raw.try_apply(tranform)
+    }
+
+    pub fn try_apply_boxed<T, D, E, F>(&self, transform: F) -> Result<(), WnfApplyError<E>>
+    where
+        T: CheckedBitPattern + NoUninit,
+        D: Borrow<T>,
+        F: FnMut(Box<T>) -> Result<D, E>,
+    {
+        self.raw.try_apply_boxed(transform)
+    }
+
+    pub fn try_apply_slice<T, D, E, F>(&self, transform: F) -> Result<(), WnfApplyError<E>>
+    where
+        T: CheckedBitPattern + NoUninit,
+        D: Borrow<[T]>,
+        F: FnMut(Box<[T]>) -> Result<D, E>,
+    {
+        self.raw.try_apply_slice(transform)
     }
 
     pub fn subscribe<T, F>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
@@ -308,28 +338,58 @@ impl<'a> BorrowedWnfState<'a> {
         self.raw.update_slice(data, expected_change_stamp)
     }
 
-    pub fn apply<T, R>(&self, op: impl FnMut(T) -> R) -> Result<(), WnfApplyError>
+    pub fn apply<T, D, F>(&self, transform: F) -> Result<(), WnfApplyError>
     where
         T: CheckedBitPattern + NoUninit,
-        R: Borrow<T>,
+        D: Borrow<T>,
+        F: FnMut(T) -> D,
     {
-        self.raw.apply(op)
+        self.raw.apply(transform)
     }
 
-    pub fn apply_boxed<T, R>(&self, op: impl FnMut(Box<T>) -> R) -> Result<(), WnfApplyError>
+    pub fn apply_boxed<T, D, F>(&self, transform: F) -> Result<(), WnfApplyError>
     where
         T: CheckedBitPattern + NoUninit,
-        R: Borrow<T>,
+        D: Borrow<T>,
+        F: FnMut(Box<T>) -> D,
     {
-        self.raw.apply_boxed(op)
+        self.raw.apply_boxed(transform)
     }
 
-    pub fn apply_slice<T, R>(&self, op: impl FnMut(Box<[T]>) -> R) -> Result<(), WnfApplyError>
+    pub fn apply_slice<T, D, F>(&self, transform: F) -> Result<(), WnfApplyError>
     where
         T: CheckedBitPattern + NoUninit,
-        R: Borrow<[T]>,
+        D: Borrow<[T]>,
+        F: FnMut(Box<[T]>) -> D,
     {
-        self.raw.apply_slice(op)
+        self.raw.apply_slice(transform)
+    }
+
+    pub fn try_apply<T, D, E, F>(&self, transform: F) -> Result<(), WnfApplyError<E>>
+    where
+        T: CheckedBitPattern + NoUninit,
+        D: Borrow<T>,
+        F: FnMut(T) -> Result<D, E>,
+    {
+        self.raw.try_apply(transform)
+    }
+
+    pub fn try_apply_boxed<T, D, E, F>(&self, transform: F) -> Result<(), WnfApplyError<E>>
+    where
+        T: CheckedBitPattern + NoUninit,
+        D: Borrow<T>,
+        F: FnMut(Box<T>) -> Result<D, E>,
+    {
+        self.raw.try_apply_boxed(transform)
+    }
+
+    pub fn try_apply_slice<T, D, E, F>(&self, transform: F) -> Result<(), WnfApplyError<E>>
+    where
+        T: CheckedBitPattern + NoUninit,
+        D: Borrow<[T]>,
+        F: FnMut(Box<[T]>) -> Result<D, E>,
+    {
+        self.raw.try_apply_slice(transform)
     }
 
     pub fn subscribe<T, F>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>

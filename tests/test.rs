@@ -1,7 +1,10 @@
 use std::sync::Arc;
 use std::thread;
 
-use wnf::{BorrowedWnfState, OwnedWnfState, WnfDataScope, WnfStateNameDescriptor, WnfStateNameLifetime};
+use wnf::{
+    BorrowedWnfState, OwnedWnfState, WnfApplyError, WnfDataScope, WnfStateNameDescriptor, WnfStateNameLifetime,
+    WnfTransformError,
+};
 
 #[test]
 fn create_temporary() {
@@ -175,6 +178,70 @@ fn apply_slice_to_vec() {
 }
 
 #[test]
+fn try_apply_by_value_ok() {
+    let state = OwnedWnfState::create_temporary().unwrap();
+
+    state.set(0u32).unwrap();
+    let result = state.try_apply::<_, _, TestError, _>(|v: u32| Ok(v + 1));
+
+    assert!(result.is_ok());
+    assert_eq!(state.get::<u32>().unwrap(), 1);
+}
+
+#[test]
+fn try_apply_by_value_err() {
+    let state = OwnedWnfState::create_temporary().unwrap();
+
+    state.set(0u32).unwrap();
+    let result = state.try_apply::<u32, u32, _, _>(|_| Err(TestError));
+
+    assert_eq!(result, Err(WnfApplyError::Transform(WnfTransformError(TestError))));
+}
+
+#[test]
+fn try_apply_boxed_ok() {
+    let state = OwnedWnfState::create_temporary().unwrap();
+
+    state.set(0u32).unwrap();
+    let result = state.try_apply_boxed::<_, _, TestError, _>(|v: Box<u32>| Ok(*v + 1));
+
+    assert!(result.is_ok());
+    assert_eq!(state.get::<u32>().unwrap(), 1);
+}
+
+#[test]
+fn try_apply_boxed_err() {
+    let state = OwnedWnfState::create_temporary().unwrap();
+
+    state.set(0u32).unwrap();
+    let result = state.try_apply_boxed::<u32, u32, _, _>(|_| Err(TestError));
+
+    assert_eq!(result, Err(WnfApplyError::Transform(WnfTransformError(TestError))));
+}
+
+#[test]
+fn try_apply_slice_ok() {
+    let state = OwnedWnfState::create_temporary().unwrap();
+
+    state.set_slice([0u32]).unwrap();
+    let result =
+        state.try_apply_slice::<_, _, TestError, _>(|vs: Box<[u32]>| Ok(vs.iter().map(|v| v + 1).collect::<Vec<_>>()));
+
+    assert!(result.is_ok());
+    assert_eq!(*state.get_slice::<u32>().unwrap(), [1]);
+}
+
+#[test]
+fn try_apply_slice_err() {
+    let state = OwnedWnfState::create_temporary().unwrap();
+
+    state.set_slice([0u32]).unwrap();
+    let result = state.try_apply_slice::<u32, Vec<u32>, _, _>(|_| Err(TestError));
+
+    assert_eq!(result, Err(WnfApplyError::Transform(WnfTransformError(TestError))));
+}
+
+#[test]
 fn owned_wnf_state_drop_deletes_state() {
     let owned_state: OwnedWnfState = OwnedWnfState::create_temporary().unwrap();
     let state_name = owned_state.state_name();
@@ -203,3 +270,6 @@ fn borrowed_wnf_state_delete() {
     let borrowed_state: BorrowedWnfState = BorrowedWnfState::from_state_name(state_name);
     assert!(!borrowed_state.exists().unwrap());
 }
+
+#[derive(Debug, Eq, Hash, PartialEq)]
+struct TestError;
