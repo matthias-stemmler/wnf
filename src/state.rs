@@ -139,7 +139,7 @@ impl OwnedWnfState {
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
-        F: FnMut(T) -> D,
+        F: FnMut(T) -> Option<D>,
     {
         self.raw.apply(transform)
     }
@@ -148,7 +148,7 @@ impl OwnedWnfState {
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
-        F: FnMut(Box<T>) -> D,
+        F: FnMut(Box<T>) -> Option<D>,
     {
         self.raw.apply_boxed(transform)
     }
@@ -157,7 +157,7 @@ impl OwnedWnfState {
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<[T]>,
-        F: FnMut(Box<[T]>) -> D,
+        F: FnMut(Box<[T]>) -> Option<D>,
     {
         self.raw.apply_slice(transform)
     }
@@ -166,7 +166,7 @@ impl OwnedWnfState {
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
-        F: FnMut(T) -> Result<D, E>,
+        F: FnMut(T) -> Result<Option<D>, E>,
     {
         self.raw.try_apply(tranform)
     }
@@ -175,7 +175,7 @@ impl OwnedWnfState {
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
-        F: FnMut(Box<T>) -> Result<D, E>,
+        F: FnMut(Box<T>) -> Result<Option<D>, E>,
     {
         self.raw.try_apply_boxed(transform)
     }
@@ -184,7 +184,7 @@ impl OwnedWnfState {
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<[T]>,
-        F: FnMut(Box<[T]>) -> Result<D, E>,
+        F: FnMut(Box<[T]>) -> Result<Option<D>, E>,
     {
         self.raw.try_apply_slice(transform)
     }
@@ -342,7 +342,7 @@ impl<'a> BorrowedWnfState<'a> {
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
-        F: FnMut(T) -> D,
+        F: FnMut(T) -> Option<D>,
     {
         self.raw.apply(transform)
     }
@@ -351,7 +351,7 @@ impl<'a> BorrowedWnfState<'a> {
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
-        F: FnMut(Box<T>) -> D,
+        F: FnMut(Box<T>) -> Option<D>,
     {
         self.raw.apply_boxed(transform)
     }
@@ -360,7 +360,7 @@ impl<'a> BorrowedWnfState<'a> {
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<[T]>,
-        F: FnMut(Box<[T]>) -> D,
+        F: FnMut(Box<[T]>) -> Option<D>,
     {
         self.raw.apply_slice(transform)
     }
@@ -369,7 +369,7 @@ impl<'a> BorrowedWnfState<'a> {
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
-        F: FnMut(T) -> Result<D, E>,
+        F: FnMut(T) -> Result<Option<D>, E>,
     {
         self.raw.try_apply(transform)
     }
@@ -378,7 +378,7 @@ impl<'a> BorrowedWnfState<'a> {
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
-        F: FnMut(Box<T>) -> Result<D, E>,
+        F: FnMut(Box<T>) -> Result<Option<D>, E>,
     {
         self.raw.try_apply_boxed(transform)
     }
@@ -387,7 +387,7 @@ impl<'a> BorrowedWnfState<'a> {
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<[T]>,
-        F: FnMut(Box<[T]>) -> Result<D, E>,
+        F: FnMut(Box<[T]>) -> Result<Option<D>, E>,
     {
         self.raw.try_apply_slice(transform)
     }

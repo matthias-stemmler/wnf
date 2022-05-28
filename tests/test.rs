@@ -140,10 +140,10 @@ macro_rules! apply_tests {
 }
 
 apply_tests! {
-    apply_value_to_value: |state: BorrowedWnfState| state.apply(|v: u32| v + 1),
-    apply_value_to_boxed: |state: BorrowedWnfState| state.apply(|v: u32| Box::new(v + 1)),
-    apply_boxed_to_value: |state: BorrowedWnfState| state.apply_boxed(|v: Box<u32>| *v + 1),
-    apply_boxed_to_boxed: |state: BorrowedWnfState| state.apply_boxed(|v: Box<u32>| Box::new(*v + 1)),
+    apply_value_to_value: |state: BorrowedWnfState| state.apply(|v: u32| Some(v + 1)),
+    apply_value_to_boxed: |state: BorrowedWnfState| state.apply(|v: u32| Some(Box::new(v + 1))),
+    apply_boxed_to_value: |state: BorrowedWnfState| state.apply_boxed(|v: Box<u32>| Some(*v + 1)),
+    apply_boxed_to_boxed: |state: BorrowedWnfState| state.apply_boxed(|v: Box<u32>| Some(Box::new(*v + 1))),
 }
 
 #[test]
@@ -162,7 +162,7 @@ fn apply_slice_to_vec() {
         handles.push(thread::spawn(move || {
             for _ in 0..NUM_ITERATIONS {
                 state
-                    .apply_slice(|vs: Box<[u32]>| vs.iter().map(|v| v + 1).collect::<Vec<_>>())
+                    .apply_slice(|vs: Box<[u32]>| Some(vs.iter().map(|v| v + 1).collect::<Vec<_>>()))
                     .unwrap();
             }
         }))
@@ -178,11 +178,21 @@ fn apply_slice_to_vec() {
 }
 
 #[test]
+fn apply_early_termination() {
+    let state = OwnedWnfState::create_temporary().unwrap();
+
+    state.set(0u32).unwrap();
+    state.apply::<u32, u32, _>(|_| None).unwrap();
+
+    assert_eq!(state.get::<u32>().unwrap(), 0);
+}
+
+#[test]
 fn try_apply_by_value_ok() {
     let state = OwnedWnfState::create_temporary().unwrap();
 
     state.set(0u32).unwrap();
-    let result = state.try_apply::<_, _, TestError, _>(|v: u32| Ok(v + 1));
+    let result = state.try_apply::<_, _, TestError, _>(|v: u32| Ok(Some(v + 1)));
 
     assert!(result.is_ok());
     assert_eq!(state.get::<u32>().unwrap(), 1);
@@ -203,7 +213,7 @@ fn try_apply_boxed_ok() {
     let state = OwnedWnfState::create_temporary().unwrap();
 
     state.set(0u32).unwrap();
-    let result = state.try_apply_boxed::<_, _, TestError, _>(|v: Box<u32>| Ok(*v + 1));
+    let result = state.try_apply_boxed::<_, _, TestError, _>(|v: Box<u32>| Ok(Some(*v + 1)));
 
     assert!(result.is_ok());
     assert_eq!(state.get::<u32>().unwrap(), 1);
@@ -224,8 +234,8 @@ fn try_apply_slice_ok() {
     let state = OwnedWnfState::create_temporary().unwrap();
 
     state.set_slice([0u32]).unwrap();
-    let result =
-        state.try_apply_slice::<_, _, TestError, _>(|vs: Box<[u32]>| Ok(vs.iter().map(|v| v + 1).collect::<Vec<_>>()));
+    let result = state
+        .try_apply_slice::<_, _, TestError, _>(|vs: Box<[u32]>| Ok(Some(vs.iter().map(|v| v + 1).collect::<Vec<_>>())));
 
     assert!(result.is_ok());
     assert_eq!(*state.get_slice::<u32>().unwrap(), [1]);

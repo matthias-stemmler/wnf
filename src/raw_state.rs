@@ -298,12 +298,17 @@ impl RawWnfState {
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
-        F: FnMut(T) -> D,
+        F: FnMut(T) -> Option<D>,
     {
         loop {
             let (data, change_stamp) = self.query()?.into_data_change_stamp();
-            if self.update(transform(data), Some(change_stamp))? {
-                break;
+            match transform(data) {
+                None => break,
+                Some(data) => {
+                    if self.update(data, Some(change_stamp))? {
+                        break;
+                    }
+                }
             }
         }
 
@@ -314,12 +319,17 @@ impl RawWnfState {
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
-        F: FnMut(Box<T>) -> D,
+        F: FnMut(Box<T>) -> Option<D>,
     {
         loop {
             let (data, change_stamp) = self.query_boxed()?.into_data_change_stamp();
-            if self.update(transform(data), Some(change_stamp))? {
-                break;
+            match transform(data) {
+                None => break,
+                Some(data) => {
+                    if self.update(data, Some(change_stamp))? {
+                        break;
+                    }
+                }
             }
         }
 
@@ -330,12 +340,17 @@ impl RawWnfState {
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<[T]>,
-        F: FnMut(Box<[T]>) -> D,
+        F: FnMut(Box<[T]>) -> Option<D>,
     {
         loop {
             let (data, change_stamp) = self.query_slice()?.into_data_change_stamp();
-            if self.update_slice(transform(data), Some(change_stamp))? {
-                break;
+            match transform(data) {
+                None => break,
+                Some(data) => {
+                    if self.update_slice(data, Some(change_stamp))? {
+                        break;
+                    }
+                }
             }
         }
 
@@ -346,12 +361,17 @@ impl RawWnfState {
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
-        F: FnMut(T) -> Result<D, E>,
+        F: FnMut(T) -> Result<Option<D>, E>,
     {
         loop {
             let (data, change_stamp) = self.query()?.into_data_change_stamp();
-            if self.update(transform(data).map_err(WnfTransformError::from)?, Some(change_stamp))? {
-                break;
+            match transform(data).map_err(WnfTransformError::from)? {
+                None => break,
+                Some(data) => {
+                    if self.update(data, Some(change_stamp))? {
+                        break;
+                    }
+                }
             }
         }
 
@@ -362,12 +382,17 @@ impl RawWnfState {
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
-        F: FnMut(Box<T>) -> Result<D, E>,
+        F: FnMut(Box<T>) -> Result<Option<D>, E>,
     {
         loop {
             let (data, change_stamp) = self.query_boxed()?.into_data_change_stamp();
-            if self.update(transform(data).map_err(WnfTransformError::from)?, Some(change_stamp))? {
-                break;
+            match transform(data).map_err(WnfTransformError::from)? {
+                None => break,
+                Some(data) => {
+                    if self.update(data, Some(change_stamp))? {
+                        break;
+                    }
+                }
             }
         }
 
@@ -378,12 +403,17 @@ impl RawWnfState {
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<[T]>,
-        F: FnMut(Box<[T]>) -> Result<D, E>,
+        F: FnMut(Box<[T]>) -> Result<Option<D>, E>,
     {
         loop {
             let (data, change_stamp) = self.query_slice()?.into_data_change_stamp();
-            if self.update_slice(transform(data).map_err(WnfTransformError::from)?, Some(change_stamp))? {
-                break;
+            match transform(data).map_err(WnfTransformError::from)? {
+                None => break,
+                Some(data) => {
+                    if self.update_slice(data, Some(change_stamp))? {
+                        break;
+                    }
+                }
             }
         }
 
