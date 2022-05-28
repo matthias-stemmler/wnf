@@ -1,8 +1,11 @@
+use std::sync::Arc;
+use std::thread;
+
 use wnf::{BorrowedWnfState, OwnedWnfState, WnfDataScope, WnfStateNameDescriptor, WnfStateNameLifetime};
 
 #[test]
 fn create_temporary() {
-    let state: OwnedWnfState = OwnedWnfState::create_temporary().unwrap();
+    let state = OwnedWnfState::create_temporary().unwrap();
     let state_name_descriptor: WnfStateNameDescriptor = state.state_name().try_into().unwrap();
 
     assert_eq!(state_name_descriptor.version, 1);
@@ -12,36 +15,91 @@ fn create_temporary() {
 }
 
 #[test]
-fn set_and_get_by_value() {
-    let state: OwnedWnfState = OwnedWnfState::create_temporary().unwrap();
+fn set_by_value() {
+    let state = OwnedWnfState::create_temporary().unwrap();
 
     let value = 0x12345678;
     state.set(value).unwrap();
+
     let read_value: u32 = state.get().unwrap();
-
     assert_eq!(read_value, value);
 }
 
 #[test]
-fn set_and_get_boxed() {
-    let state: OwnedWnfState = OwnedWnfState::create_temporary().unwrap();
+fn set_by_ref() {
+    let state = OwnedWnfState::create_temporary().unwrap();
 
-    let value = Box::new(0x12345678);
-    state.set::<u32, _>(&*value).unwrap();
+    let value = 0x12345678;
+    state.set::<u32, _>(&value).unwrap();
+
+    let read_value: u32 = state.get().unwrap();
+    assert_eq!(read_value, value);
+}
+
+#[test]
+fn set_boxed() {
+    let state = OwnedWnfState::create_temporary().unwrap();
+
+    let value = 0x12345678;
+    state.set::<u32, _>(Box::new(value)).unwrap();
+
+    let read_value: u32 = state.get().unwrap();
+    assert_eq!(read_value, value);
+}
+
+#[test]
+fn set_slice_by_ref() {
+    let state = OwnedWnfState::create_temporary().unwrap();
+
+    let values = [0x12345678, 0xABCDEF01, 0x23456789];
+    state.set_slice(values.as_slice()).unwrap();
+
+    let read_slice: Box<[u32]> = state.get_slice().unwrap();
+    assert_eq!(*read_slice, values);
+}
+
+#[test]
+fn set_slice_vec() {
+    let state = OwnedWnfState::create_temporary().unwrap();
+
+    let values = [0x12345678, 0xABCDEF01, 0x23456789];
+    state.set_slice(values.to_vec()).unwrap();
+
+    let read_slice: Box<[u32]> = state.get_slice().unwrap();
+    assert_eq!(*read_slice, values);
+}
+
+#[test]
+fn get_by_value() {
+    let state = OwnedWnfState::create_temporary().unwrap();
+
+    let value = 0x12345678;
+    state.set(0x12345678).unwrap();
+
+    let read_value: u32 = state.get().unwrap();
+    assert_eq!(read_value, value);
+}
+
+#[test]
+fn get_boxed() {
+    let state = OwnedWnfState::create_temporary().unwrap();
+
+    let value = 0x12345678;
+    state.set(0x12345678).unwrap();
+
     let read_value: Box<u32> = state.get_boxed().unwrap();
-
-    assert_eq!(read_value, value);
+    assert_eq!(*read_value, value);
 }
 
 #[test]
-fn set_and_get_slice() {
-    let state: OwnedWnfState = OwnedWnfState::create_temporary().unwrap();
+fn get_slice() {
+    let state = OwnedWnfState::create_temporary().unwrap();
 
-    let value = vec![0x12345678, 0xABCDEF01, 0x23456789];
-    state.set_slice(&*value).unwrap();
-    let read_value: Box<[u32]> = state.get_slice().unwrap();
+    let values = [0x12345678, 0xABCDEF01, 0x23456789];
+    state.set_slice(values.as_slice()).unwrap();
 
-    assert_eq!(*read_value, *value);
+    let read_values: Box<[u32]> = state.get_slice().unwrap();
+    assert_eq!(*read_values, values);
 }
 
 macro_rules! apply_tests {
@@ -49,25 +107,30 @@ macro_rules! apply_tests {
         $(
             #[test]
             fn $name() {
-                let state: OwnedWnfState = OwnedWnfState::create_temporary().unwrap();
+                let state = Arc::new(OwnedWnfState::create_temporary().unwrap());
                 state.set(0u32).unwrap();
 
-                let num_threads = 2;
-                let num_iterations = 128;
+                const NUM_THREADS: u32 = 2;
+                const NUM_ITERATIONS: u32 = 128;
 
-                crossbeam::thread::scope(|s| {
-                    for _ in 0..num_threads {
-                        s.spawn(|_| {
-                            for _ in 0..num_iterations {
-                                $apply(state.borrow()).unwrap();
-                            }
-                        });
-                    }
-                })
-                .unwrap();
+                let mut handles = Vec::new();
+
+                for _ in 0..NUM_THREADS {
+                    let state = Arc::clone(&state);
+
+                    handles.push(thread::spawn(move || {
+                        for _ in 0..NUM_ITERATIONS {
+                            $apply(state.borrow()).unwrap();
+                        }
+                    }));
+                }
+
+                for handle in handles {
+                    handle.join().unwrap();
+                }
 
                 let read_value: u32 = state.get().unwrap();
-                assert_eq!(read_value, num_threads * num_iterations);
+                assert_eq!(read_value, NUM_THREADS * NUM_ITERATIONS);
             }
         )*
     };
@@ -82,27 +145,32 @@ apply_tests! {
 
 #[test]
 fn apply_slice_to_vec() {
-    let state: OwnedWnfState = OwnedWnfState::create_temporary().unwrap();
+    let state = Arc::new(OwnedWnfState::create_temporary().unwrap());
     state.set_slice([0u32, 0u32]).unwrap();
 
-    let num_threads = 2;
-    let num_iterations = 128;
+    const NUM_THREADS: u32 = 2;
+    const NUM_ITERATIONS: u32 = 128;
 
-    crossbeam::thread::scope(|s| {
-        for _ in 0..num_threads {
-            s.spawn(|_| {
-                for _ in 0..num_iterations {
-                    state
-                        .apply_slice(|vs: Box<[u32]>| vs.iter().map(|v| v + 1).collect::<Vec<_>>())
-                        .unwrap();
-                }
-            });
-        }
-    })
-    .unwrap();
+    let mut handles = Vec::new();
+
+    for _ in 0..NUM_THREADS {
+        let state = Arc::clone(&state);
+
+        handles.push(thread::spawn(move || {
+            for _ in 0..NUM_ITERATIONS {
+                state
+                    .apply_slice(|vs: Box<[u32]>| vs.iter().map(|v| v + 1).collect::<Vec<_>>())
+                    .unwrap();
+            }
+        }))
+    }
+
+    for handle in handles {
+        handle.join().unwrap();
+    }
 
     let read_value: [u32; 2] = state.get().unwrap();
-    let expected_value = num_threads * num_iterations;
+    let expected_value = NUM_THREADS * NUM_ITERATIONS;
     assert_eq!(read_value, [expected_value, expected_value]);
 }
 
