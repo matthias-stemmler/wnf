@@ -115,7 +115,7 @@ impl OwnedWnfState {
         self.raw.set_slice(data)
     }
 
-    pub fn update<T, D>(&self, data: D, expected_change_stamp: Option<WnfChangeStamp>) -> Result<bool, WnfUpdateError>
+    pub fn update<T, D>(&self, data: D, expected_change_stamp: WnfChangeStamp) -> Result<bool, WnfUpdateError>
     where
         T: NoUninit,
         D: Borrow<T>,
@@ -123,11 +123,7 @@ impl OwnedWnfState {
         self.raw.update(data, expected_change_stamp)
     }
 
-    pub fn update_slice<T, D>(
-        &self,
-        data: D,
-        expected_change_stamp: Option<WnfChangeStamp>,
-    ) -> Result<bool, WnfUpdateError>
+    pub fn update_slice<T, D>(&self, data: D, expected_change_stamp: WnfChangeStamp) -> Result<bool, WnfUpdateError>
     where
         T: NoUninit,
         D: Borrow<[T]>,
@@ -318,7 +314,7 @@ impl<'a> BorrowedWnfState<'a> {
         self.raw.set_slice(data)
     }
 
-    pub fn update<T, D>(&self, data: D, expected_change_stamp: Option<WnfChangeStamp>) -> Result<bool, WnfUpdateError>
+    pub fn update<T, D>(&self, data: D, expected_change_stamp: WnfChangeStamp) -> Result<bool, WnfUpdateError>
     where
         T: NoUninit,
         D: Borrow<T>,
@@ -326,11 +322,7 @@ impl<'a> BorrowedWnfState<'a> {
         self.raw.update(data, expected_change_stamp)
     }
 
-    pub fn update_slice<T, D>(
-        &self,
-        data: D,
-        expected_change_stamp: Option<WnfChangeStamp>,
-    ) -> Result<bool, WnfUpdateError>
+    pub fn update_slice<T, D>(&self, data: D, expected_change_stamp: WnfChangeStamp) -> Result<bool, WnfUpdateError>
     where
         T: NoUninit,
         D: Borrow<[T]>,

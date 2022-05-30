@@ -242,8 +242,7 @@ impl RawWnfState {
         T: NoUninit,
         D: Borrow<T>,
     {
-        self.update(data, None)?;
-        Ok(())
+        self.set_slice(slice::from_ref(data.borrow()))
     }
 
     pub fn set_slice<T, D>(&self, data: D) -> Result<(), WnfUpdateError>
@@ -251,11 +250,10 @@ impl RawWnfState {
         T: NoUninit,
         D: Borrow<[T]>,
     {
-        self.update_slice(data, None)?;
-        Ok(())
+        Ok(self.update_slice_internal(data, None).ok()?)
     }
 
-    pub fn update<T, D>(&self, data: D, expected_change_stamp: Option<WnfChangeStamp>) -> Result<bool, WnfUpdateError>
+    pub fn update<T, D>(&self, data: D, expected_change_stamp: WnfChangeStamp) -> Result<bool, WnfUpdateError>
     where
         T: NoUninit,
         D: Borrow<T>,
@@ -263,18 +261,29 @@ impl RawWnfState {
         self.update_slice(slice::from_ref(data.borrow()), expected_change_stamp)
     }
 
-    pub fn update_slice<T, D>(
-        &self,
-        data: D,
-        expected_change_stamp: Option<WnfChangeStamp>,
-    ) -> Result<bool, WnfUpdateError>
+    pub fn update_slice<T, D>(&self, data: D, expected_change_stamp: WnfChangeStamp) -> Result<bool, WnfUpdateError>
+    where
+        T: NoUninit,
+        D: Borrow<[T]>,
+    {
+        let result = self.update_slice_internal(data, Some(expected_change_stamp));
+
+        Ok(if result == STATUS_UNSUCCESSFUL {
+            false
+        } else {
+            result.ok()?;
+            true
+        })
+    }
+
+    pub fn update_slice_internal<T, D>(&self, data: D, expected_change_stamp: Option<WnfChangeStamp>) -> NTSTATUS
     where
         T: NoUninit,
         D: Borrow<[T]>,
     {
         let data = data.borrow();
 
-        let result = unsafe {
+        unsafe {
             ntdll_sys::ZwUpdateWnfStateData(
                 &self.state_name.opaque_value(),
                 data.as_ptr().cast(),
@@ -284,13 +293,6 @@ impl RawWnfState {
                 expected_change_stamp.unwrap_or_default().into(),
                 expected_change_stamp.is_some() as u32,
             )
-        };
-
-        if expected_change_stamp.is_some() && result == STATUS_UNSUCCESSFUL {
-            Ok(false)
-        } else {
-            result.ok()?;
-            Ok(true)
         }
     }
 
@@ -305,7 +307,7 @@ impl RawWnfState {
             match transform(data) {
                 None => break,
                 Some(data) => {
-                    if self.update(data, Some(change_stamp))? {
+                    if self.update(data, change_stamp)? {
                         break;
                     }
                 }
@@ -326,7 +328,7 @@ impl RawWnfState {
             match transform(data) {
                 None => break,
                 Some(data) => {
-                    if self.update(data, Some(change_stamp))? {
+                    if self.update(data, change_stamp)? {
                         break;
                     }
                 }
@@ -347,7 +349,7 @@ impl RawWnfState {
             match transform(data) {
                 None => break,
                 Some(data) => {
-                    if self.update_slice(data, Some(change_stamp))? {
+                    if self.update_slice(data, change_stamp)? {
                         break;
                     }
                 }
@@ -368,7 +370,7 @@ impl RawWnfState {
             match transform(data).map_err(WnfTransformError::from)? {
                 None => break,
                 Some(data) => {
-                    if self.update(data, Some(change_stamp))? {
+                    if self.update(data, change_stamp)? {
                         break;
                     }
                 }
@@ -389,7 +391,7 @@ impl RawWnfState {
             match transform(data).map_err(WnfTransformError::from)? {
                 None => break,
                 Some(data) => {
-                    if self.update(data, Some(change_stamp))? {
+                    if self.update(data, change_stamp)? {
                         break;
                     }
                 }
@@ -410,7 +412,7 @@ impl RawWnfState {
             match transform(data).map_err(WnfTransformError::from)? {
                 None => break,
                 Some(data) => {
-                    if self.update_slice(data, Some(change_stamp))? {
+                    if self.update_slice(data, change_stamp)? {
                         break;
                     }
                 }
