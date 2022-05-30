@@ -27,4 +27,3 @@ mod subscription;
 
 // TODO allow specifying minimum change_stamp for subscribe
 // TODO tracing
-// TODO return info from apply about whether an update took place

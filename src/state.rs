@@ -131,7 +131,7 @@ impl OwnedWnfState {
         self.raw.update_slice(data, expected_change_stamp)
     }
 
-    pub fn apply<T, D, F>(&self, transform: F) -> Result<(), WnfApplyError>
+    pub fn apply<T, D, F>(&self, transform: F) -> Result<bool, WnfApplyError>
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
@@ -140,7 +140,7 @@ impl OwnedWnfState {
         self.raw.apply(transform)
     }
 
-    pub fn apply_boxed<T, D, F>(&self, transform: F) -> Result<(), WnfApplyError>
+    pub fn apply_boxed<T, D, F>(&self, transform: F) -> Result<bool, WnfApplyError>
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
@@ -149,7 +149,7 @@ impl OwnedWnfState {
         self.raw.apply_boxed(transform)
     }
 
-    pub fn apply_slice<T, D, F>(&self, transform: F) -> Result<(), WnfApplyError>
+    pub fn apply_slice<T, D, F>(&self, transform: F) -> Result<bool, WnfApplyError>
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<[T]>,
@@ -158,7 +158,7 @@ impl OwnedWnfState {
         self.raw.apply_slice(transform)
     }
 
-    pub fn try_apply<T, D, E, F>(&self, tranform: F) -> Result<(), WnfApplyError<E>>
+    pub fn try_apply<T, D, E, F>(&self, tranform: F) -> Result<bool, WnfApplyError<E>>
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
@@ -167,7 +167,7 @@ impl OwnedWnfState {
         self.raw.try_apply(tranform)
     }
 
-    pub fn try_apply_boxed<T, D, E, F>(&self, transform: F) -> Result<(), WnfApplyError<E>>
+    pub fn try_apply_boxed<T, D, E, F>(&self, transform: F) -> Result<bool, WnfApplyError<E>>
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
@@ -176,7 +176,7 @@ impl OwnedWnfState {
         self.raw.try_apply_boxed(transform)
     }
 
-    pub fn try_apply_slice<T, D, E, F>(&self, transform: F) -> Result<(), WnfApplyError<E>>
+    pub fn try_apply_slice<T, D, E, F>(&self, transform: F) -> Result<bool, WnfApplyError<E>>
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<[T]>,
@@ -330,7 +330,7 @@ impl<'a> BorrowedWnfState<'a> {
         self.raw.update_slice(data, expected_change_stamp)
     }
 
-    pub fn apply<T, D, F>(&self, transform: F) -> Result<(), WnfApplyError>
+    pub fn apply<T, D, F>(&self, transform: F) -> Result<bool, WnfApplyError>
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
@@ -339,7 +339,7 @@ impl<'a> BorrowedWnfState<'a> {
         self.raw.apply(transform)
     }
 
-    pub fn apply_boxed<T, D, F>(&self, transform: F) -> Result<(), WnfApplyError>
+    pub fn apply_boxed<T, D, F>(&self, transform: F) -> Result<bool, WnfApplyError>
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
@@ -348,7 +348,7 @@ impl<'a> BorrowedWnfState<'a> {
         self.raw.apply_boxed(transform)
     }
 
-    pub fn apply_slice<T, D, F>(&self, transform: F) -> Result<(), WnfApplyError>
+    pub fn apply_slice<T, D, F>(&self, transform: F) -> Result<bool, WnfApplyError>
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<[T]>,
@@ -357,7 +357,7 @@ impl<'a> BorrowedWnfState<'a> {
         self.raw.apply_slice(transform)
     }
 
-    pub fn try_apply<T, D, E, F>(&self, transform: F) -> Result<(), WnfApplyError<E>>
+    pub fn try_apply<T, D, E, F>(&self, transform: F) -> Result<bool, WnfApplyError<E>>
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
@@ -366,7 +366,7 @@ impl<'a> BorrowedWnfState<'a> {
         self.raw.try_apply(transform)
     }
 
-    pub fn try_apply_boxed<T, D, E, F>(&self, transform: F) -> Result<(), WnfApplyError<E>>
+    pub fn try_apply_boxed<T, D, E, F>(&self, transform: F) -> Result<bool, WnfApplyError<E>>
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
@@ -375,7 +375,7 @@ impl<'a> BorrowedWnfState<'a> {
         self.raw.try_apply_boxed(transform)
     }
 
-    pub fn try_apply_slice<T, D, E, F>(&self, transform: F) -> Result<(), WnfApplyError<E>>
+    pub fn try_apply_slice<T, D, E, F>(&self, transform: F) -> Result<bool, WnfApplyError<E>>
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<[T]>,

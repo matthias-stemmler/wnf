@@ -182,8 +182,9 @@ fn apply_early_termination() {
     let state = OwnedWnfState::create_temporary().unwrap();
 
     state.set(0u32).unwrap();
-    state.apply::<u32, u32, _>(|_| None).unwrap();
+    let applied = state.apply::<u32, u32, _>(|_| None).unwrap();
 
+    assert!(!applied);
     assert_eq!(state.get::<u32>().unwrap(), 0);
 }
 
@@ -194,7 +195,7 @@ fn try_apply_by_value_ok() {
     state.set(0u32).unwrap();
     let result = state.try_apply::<_, _, TestError, _>(|v: u32| Ok(Some(v + 1)));
 
-    assert!(result.is_ok());
+    assert_eq!(result, Ok(true));
     assert_eq!(state.get::<u32>().unwrap(), 1);
 }
 
@@ -215,7 +216,7 @@ fn try_apply_boxed_ok() {
     state.set(0u32).unwrap();
     let result = state.try_apply_boxed::<_, _, TestError, _>(|v: Box<u32>| Ok(Some(*v + 1)));
 
-    assert!(result.is_ok());
+    assert_eq!(result, Ok(true));
     assert_eq!(state.get::<u32>().unwrap(), 1);
 }
 
@@ -237,7 +238,7 @@ fn try_apply_slice_ok() {
     let result = state
         .try_apply_slice::<_, _, TestError, _>(|vs: Box<[u32]>| Ok(Some(vs.iter().map(|v| v + 1).collect::<Vec<_>>())));
 
-    assert!(result.is_ok());
+    assert_eq!(result, Ok(true));
     assert_eq!(*state.get_slice::<u32>().unwrap(), [1]);
 }
 

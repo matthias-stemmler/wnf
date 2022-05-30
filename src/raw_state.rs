@@ -296,7 +296,7 @@ impl RawWnfState {
         }
     }
 
-    pub fn apply<T, D, F>(&self, mut transform: F) -> Result<(), WnfApplyError>
+    pub fn apply<T, D, F>(&self, mut transform: F) -> Result<bool, WnfApplyError>
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
@@ -305,19 +305,17 @@ impl RawWnfState {
         loop {
             let (data, change_stamp) = self.query()?.into_data_change_stamp();
             match transform(data) {
-                None => break,
+                None => return Ok(false),
                 Some(data) => {
                     if self.update(data, change_stamp)? {
-                        break;
+                        return Ok(true);
                     }
                 }
             }
         }
-
-        Ok(())
     }
 
-    pub fn apply_boxed<T, D, F>(&self, mut transform: F) -> Result<(), WnfApplyError>
+    pub fn apply_boxed<T, D, F>(&self, mut transform: F) -> Result<bool, WnfApplyError>
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
@@ -326,19 +324,17 @@ impl RawWnfState {
         loop {
             let (data, change_stamp) = self.query_boxed()?.into_data_change_stamp();
             match transform(data) {
-                None => break,
+                None => return Ok(false),
                 Some(data) => {
                     if self.update(data, change_stamp)? {
-                        break;
+                        return Ok(true);
                     }
                 }
             }
         }
-
-        Ok(())
     }
 
-    pub fn apply_slice<T, D, F>(&self, mut transform: F) -> Result<(), WnfApplyError>
+    pub fn apply_slice<T, D, F>(&self, mut transform: F) -> Result<bool, WnfApplyError>
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<[T]>,
@@ -347,19 +343,17 @@ impl RawWnfState {
         loop {
             let (data, change_stamp) = self.query_slice()?.into_data_change_stamp();
             match transform(data) {
-                None => break,
+                None => return Ok(false),
                 Some(data) => {
                     if self.update_slice(data, change_stamp)? {
-                        break;
+                        return Ok(true);
                     }
                 }
             }
         }
-
-        Ok(())
     }
 
-    pub fn try_apply<T, D, E, F>(&self, mut transform: F) -> Result<(), WnfApplyError<E>>
+    pub fn try_apply<T, D, E, F>(&self, mut transform: F) -> Result<bool, WnfApplyError<E>>
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
@@ -368,19 +362,17 @@ impl RawWnfState {
         loop {
             let (data, change_stamp) = self.query()?.into_data_change_stamp();
             match transform(data).map_err(WnfTransformError::from)? {
-                None => break,
+                None => return Ok(false),
                 Some(data) => {
                     if self.update(data, change_stamp)? {
-                        break;
+                        return Ok(true);
                     }
                 }
             }
         }
-
-        Ok(())
     }
 
-    pub fn try_apply_boxed<T, D, E, F>(&self, mut transform: F) -> Result<(), WnfApplyError<E>>
+    pub fn try_apply_boxed<T, D, E, F>(&self, mut transform: F) -> Result<bool, WnfApplyError<E>>
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
@@ -389,19 +381,17 @@ impl RawWnfState {
         loop {
             let (data, change_stamp) = self.query_boxed()?.into_data_change_stamp();
             match transform(data).map_err(WnfTransformError::from)? {
-                None => break,
+                None => return Ok(false),
                 Some(data) => {
                     if self.update(data, change_stamp)? {
-                        break;
+                        return Ok(true);
                     }
                 }
             }
         }
-
-        Ok(())
     }
 
-    pub fn try_apply_slice<T, D, E, F>(&self, mut transform: F) -> Result<(), WnfApplyError<E>>
+    pub fn try_apply_slice<T, D, E, F>(&self, mut transform: F) -> Result<bool, WnfApplyError<E>>
     where
         T: CheckedBitPattern + NoUninit,
         D: Borrow<[T]>,
@@ -410,16 +400,14 @@ impl RawWnfState {
         loop {
             let (data, change_stamp) = self.query_slice()?.into_data_change_stamp();
             match transform(data).map_err(WnfTransformError::from)? {
-                None => break,
+                None => return Ok(false),
                 Some(data) => {
                     if self.update_slice(data, change_stamp)? {
-                        break;
+                        return Ok(true);
                     }
                 }
             }
         }
-
-        Ok(())
     }
 
     pub fn subscribe<T, F>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
