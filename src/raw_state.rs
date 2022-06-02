@@ -15,7 +15,7 @@ use crate::data::WnfStateInfo;
 use crate::error::{
     WnfApplyError, WnfDeleteError, WnfInfoError, WnfQueryError, WnfSubscribeError, WnfTransformError, WnfUpdateError,
 };
-use crate::subscription::{WnfSubscriptionContext, WnfSubscriptionHandle};
+use crate::subscription::{WnfStateChangeListener, WnfSubscriptionContext, WnfSubscriptionHandle};
 use crate::{
     ntdll_sys, SecurityDescriptor, WnfChangeStamp, WnfCreateError, WnfDataScope, WnfStampedData, WnfStateName,
     WnfStateNameLifetime,
@@ -410,54 +410,53 @@ impl RawWnfState {
         }
     }
 
-    pub fn subscribe<T, F>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
+    pub fn subscribe<T, F, A>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
         T: CheckedBitPattern,
-        F: FnMut(Option<WnfStampedData<T>>) + Send + ?Sized + 'static,
+        F: WnfStateChangeListener<T, A> + Send + ?Sized + 'static,
     {
-        self.subscribe_internal::<Value<T>, F>(listener)
+        self.subscribe_internal::<Value<T>, F, A>(listener)
     }
 
-    pub fn subscribe_boxed<T, F>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
+    pub fn subscribe_boxed<T, F, A>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
         T: CheckedBitPattern,
-        F: FnMut(Option<WnfStampedData<Box<T>>>) + Send + ?Sized + 'static,
+        F: WnfStateChangeListener<Box<T>, A> + Send + ?Sized + 'static,
     {
-        self.subscribe_internal::<Boxed<T>, F>(listener)
+        self.subscribe_internal::<Boxed<T>, F, A>(listener)
     }
 
-    pub fn subscribe_slice<T, F>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
+    pub fn subscribe_slice<T, F, A>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
         T: CheckedBitPattern,
-        F: FnMut(Option<WnfStampedData<Box<[T]>>>) + Send + ?Sized + 'static,
+        F: WnfStateChangeListener<Box<[T]>, A> + Send + ?Sized + 'static,
     {
-        self.subscribe_internal::<BoxedSlice<T>, F>(listener)
+        self.subscribe_internal::<BoxedSlice<T>, F, A>(listener)
     }
 
-    fn subscribe_internal<B, F>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
+    fn subscribe_internal<B, F, A>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
         B: FromByteBuffer,
-        F: FnMut(Option<WnfStampedData<B::Data>>) + Send + ?Sized + 'static,
+        F: WnfStateChangeListener<B::Data, A> + Send + ?Sized + 'static,
     {
-        extern "system" fn callback<
-            B: FromByteBuffer,
-            F: FnMut(Option<WnfStampedData<B::Data>>) + Send + ?Sized + 'static,
-        >(
+        extern "system" fn callback<B, F, A>(
             _state_name: u64,
             change_stamp: u32,
             _type_id: *const GUID,
             context: *mut c_void,
             buffer: *const c_void,
             buffer_size: u32,
-        ) -> NTSTATUS {
+        ) -> NTSTATUS
+        where
+            B: FromByteBuffer,
+            F: WnfStateChangeListener<B::Data, A> + Send + ?Sized + 'static,
+        {
             let _ = panic::catch_unwind(|| {
                 let context: &WnfSubscriptionContext<F> = unsafe { &*context.cast() };
+                let maybe_data = unsafe { B::from_byte_buffer(buffer, buffer_size) };
 
                 context.with_listener(|listener| {
-                    let maybe_data = unsafe { B::from_byte_buffer(buffer, buffer_size) };
-                    let stamped_data =
-                        maybe_data.map(|data| WnfStampedData::from_data_change_stamp(data, change_stamp));
-                    (*listener)(stamped_data);
+                    listener.call(maybe_data, change_stamp.into());
                 });
             });
 
@@ -472,7 +471,7 @@ impl RawWnfState {
                 &mut subscription,
                 self.state_name.opaque_value(),
                 0,
-                callback::<B, F>,
+                callback::<B, F, A>,
                 &*context as *const _ as *mut c_void,
                 ptr::null(),
                 0,

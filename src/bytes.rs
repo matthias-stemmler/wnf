@@ -1,6 +1,6 @@
-pub unsafe trait AnyBitPattern: Sized + Copy + 'static {}
+pub unsafe trait AnyBitPattern: Copy + Sized + 'static {}
 
-pub unsafe trait CheckedBitPattern: Copy {
+pub unsafe trait CheckedBitPattern: Copy + Sized + 'static {
     type Bits: AnyBitPattern;
 
     fn is_valid_bit_pattern(bits: &Self::Bits) -> bool;
@@ -18,7 +18,7 @@ where
     }
 }
 
-pub unsafe trait NoUninit: Sized + Copy + 'static {}
+pub unsafe trait NoUninit: Copy + Sized + 'static {}
 
 unsafe impl AnyBitPattern for u32 {}
 unsafe impl NoUninit for u32 {}

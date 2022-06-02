@@ -1,9 +1,11 @@
-use std::sync::Arc;
+use std::sync::mpsc::RecvTimeoutError;
+use std::sync::{mpsc, Arc};
 use std::thread;
+use std::time::Duration;
 
 use wnf::{
-    BorrowedWnfState, OwnedWnfState, WnfApplyError, WnfDataScope, WnfStateNameDescriptor, WnfStateNameLifetime,
-    WnfTransformError,
+    BorrowedWnfState, OwnedWnfState, WnfApplyError, WnfChangeStamp, WnfDataScope, WnfStateNameDescriptor,
+    WnfStateNameLifetime, WnfTransformError,
 };
 
 #[test]
@@ -254,7 +256,7 @@ fn try_apply_slice_err() {
 
 #[test]
 fn owned_wnf_state_drop_deletes_state() {
-    let owned_state: OwnedWnfState = OwnedWnfState::create_temporary().unwrap();
+    let owned_state = OwnedWnfState::create_temporary().unwrap();
     let state_name = owned_state.state_name();
     drop(owned_state);
 
@@ -264,7 +266,7 @@ fn owned_wnf_state_drop_deletes_state() {
 
 #[test]
 fn owned_wnf_state_delete() {
-    let owned_state: OwnedWnfState = OwnedWnfState::create_temporary().unwrap();
+    let owned_state = OwnedWnfState::create_temporary().unwrap();
     let state_name = owned_state.state_name();
     owned_state.delete().unwrap();
 
@@ -280,6 +282,47 @@ fn borrowed_wnf_state_delete() {
 
     let borrowed_state: BorrowedWnfState = BorrowedWnfState::from_state_name(state_name);
     assert!(!borrowed_state.exists().unwrap());
+}
+
+#[test]
+fn subscribe() {
+    let owned_state = OwnedWnfState::create_temporary().unwrap();
+    let (tx, rx) = mpsc::channel();
+    let mut subscriptions = Vec::new();
+
+    const NUM_SUBSCRIPTIONS: usize = 2;
+
+    for _ in 0..NUM_SUBSCRIPTIONS {
+        let tx = tx.clone();
+        subscriptions.push(
+            owned_state
+                .subscribe(Box::new(move |data: Option<u32>, change_stamp| {
+                    tx.send((data, change_stamp)).unwrap();
+                }))
+                .unwrap(),
+        )
+    }
+
+    drop(tx);
+
+    for i in 0..3 {
+        owned_state.set(i).unwrap();
+
+        for _ in 0..NUM_SUBSCRIPTIONS {
+            let (data, change_stamp) = rx.recv_timeout(Duration::from_secs(1)).unwrap();
+            assert_eq!(data, Some(i));
+            assert_eq!(change_stamp, WnfChangeStamp::from(i + 1));
+        }
+    }
+
+    for subscription in subscriptions {
+        subscription.unsubscribe().map_err(|(err, _)| err).unwrap();
+    }
+
+    assert_eq!(
+        rx.recv_timeout(Duration::from_secs(1)),
+        Err(RecvTimeoutError::Disconnected)
+    );
 }
 
 #[derive(Debug, Eq, Hash, PartialEq)]

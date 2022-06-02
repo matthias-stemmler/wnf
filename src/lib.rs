@@ -5,13 +5,12 @@
 #[macro_use]
 extern crate num_derive;
 
-use data::{WnfChangeStamp, WnfStampedData};
-use security::SecurityDescriptor;
-
+pub use data::{WnfChangeStamp, WnfStampedData};
 pub use error::{
     SecurityCreateError, WnfApplyError, WnfCreateError, WnfDeleteError, WnfInfoError, WnfQueryError, WnfSubscribeError,
     WnfTransformError, WnfUnsubscribeError, WnfUpdateError,
 };
+use security::SecurityDescriptor;
 pub use state::{BorrowedWnfState, OwnedWnfState};
 pub use state_name::{WnfDataScope, WnfStateName, WnfStateNameDescriptor, WnfStateNameLifetime};
 
@@ -27,3 +26,4 @@ mod subscription;
 
 // TODO allow specifying minimum change_stamp for subscribe
 // TODO tracing
+// TODO wrap API for querying state name information?

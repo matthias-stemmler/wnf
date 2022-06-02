@@ -4,7 +4,7 @@ use std::mem::ManuallyDrop;
 use std::sync::Mutex;
 
 use crate::error::WnfUnsubscribeError;
-use crate::ntdll_sys;
+use crate::{ntdll_sys, WnfChangeStamp};
 
 #[derive(Debug)]
 pub struct WnfSubscriptionHandle<'a, F: ?Sized> {
@@ -74,6 +74,8 @@ impl<F: ?Sized> WnfSubscriptionHandle<'_, F> {
             } else {
                 self.inner = Some(inner);
             }
+
+            result.ok()?;
         };
 
         Ok(())
@@ -87,5 +89,27 @@ impl<F: ?Sized> Drop for WnfSubscriptionHandle<'_, F> {
                 inner.context.reset();
             }
         }
+    }
+}
+
+pub trait WnfStateChangeListener<T, A> {
+    fn call(&mut self, data: Option<T>, change_stamp: WnfChangeStamp);
+}
+
+impl<F, T> WnfStateChangeListener<T, (Option<T>, WnfChangeStamp)> for F
+where
+    F: FnMut(Option<T>, WnfChangeStamp),
+{
+    fn call(&mut self, data: Option<T>, change_stamp: WnfChangeStamp) {
+        self(data, change_stamp)
+    }
+}
+
+impl<F, T> WnfStateChangeListener<T, (Option<T>,)> for F
+where
+    F: FnMut(Option<T>),
+{
+    fn call(&mut self, data: Option<T>, _: WnfChangeStamp) {
+        self(data)
     }
 }
