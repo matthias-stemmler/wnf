@@ -18,7 +18,7 @@ pub enum WnfCreateError {
 
 #[derive(Debug, Error, PartialEq)]
 pub enum WnfInfoError {
-    #[error("failed to determine WNF state info: Windows error code {:#010x}", .0.code().0)]
+    #[error("failed to query WNF state information: Windows error code {:#010x}", .0.code().0)]
     Windows(#[from] windows::core::Error),
 }
 

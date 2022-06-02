@@ -61,6 +61,7 @@ impl<F: ?Sized> WnfSubscriptionHandle<'_, F> {
         mem::forget(self);
     }
 
+    // TODO wrap error with custom Debug implementation
     pub fn unsubscribe(mut self) -> Result<(), (WnfUnsubscribeError, Self)> {
         self.try_unsubscribe().map_err(|err| (err, self))
     }
@@ -111,5 +112,14 @@ where
 {
     fn call(&mut self, data: Option<T>, _: WnfChangeStamp) {
         self(data)
+    }
+}
+
+impl<F, T> WnfStateChangeListener<T, ()> for F
+where
+    F: FnMut(),
+{
+    fn call(&mut self, _: Option<T>, _: WnfChangeStamp) {
+        self()
     }
 }

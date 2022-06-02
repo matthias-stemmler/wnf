@@ -3,7 +3,6 @@ use std::marker::PhantomData;
 use std::mem::ManuallyDrop;
 
 use crate::bytes::{CheckedBitPattern, NoUninit};
-use crate::data::WnfStateInfo;
 use crate::error::{WnfApplyError, WnfDeleteError, WnfInfoError, WnfQueryError, WnfSubscribeError, WnfUpdateError};
 use crate::raw_state::RawWnfState;
 use crate::subscription::{WnfStateChangeListener, WnfSubscriptionHandle};
@@ -29,8 +28,12 @@ impl OwnedWnfState {
         self.raw.exists()
     }
 
-    pub fn info(&self) -> Result<Option<WnfStateInfo>, WnfInfoError> {
-        self.raw.info()
+    pub fn subscribers_present(&self) -> Result<bool, WnfInfoError> {
+        self.raw.subscribers_present()
+    }
+
+    pub fn is_quiescent(&self) -> Result<bool, WnfInfoError> {
+        self.raw.is_quiescent()
     }
 
     pub fn create_temporary() -> Result<Self, WnfCreateError> {
@@ -185,31 +188,40 @@ impl OwnedWnfState {
         self.raw.try_apply_slice(transform)
     }
 
-    pub fn subscribe<T, F, A>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
+    pub fn subscribe<T, F, A>(
+        &self,
+        after_change_stamp: WnfChangeStamp,
+        listener: Box<F>,
+    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
         T: CheckedBitPattern,
         F: WnfStateChangeListener<T, A> + Send + ?Sized + 'static,
     {
-        self.raw.subscribe(listener)
+        self.raw.subscribe(after_change_stamp, listener)
     }
 
     pub fn subscribe_slice_boxed<T, F, A>(
         &self,
+        after_change_stamp: WnfChangeStamp,
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
         T: CheckedBitPattern,
         F: WnfStateChangeListener<Box<T>, A> + Send + ?Sized + 'static,
     {
-        self.raw.subscribe_boxed(listener)
+        self.raw.subscribe_boxed(after_change_stamp, listener)
     }
 
-    pub fn subscribe_slice<T, F, A>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
+    pub fn subscribe_slice<T, F, A>(
+        &self,
+        after_change_stamp: WnfChangeStamp,
+        listener: Box<F>,
+    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
         T: CheckedBitPattern,
         F: WnfStateChangeListener<Box<[T]>, A> + Send + ?Sized + 'static,
     {
-        self.raw.subscribe_slice(listener)
+        self.raw.subscribe_slice(after_change_stamp, listener)
     }
 }
 
@@ -228,8 +240,12 @@ impl BorrowedWnfState<'_> {
         self.raw.exists()
     }
 
-    pub fn info(&self) -> Result<Option<WnfStateInfo>, WnfInfoError> {
-        self.raw.info()
+    pub fn subscribers_present(&self) -> Result<bool, WnfInfoError> {
+        self.raw.subscribers_present()
+    }
+
+    pub fn is_quiescent(&self) -> Result<bool, WnfInfoError> {
+        self.raw.is_quiescent()
     }
 
     pub fn into_owned(self) -> OwnedWnfState {
@@ -387,27 +403,39 @@ impl<'a> BorrowedWnfState<'a> {
         self.raw.try_apply_slice(transform)
     }
 
-    pub fn subscribe<T, F, A>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
+    pub fn subscribe<T, F, A>(
+        &self,
+        after_change_stamp: WnfChangeStamp,
+        listener: Box<F>,
+    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
         T: CheckedBitPattern,
         F: WnfStateChangeListener<T, A> + Send + ?Sized + 'static,
     {
-        self.raw.subscribe(listener)
+        self.raw.subscribe(after_change_stamp, listener)
     }
 
-    pub fn subscribe_boxed<T, F, A>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
+    pub fn subscribe_boxed<T, F, A>(
+        &self,
+        after_change_stamp: WnfChangeStamp,
+        listener: Box<F>,
+    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
         T: CheckedBitPattern,
         F: WnfStateChangeListener<Box<T>, A> + Send + ?Sized + 'static,
     {
-        self.raw.subscribe_boxed(listener)
+        self.raw.subscribe_boxed(after_change_stamp, listener)
     }
 
-    pub fn subscribe_slice<T, F, A>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
+    pub fn subscribe_slice<T, F, A>(
+        &self,
+        after_change_stamp: WnfChangeStamp,
+        listener: Box<F>,
+    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
         T: CheckedBitPattern,
         F: WnfStateChangeListener<Box<[T]>, A> + Send + ?Sized + 'static,
     {
-        self.raw.subscribe_slice(listener)
+        self.raw.subscribe_slice(after_change_stamp, listener)
     }
 }

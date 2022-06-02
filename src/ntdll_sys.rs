@@ -47,6 +47,14 @@ extern "system" {
         buffer_size: *mut u32,
     ) -> NTSTATUS;
 
+    pub(crate) fn ZwQueryWnfStateNameInformation(
+        state_name: *const u64,
+        name_info_class: u32,
+        explicit_scope: *const c_void,
+        buffer: *mut c_void,
+        buffer_size: u32,
+    ) -> NTSTATUS;
+
     pub(crate) fn ZwUpdateWnfStateData(
         state_name: *const u64,
         buffer: *const c_void,

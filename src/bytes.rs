@@ -21,6 +21,9 @@ where
 pub unsafe trait NoUninit: Copy + Sized + 'static {}
 
 unsafe impl AnyBitPattern for u32 {}
+unsafe impl AnyBitPattern for () {}
+
 unsafe impl NoUninit for u32 {}
+unsafe impl NoUninit for () {}
 
 unsafe impl<T, const N: usize> AnyBitPattern for [T; N] where T: AnyBitPattern {}

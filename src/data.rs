@@ -1,27 +1,11 @@
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
-pub struct WnfStateInfo {
-    size: u32,
-    change_stamp: WnfChangeStamp,
-}
-
-impl WnfStateInfo {
-    pub(crate) fn from_size_change_stamp(size: u32, change_stamp: WnfChangeStamp) -> Self {
-        Self { size, change_stamp }
-    }
-
-    pub fn change_stamp(&self) -> WnfChangeStamp {
-        self.change_stamp
-    }
-
-    pub fn size(&self) -> u32 {
-        self.size
-    }
-}
-
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct WnfChangeStamp(u32);
 
 impl WnfChangeStamp {
+    pub fn initial() -> Self {
+        Self::default()
+    }
+
     pub(crate) fn as_mut_ptr(&mut self) -> *mut u32 {
         &mut self.0
     }
@@ -68,4 +52,12 @@ impl<T> WnfStampedData<T> {
     pub fn change_stamp(&self) -> WnfChangeStamp {
         self.change_stamp
     }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[repr(u32)]
+pub(crate) enum WnfNameInfoClass {
+    StateNameExist = 0,
+    SubscribersPresent = 1,
+    IsQuiescent = 2,
 }

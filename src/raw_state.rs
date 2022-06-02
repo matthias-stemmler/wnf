@@ -6,12 +6,10 @@ use std::mem::{ManuallyDrop, MaybeUninit};
 use std::{alloc, mem, panic, ptr, slice};
 
 use windows::core::GUID;
-use windows::Win32::Foundation::{
-    NTSTATUS, STATUS_BUFFER_TOO_SMALL, STATUS_OBJECT_NAME_NOT_FOUND, STATUS_SUCCESS, STATUS_UNSUCCESSFUL,
-};
+use windows::Win32::Foundation::{NTSTATUS, STATUS_BUFFER_TOO_SMALL, STATUS_SUCCESS, STATUS_UNSUCCESSFUL};
 
 use crate::bytes::{CheckedBitPattern, NoUninit};
-use crate::data::WnfStateInfo;
+use crate::data::WnfNameInfoClass;
 use crate::error::{
     WnfApplyError, WnfDeleteError, WnfInfoError, WnfQueryError, WnfSubscribeError, WnfTransformError, WnfUpdateError,
 };
@@ -62,29 +60,35 @@ impl RawWnfState {
     }
 
     pub fn exists(&self) -> Result<bool, WnfInfoError> {
-        Ok(self.info()?.is_some())
+        self.info_internal(WnfNameInfoClass::StateNameExist)
     }
 
-    pub fn info(&self) -> Result<Option<WnfStateInfo>, WnfInfoError> {
-        let mut change_stamp = WnfChangeStamp::default();
-        let mut size = 0;
+    pub fn subscribers_present(&self) -> Result<bool, WnfInfoError> {
+        self.info_internal(WnfNameInfoClass::SubscribersPresent)
+    }
 
-        let result = unsafe {
-            ntdll_sys::ZwQueryWnfStateData(
+    pub fn is_quiescent(&self) -> Result<bool, WnfInfoError> {
+        self.info_internal(WnfNameInfoClass::IsQuiescent)
+    }
+
+    fn info_internal(&self, name_info_class: WnfNameInfoClass) -> Result<bool, WnfInfoError> {
+        let mut buffer = u32::MAX;
+
+        unsafe {
+            ntdll_sys::ZwQueryWnfStateNameInformation(
                 &self.state_name.opaque_value(),
+                name_info_class as u32,
                 ptr::null(),
-                ptr::null(),
-                change_stamp.as_mut_ptr(),
-                ptr::null_mut(),
-                &mut size,
+                &mut buffer as *mut _ as *mut c_void,
+                mem::size_of_val(&buffer) as u32,
             )
-        };
+        }
+        .ok()?;
 
-        Ok(if result == STATUS_OBJECT_NAME_NOT_FOUND {
-            None
-        } else {
-            result.ok()?;
-            Some(WnfStateInfo::from_size_change_stamp(size, change_stamp))
+        Ok(match buffer {
+            0 => false,
+            1 => true,
+            _ => unreachable!("ZwQueryWnfStateNameInformation did not produce valid boolean"),
         })
     }
 
@@ -410,31 +414,47 @@ impl RawWnfState {
         }
     }
 
-    pub fn subscribe<T, F, A>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
+    pub fn subscribe<T, F, A>(
+        &self,
+        after_change_stamp: WnfChangeStamp,
+        listener: Box<F>,
+    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
         T: CheckedBitPattern,
         F: WnfStateChangeListener<T, A> + Send + ?Sized + 'static,
     {
-        self.subscribe_internal::<Value<T>, F, A>(listener)
+        self.subscribe_internal::<Value<T>, F, A>(after_change_stamp, listener)
     }
 
-    pub fn subscribe_boxed<T, F, A>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
+    pub fn subscribe_boxed<T, F, A>(
+        &self,
+        after_change_stamp: WnfChangeStamp,
+        listener: Box<F>,
+    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
         T: CheckedBitPattern,
         F: WnfStateChangeListener<Box<T>, A> + Send + ?Sized + 'static,
     {
-        self.subscribe_internal::<Boxed<T>, F, A>(listener)
+        self.subscribe_internal::<Boxed<T>, F, A>(after_change_stamp, listener)
     }
 
-    pub fn subscribe_slice<T, F, A>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
+    pub fn subscribe_slice<T, F, A>(
+        &self,
+        after_change_stamp: WnfChangeStamp,
+        listener: Box<F>,
+    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
         T: CheckedBitPattern,
         F: WnfStateChangeListener<Box<[T]>, A> + Send + ?Sized + 'static,
     {
-        self.subscribe_internal::<BoxedSlice<T>, F, A>(listener)
+        self.subscribe_internal::<BoxedSlice<T>, F, A>(after_change_stamp, listener)
     }
 
-    fn subscribe_internal<B, F, A>(&self, listener: Box<F>) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
+    fn subscribe_internal<B, F, A>(
+        &self,
+        after_change_stamp: WnfChangeStamp,
+        listener: Box<F>,
+    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
         B: FromByteBuffer,
         F: WnfStateChangeListener<B::Data, A> + Send + ?Sized + 'static,
@@ -470,7 +490,7 @@ impl RawWnfState {
             ntdll_sys::RtlSubscribeWnfStateChangeNotification(
                 &mut subscription,
                 self.state_name.opaque_value(),
-                0,
+                after_change_stamp.into(),
                 callback::<B, F, A>,
                 &*context as *const _ as *mut c_void,
                 ptr::null(),

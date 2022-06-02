@@ -24,6 +24,4 @@ mod state;
 mod state_name;
 mod subscription;
 
-// TODO allow specifying minimum change_stamp for subscribe
 // TODO tracing
-// TODO wrap API for querying state name information?

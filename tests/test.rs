@@ -296,9 +296,12 @@ fn subscribe() {
         let tx = tx.clone();
         subscriptions.push(
             owned_state
-                .subscribe(Box::new(move |data: Option<u32>, change_stamp| {
-                    tx.send((data, change_stamp)).unwrap();
-                }))
+                .subscribe(
+                    WnfChangeStamp::initial(),
+                    Box::new(move |data: Option<u32>, change_stamp| {
+                        tx.send((data, change_stamp)).unwrap();
+                    }),
+                )
                 .unwrap(),
         )
     }
@@ -323,6 +326,73 @@ fn subscribe() {
         rx.recv_timeout(Duration::from_secs(1)),
         Err(RecvTimeoutError::Disconnected)
     );
+}
+
+#[test]
+fn exists() {
+    let owned_state = OwnedWnfState::create_temporary().unwrap();
+
+    let exists = owned_state.exists().unwrap();
+
+    assert!(exists);
+}
+
+#[test]
+fn not_exists() {
+    let borrowed_state = BorrowedWnfState::from_state_name(
+        WnfStateNameDescriptor {
+            version: 1,
+            lifetime: WnfStateNameLifetime::Temporary,
+            data_scope: WnfDataScope::Machine,
+            is_permanent: false,
+            unique_id: 1 << 53 - 1,
+        }
+        .try_into()
+        .unwrap(),
+    );
+
+    let exists = borrowed_state.exists().unwrap();
+
+    assert!(!exists);
+}
+
+#[test]
+fn subscribers_present() {
+    let owned_state = OwnedWnfState::create_temporary().unwrap();
+    assert!(!owned_state.subscribers_present().unwrap());
+
+    let subscription = owned_state
+        .subscribe::<u32, _, _>(WnfChangeStamp::initial(), Box::new(|| {}))
+        .unwrap();
+    assert!(owned_state.subscribers_present().unwrap());
+
+    subscription.unsubscribe().map_err(|(err, _)| err).unwrap();
+    assert!(!owned_state.subscribers_present().unwrap());
+}
+
+#[test]
+fn is_quiescent() {
+    let owned_state = OwnedWnfState::create_temporary().unwrap();
+    let (tx, rx) = mpsc::channel();
+
+    let subscription = owned_state
+        .subscribe::<(), _, _>(
+            WnfChangeStamp::initial(),
+            Box::new(move || {
+                let _ = rx.recv();
+            }),
+        )
+        .unwrap();
+
+    assert!(owned_state.is_quiescent().unwrap());
+
+    owned_state.set(()).unwrap();
+    assert!(!owned_state.is_quiescent().unwrap());
+
+    tx.send(()).unwrap();
+    subscription.unsubscribe().map_err(|(err, _)| err).unwrap();
+
+    assert!(owned_state.is_quiescent().unwrap());
 }
 
 #[derive(Debug, Eq, Hash, PartialEq)]
