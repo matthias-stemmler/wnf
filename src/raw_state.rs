@@ -5,6 +5,7 @@ use std::marker::PhantomData;
 use std::mem::{ManuallyDrop, MaybeUninit};
 use std::{alloc, mem, panic, ptr, slice};
 
+use tracing::{debug, trace_span};
 use windows::core::GUID;
 use windows::Win32::Foundation::{NTSTATUS, STATUS_BUFFER_TOO_SMALL, STATUS_SUCCESS, STATUS_UNSUCCESSFUL};
 
@@ -13,6 +14,7 @@ use crate::data::WnfNameInfoClass;
 use crate::error::{
     WnfApplyError, WnfDeleteError, WnfInfoError, WnfQueryError, WnfSubscribeError, WnfTransformError, WnfUpdateError,
 };
+use crate::ntdll::NTDLL_TARGET;
 use crate::subscription::{WnfStateChangeListener, WnfSubscriptionContext, WnfSubscriptionHandle};
 use crate::{
     ntdll_sys, SecurityDescriptor, WnfChangeStamp, WnfCreateError, WnfDataScope, WnfStampedData, WnfStateName,
@@ -35,27 +37,68 @@ impl RawWnfState {
 
     pub(crate) fn create_temporary() -> Result<Self, WnfCreateError> {
         let mut opaque_value = 0;
+
         // TODO Can we drop this or is it "borrowed" by the created WNF state?
         let security_descriptor = SecurityDescriptor::create_everyone_generic_all()?;
 
-        unsafe {
+        let name_lifetime = WnfStateNameLifetime::Temporary as u32;
+        let data_scope = WnfDataScope::Machine as u32;
+        let persist_data = 0;
+        let maximum_state_size = 0x1000;
+
+        let result = unsafe {
             ntdll_sys::ZwCreateWnfStateName(
                 &mut opaque_value,
-                WnfStateNameLifetime::Temporary as u32,
-                WnfDataScope::Machine as u32,
-                0,
+                name_lifetime,
+                data_scope,
+                persist_data,
                 ptr::null(),
-                0x1000,
+                maximum_state_size,
                 security_descriptor.as_void_ptr(),
             )
-        }
-        .ok()?;
+        };
 
-        Ok(Self::from_state_name(WnfStateName::from_opaque_value(opaque_value)))
+        if result.is_ok() {
+            let state_name = WnfStateName::from_opaque_value(opaque_value);
+
+            debug!(
+                target: NTDLL_TARGET,
+                ?result,
+                input.name_lifetime = name_lifetime,
+                input.data_scope = data_scope,
+                input.persist_data = persist_data,
+                input.maximum_state_size = maximum_state_size,
+                output.state_name = %state_name,
+                "ZwCreateWnfStateName",
+            );
+
+            Ok(Self::from_state_name(state_name))
+        } else {
+            debug!(
+                target: NTDLL_TARGET,
+                ?result,
+                input.name_lifetime = name_lifetime,
+                input.data_scope = data_scope,
+                input.persist_data = persist_data,
+                input.maximum_state_size = maximum_state_size,
+                "ZwCreateWnfStateName",
+            );
+
+            Err(result.into())
+        }
     }
 
     pub(crate) fn delete(self) -> Result<(), WnfDeleteError> {
-        unsafe { ntdll_sys::ZwDeleteWnfStateName(&self.state_name.opaque_value()) }.ok()?;
+        let result = unsafe { ntdll_sys::ZwDeleteWnfStateName(&self.state_name.opaque_value()) };
+
+        debug!(
+            target: NTDLL_TARGET,
+            ?result,
+            input.state_name = %self.state_name,
+            "ZwDeleteWnfStateName",
+        );
+
+        result.ok()?;
         Ok(())
     }
 
@@ -73,23 +116,44 @@ impl RawWnfState {
 
     fn info_internal(&self, name_info_class: WnfNameInfoClass) -> Result<bool, WnfInfoError> {
         let mut buffer = u32::MAX;
+        let name_info_class = name_info_class as u32;
 
-        unsafe {
+        let result = unsafe {
             ntdll_sys::ZwQueryWnfStateNameInformation(
                 &self.state_name.opaque_value(),
-                name_info_class as u32,
+                name_info_class,
                 ptr::null(),
                 &mut buffer as *mut _ as *mut c_void,
                 mem::size_of_val(&buffer) as u32,
             )
-        }
-        .ok()?;
+        };
 
-        Ok(match buffer {
-            0 => false,
-            1 => true,
-            _ => unreachable!("ZwQueryWnfStateNameInformation did not produce valid boolean"),
-        })
+        if result.is_ok() {
+            debug!(
+                 target: NTDLL_TARGET,
+                 ?result,
+                 input.state_name = %self.state_name,
+                 input.name_info_class = name_info_class,
+                 output.buffer = buffer,
+                 "ZwQueryWnfStateNameInformation",
+            );
+
+            Ok(match buffer {
+                0 => false,
+                1 => true,
+                _ => unreachable!("ZwQueryWnfStateNameInformation did not produce valid boolean"),
+            })
+        } else {
+            debug!(
+                 target: NTDLL_TARGET,
+                 ?result,
+                 input.state_name = %self.state_name,
+                 input.name_info_class = name_info_class,
+                 "ZwQueryWnfStateNameInformation",
+            );
+
+            Err(result.into())
+        }
     }
 
     pub fn get<T>(&self) -> Result<T, WnfQueryError>
@@ -235,8 +299,24 @@ impl RawWnfState {
         );
 
         if result.is_err() && (result != STATUS_BUFFER_TOO_SMALL || size as usize <= buffer_size) {
+            debug!(
+                 target: NTDLL_TARGET,
+                 ?result,
+                 input.state_name = %self.state_name,
+                 "ZwQueryWnfStateData",
+            );
+
             Err(result.into())
         } else {
+            debug!(
+                target: NTDLL_TARGET,
+                ?result,
+                input.state_name = %self.state_name,
+                output.change_stamp = %change_stamp,
+                output.buffer_size = size,
+                "ZwQueryWnfStateData",
+            );
+
             Ok((size as usize, change_stamp))
         }
     }
@@ -286,18 +366,33 @@ impl RawWnfState {
         D: Borrow<[T]>,
     {
         let data = data.borrow();
+        let buffer_size = (data.len() * mem::size_of::<T>()) as u32; // T: NoUninit should imply that this is the correct size
+        let matching_change_stamp = expected_change_stamp.unwrap_or_default().into();
+        let check_stamp = expected_change_stamp.is_some() as u32;
 
-        unsafe {
+        let result = unsafe {
             ntdll_sys::ZwUpdateWnfStateData(
                 &self.state_name.opaque_value(),
                 data.as_ptr().cast(),
-                (data.len() * mem::size_of::<T>()) as u32, // T: NoUninit should imply that this is the correct size
+                buffer_size,
                 ptr::null(),
                 ptr::null(),
-                expected_change_stamp.unwrap_or_default().into(),
-                expected_change_stamp.is_some() as u32,
+                matching_change_stamp,
+                check_stamp,
             )
-        }
+        };
+
+        debug!(
+            target: NTDLL_TARGET,
+            ?result,
+            input.state_name = %self.state_name,
+            input.buffer_size = buffer_size,
+            input.matching_change_stamp = matching_change_stamp,
+            input.check_stamp = check_stamp,
+            "ZwUpdateWnfStateData",
+        );
+
+        result
     }
 
     pub fn apply<T, D, F>(&self, mut transform: F) -> Result<bool, WnfApplyError>
@@ -460,7 +555,7 @@ impl RawWnfState {
         F: WnfStateChangeListener<B::Data, A> + Send + ?Sized + 'static,
     {
         extern "system" fn callback<B, F, A>(
-            _state_name: u64,
+            state_name: u64,
             change_stamp: u32,
             _type_id: *const GUID,
             context: *mut c_void,
@@ -472,6 +567,15 @@ impl RawWnfState {
             F: WnfStateChangeListener<B::Data, A> + Send + ?Sized + 'static,
         {
             let _ = panic::catch_unwind(|| {
+                let span = trace_span!(
+                    target: NTDLL_TARGET,
+                    "WnfUserCallback",
+                    input.state_name = %WnfStateName::from_opaque_value(state_name),
+                    input.change_stamp = change_stamp,
+                    input.buffer_size = buffer_size
+                );
+                let _enter = span.enter();
+
                 let context: &WnfSubscriptionContext<F> = unsafe { &*context.cast() };
                 let maybe_data = unsafe { B::from_byte_buffer(buffer, buffer_size) };
 
@@ -486,7 +590,7 @@ impl RawWnfState {
         let mut subscription = 0;
         let context = Box::new(WnfSubscriptionContext::new(listener));
 
-        unsafe {
+        let result = unsafe {
             ntdll_sys::RtlSubscribeWnfStateChangeNotification(
                 &mut subscription,
                 self.state_name.opaque_value(),
@@ -497,10 +601,30 @@ impl RawWnfState {
                 0,
                 0,
             )
-        }
-        .ok()?;
+        };
 
-        Ok(WnfSubscriptionHandle::new(context, subscription))
+        if result.is_ok() {
+            debug!(
+                target: NTDLL_TARGET,
+                ?result,
+                input.state_name = %self.state_name,
+                input.after_change_stamp = %after_change_stamp,
+                output.subscription = subscription,
+                "RtlSubscribeWnfStateChangeNotification",
+            );
+
+            Ok(WnfSubscriptionHandle::new(context, subscription))
+        } else {
+            debug!(
+                target: NTDLL_TARGET,
+                ?result,
+                input.state_name = %self.state_name,
+                input.after_change_stamp = %after_change_stamp,
+                "RtlSubscribeWnfStateChangeNotification",
+            );
+
+            Err(result.into())
+        }
     }
 }
 

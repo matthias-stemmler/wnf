@@ -20,10 +20,16 @@ where
 
 pub unsafe trait NoUninit: Copy + Sized + 'static {}
 
-unsafe impl AnyBitPattern for u32 {}
 unsafe impl AnyBitPattern for () {}
+unsafe impl AnyBitPattern for u8 {}
+unsafe impl AnyBitPattern for u16 {}
+unsafe impl AnyBitPattern for u32 {}
+unsafe impl AnyBitPattern for u64 {}
 
-unsafe impl NoUninit for u32 {}
 unsafe impl NoUninit for () {}
+unsafe impl NoUninit for u8 {}
+unsafe impl NoUninit for u16 {}
+unsafe impl NoUninit for u32 {}
+unsafe impl NoUninit for u64 {}
 
 unsafe impl<T, const N: usize> AnyBitPattern for [T; N] where T: AnyBitPattern {}

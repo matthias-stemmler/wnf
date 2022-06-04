@@ -1,4 +1,6 @@
 use num_traits::FromPrimitive;
+use std::fmt;
+use std::fmt::{Display, Formatter};
 use thiserror::Error;
 
 const STATE_NAME_XOR_KEY: u64 = 0x41C64E6DA3BC0074;
@@ -90,6 +92,12 @@ impl TryFrom<WnfStateName> for WnfStateNameDescriptor {
             is_permanent: transparent_value & (1 << 10) != 0,
             unique_id: transparent_value >> 11,
         })
+    }
+}
+
+impl Display for WnfStateName {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{:#010x}", self.opaque_value)
     }
 }
 

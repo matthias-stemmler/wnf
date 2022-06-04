@@ -78,8 +78,8 @@ fn set_slice_vec() {
 fn get_by_value() {
     let state = OwnedWnfState::create_temporary().unwrap();
 
-    let value = 0x12345678;
-    state.set(0x12345678).unwrap();
+    let value: u32 = 0x12345678;
+    state.set(value).unwrap();
 
     let read_value: u32 = state.get().unwrap();
     assert_eq!(read_value, value);
@@ -89,8 +89,8 @@ fn get_by_value() {
 fn get_boxed() {
     let state = OwnedWnfState::create_temporary().unwrap();
 
-    let value = 0x12345678;
-    state.set(0x12345678).unwrap();
+    let value: u32 = 0x12345678;
+    state.set(value).unwrap();
 
     let read_value: Box<u32> = state.get_boxed().unwrap();
     assert_eq!(*read_value, value);

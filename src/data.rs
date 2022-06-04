@@ -1,3 +1,6 @@
+use std::fmt;
+use std::fmt::{Display, Formatter};
+
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct WnfChangeStamp(u32);
 
@@ -20,6 +23,12 @@ impl From<u32> for WnfChangeStamp {
 impl From<WnfChangeStamp> for u32 {
     fn from(WnfChangeStamp(value): WnfChangeStamp) -> Self {
         value
+    }
+}
+
+impl Display for WnfChangeStamp {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 

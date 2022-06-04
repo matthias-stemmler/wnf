@@ -1,5 +1,6 @@
 use std::convert::Infallible;
 use thiserror::Error;
+use windows::Win32::Foundation::NTSTATUS;
 
 #[derive(Debug, Error, PartialEq)]
 pub enum SecurityCreateError {
@@ -78,3 +79,26 @@ pub enum WnfUnsubscribeError {
     #[error("failed to unsubscribe from WNF state change: Windows error code {:#010x}", .0.code().0)]
     Windows(#[from] windows::core::Error),
 }
+
+macro_rules! impl_from_ntstatus {
+    ($($t:ty,)*) => {
+        $(
+            impl From<NTSTATUS> for $t {
+                fn from(result: NTSTATUS) -> Self {
+                    let err: windows::core::Error = result.into();
+                    err.into()
+                }
+            }
+        )*
+    }
+}
+
+impl_from_ntstatus![
+    SecurityCreateError,
+    WnfCreateError,
+    WnfInfoError,
+    WnfDeleteError,
+    WnfQueryError,
+    WnfUpdateError,
+    WnfSubscribeError,
+];
