@@ -135,7 +135,7 @@ pub struct CatchInvalid<F, G> {
     invalid_handler: G,
 }
 
-pub trait CatchInvalidExt<ArgsInvalid, T>: Sized {
+pub trait CatchInvalidExt<T, ArgsInvalid>: Sized {
     fn catch_invalid<G>(self, invalid_handler: G) -> CatchInvalid<Self, G> {
         CatchInvalid {
             valid_handler: self,
@@ -144,6 +144,6 @@ pub trait CatchInvalidExt<ArgsInvalid, T>: Sized {
     }
 }
 
-impl<F, T, Return> CatchInvalidExt<(), T> for F where F: FnMut() -> Return {}
-impl<F, T, Return> CatchInvalidExt<(T,), T> for F where F: FnMut(T) -> Return {}
-impl<F, T, Return> CatchInvalidExt<(T, WnfChangeStamp), T> for F where F: FnMut(T, WnfChangeStamp) -> Return {}
+impl<F, T, Return> CatchInvalidExt<T, ()> for F where F: FnMut() -> Return {}
+impl<F, T, Return> CatchInvalidExt<T, (T,)> for F where F: FnMut(T) -> Return {}
+impl<F, T, Return> CatchInvalidExt<T, (T, WnfChangeStamp)> for F where F: FnMut(T, WnfChangeStamp) -> Return {}
