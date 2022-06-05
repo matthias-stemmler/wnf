@@ -23,7 +23,7 @@ fn main() {
     let subscription = state
         .subscribe(
             WnfChangeStamp::initial(),
-            Box::new(move |data: Option<u32>, change_stamp: WnfChangeStamp| {
+            Box::new(move |data: u32, change_stamp: WnfChangeStamp| {
                 info!(data, ?change_stamp);
                 tx.send(data).expect("Failed to send data to mpsc channel");
             }),
@@ -38,7 +38,7 @@ fn main() {
 
     for data in rx.into_iter() {
         receive_count += 1;
-        if data == Some(LAST_DATA) {
+        if data == LAST_DATA {
             break;
         }
     }

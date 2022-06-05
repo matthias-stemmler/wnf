@@ -5,6 +5,7 @@
 #[macro_use]
 extern crate num_derive;
 
+pub use callback::{CatchInvalidExt, WnfCallback};
 pub use data::{WnfChangeStamp, WnfStampedData};
 pub use error::{
     SecurityCreateError, WnfApplyError, WnfCreateError, WnfDeleteError, WnfInfoError, WnfQueryError, WnfSubscribeError,
@@ -15,6 +16,7 @@ pub use state::{BorrowedWnfState, OwnedWnfState};
 pub use state_name::{WnfDataScope, WnfStateName, WnfStateNameDescriptor, WnfStateNameLifetime};
 
 mod bytes;
+mod callback;
 mod data;
 mod error;
 mod ntdll;
@@ -24,3 +26,8 @@ mod security;
 mod state;
 mod state_name;
 mod subscription;
+
+// TODO apply: abstract over returning T vs. Option<T>?
+// TODO restructure modules by query, update, subscribe etc.
+// TODO move <T> back to state, implement "cast" methods
+// TODO wait (sync + async)

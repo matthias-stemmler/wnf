@@ -8,7 +8,7 @@ use tracing::debug;
 
 use crate::error::WnfUnsubscribeError;
 use crate::ntdll::NTDLL_TARGET;
-use crate::{ntdll_sys, WnfChangeStamp};
+use crate::ntdll_sys;
 
 pub struct WnfSubscriptionHandle<'a, F>
 where
@@ -132,36 +132,5 @@ where
                 inner.context.reset();
             }
         }
-    }
-}
-
-pub trait WnfStateChangeListener<T, A> {
-    fn call(&mut self, data: Option<T>, change_stamp: WnfChangeStamp);
-}
-
-impl<F, T> WnfStateChangeListener<T, (Option<T>, WnfChangeStamp)> for F
-where
-    F: FnMut(Option<T>, WnfChangeStamp),
-{
-    fn call(&mut self, data: Option<T>, change_stamp: WnfChangeStamp) {
-        self(data, change_stamp)
-    }
-}
-
-impl<F, T> WnfStateChangeListener<T, (Option<T>,)> for F
-where
-    F: FnMut(Option<T>),
-{
-    fn call(&mut self, data: Option<T>, _: WnfChangeStamp) {
-        self(data)
-    }
-}
-
-impl<F, T> WnfStateChangeListener<T, ()> for F
-where
-    F: FnMut(),
-{
-    fn call(&mut self, _: Option<T>, _: WnfChangeStamp) {
-        self()
     }
 }

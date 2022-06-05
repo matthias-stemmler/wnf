@@ -3,6 +3,7 @@ use std::sync::{mpsc, Arc};
 use std::thread;
 use std::time::Duration;
 
+use wnf::CatchInvalidExt;
 use wnf::{
     BorrowedWnfState, OwnedWnfState, WnfApplyError, WnfChangeStamp, WnfDataScope, WnfStateNameDescriptor,
     WnfStateNameLifetime, WnfTransformError,
@@ -256,37 +257,37 @@ fn try_apply_slice_err() {
 
 #[test]
 fn owned_wnf_state_drop_deletes_state() {
-    let owned_state = OwnedWnfState::create_temporary().unwrap();
-    let state_name = owned_state.state_name();
-    drop(owned_state);
+    let state = OwnedWnfState::create_temporary().unwrap();
+    let state_name = state.state_name();
+    drop(state);
 
-    let borrowed_state: BorrowedWnfState = BorrowedWnfState::from_state_name(state_name);
-    assert!(!borrowed_state.exists().unwrap());
+    let state: BorrowedWnfState = BorrowedWnfState::from_state_name(state_name);
+    assert!(!state.exists().unwrap());
 }
 
 #[test]
 fn owned_wnf_state_delete() {
-    let owned_state = OwnedWnfState::create_temporary().unwrap();
-    let state_name = owned_state.state_name();
-    owned_state.delete().unwrap();
+    let state = OwnedWnfState::create_temporary().unwrap();
+    let state_name = state.state_name();
+    state.delete().unwrap();
 
-    let borrowed_state: BorrowedWnfState = BorrowedWnfState::from_state_name(state_name);
-    assert!(!borrowed_state.exists().unwrap());
+    let state: BorrowedWnfState = BorrowedWnfState::from_state_name(state_name);
+    assert!(!state.exists().unwrap());
 }
 
 #[test]
 fn borrowed_wnf_state_delete() {
-    let borrowed_state: BorrowedWnfState = OwnedWnfState::create_temporary().unwrap().leak();
-    let state_name = borrowed_state.state_name();
-    borrowed_state.delete().unwrap();
+    let state: BorrowedWnfState = OwnedWnfState::create_temporary().unwrap().leak();
+    let state_name = state.state_name();
+    state.delete().unwrap();
 
-    let borrowed_state: BorrowedWnfState = BorrowedWnfState::from_state_name(state_name);
-    assert!(!borrowed_state.exists().unwrap());
+    let state: BorrowedWnfState = BorrowedWnfState::from_state_name(state_name);
+    assert!(!state.exists().unwrap());
 }
 
 #[test]
 fn subscribe() {
-    let owned_state = OwnedWnfState::create_temporary().unwrap();
+    let state = OwnedWnfState::create_temporary().unwrap();
     let (tx, rx) = mpsc::channel();
     let mut subscriptions = Vec::new();
 
@@ -295,10 +296,10 @@ fn subscribe() {
     for _ in 0..NUM_SUBSCRIPTIONS {
         let tx = tx.clone();
         subscriptions.push(
-            owned_state
+            state
                 .subscribe(
                     WnfChangeStamp::initial(),
-                    Box::new(move |data: Option<u32>, change_stamp| {
+                    Box::new(move |data: u32, change_stamp| {
                         tx.send((data, change_stamp)).unwrap();
                     }),
                 )
@@ -309,11 +310,11 @@ fn subscribe() {
     drop(tx);
 
     for i in 0..3 {
-        owned_state.set(i).unwrap();
+        state.set(i).unwrap();
 
         for _ in 0..NUM_SUBSCRIPTIONS {
             let (data, change_stamp) = rx.recv_timeout(Duration::from_secs(1)).unwrap();
-            assert_eq!(data, Some(i));
+            assert_eq!(data, i);
             assert_eq!(change_stamp, WnfChangeStamp::from(i + 1));
         }
     }
@@ -329,17 +330,53 @@ fn subscribe() {
 }
 
 #[test]
-fn exists() {
-    let owned_state = OwnedWnfState::create_temporary().unwrap();
+fn subscribe_catch_invalid() {
+    #[derive(Debug, PartialEq)]
+    enum Message {
+        Valid(u32, WnfChangeStamp),
+        Invalid(WnfChangeStamp),
+    }
 
-    let exists = owned_state.exists().unwrap();
+    let state = OwnedWnfState::create_temporary().unwrap();
+
+    let (tx, rx) = mpsc::channel();
+    let tx_invalid = tx.clone();
+
+    let subscription = state
+        .subscribe(
+            WnfChangeStamp::initial(),
+            Box::new(
+                (move |data, change_stamp| {
+                    tx.send(Message::Valid(data, change_stamp)).unwrap();
+                })
+                .catch_invalid(move |change_stamp| {
+                    tx_invalid.send(Message::Invalid(change_stamp)).unwrap();
+                }),
+            ),
+        )
+        .unwrap();
+
+    state.set(42u32).unwrap();
+    assert_eq!(rx.recv().unwrap(), Message::Valid(42, 1.into()));
+
+    state.set(42u16).unwrap();
+    assert_eq!(rx.recv().unwrap(), Message::Invalid(2.into()));
+
+    subscription.unsubscribe().unwrap();
+}
+
+#[test]
+fn exists() {
+    let state = OwnedWnfState::create_temporary().unwrap();
+
+    let exists = state.exists().unwrap();
 
     assert!(exists);
 }
 
 #[test]
 fn not_exists() {
-    let borrowed_state = BorrowedWnfState::from_state_name(
+    let state = BorrowedWnfState::from_state_name(
         WnfStateNameDescriptor {
             version: 1,
             lifetime: WnfStateNameLifetime::Temporary,
@@ -351,48 +388,48 @@ fn not_exists() {
         .unwrap(),
     );
 
-    let exists = borrowed_state.exists().unwrap();
+    let exists = state.exists().unwrap();
 
     assert!(!exists);
 }
 
 #[test]
 fn subscribers_present() {
-    let owned_state = OwnedWnfState::create_temporary().unwrap();
-    assert!(!owned_state.subscribers_present().unwrap());
+    let state = OwnedWnfState::create_temporary().unwrap();
+    assert!(!state.subscribers_present().unwrap());
 
-    let subscription = owned_state
-        .subscribe::<u32, _, _>(WnfChangeStamp::initial(), Box::new(|| {}))
+    let subscription = state
+        .subscribe(WnfChangeStamp::initial(), Box::new(|_: u32| {}))
         .unwrap();
-    assert!(owned_state.subscribers_present().unwrap());
+    assert!(state.subscribers_present().unwrap());
 
     subscription.unsubscribe().map_err(|(err, _)| err).unwrap();
-    assert!(!owned_state.subscribers_present().unwrap());
+    assert!(!state.subscribers_present().unwrap());
 }
 
 #[test]
 fn is_quiescent() {
-    let owned_state = OwnedWnfState::create_temporary().unwrap();
+    let state = OwnedWnfState::create_temporary().unwrap();
     let (tx, rx) = mpsc::channel();
 
-    let subscription = owned_state
-        .subscribe::<(), _, _>(
+    let subscription = state
+        .subscribe(
             WnfChangeStamp::initial(),
-            Box::new(move || {
+            Box::new(move |_: u32| {
                 let _ = rx.recv();
             }),
         )
         .unwrap();
 
-    assert!(owned_state.is_quiescent().unwrap());
+    assert!(state.is_quiescent().unwrap());
 
-    owned_state.set(()).unwrap();
-    assert!(!owned_state.is_quiescent().unwrap());
+    state.set(()).unwrap();
+    assert!(!state.is_quiescent().unwrap());
 
     tx.send(()).unwrap();
     subscription.unsubscribe().map_err(|(err, _)| err).unwrap();
 
-    assert!(owned_state.is_quiescent().unwrap());
+    assert!(state.is_quiescent().unwrap());
 }
 
 #[derive(Debug, Eq, Hash, PartialEq)]

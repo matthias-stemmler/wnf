@@ -10,12 +10,13 @@ use windows::core::GUID;
 use windows::Win32::Foundation::{NTSTATUS, STATUS_BUFFER_TOO_SMALL, STATUS_SUCCESS, STATUS_UNSUCCESSFUL};
 
 use crate::bytes::{CheckedBitPattern, NoUninit};
+use crate::callback::WnfCallback;
 use crate::data::WnfNameInfoClass;
 use crate::error::{
     WnfApplyError, WnfDeleteError, WnfInfoError, WnfQueryError, WnfSubscribeError, WnfTransformError, WnfUpdateError,
 };
 use crate::ntdll::NTDLL_TARGET;
-use crate::subscription::{WnfStateChangeListener, WnfSubscriptionContext, WnfSubscriptionHandle};
+use crate::subscription::{WnfSubscriptionContext, WnfSubscriptionHandle};
 use crate::{
     ntdll_sys, SecurityDescriptor, WnfChangeStamp, WnfCreateError, WnfDataScope, WnfStampedData, WnfStateName,
     WnfStateNameLifetime,
@@ -509,52 +510,52 @@ impl RawWnfState {
         }
     }
 
-    pub fn subscribe<T, F, A>(
+    pub fn subscribe<F, T, ArgsValid, ArgsInvalid>(
         &self,
         after_change_stamp: WnfChangeStamp,
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
+        F: WnfCallback<T, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
         T: CheckedBitPattern,
-        F: WnfStateChangeListener<T, A> + Send + ?Sized + 'static,
     {
-        self.subscribe_internal::<Value<T>, F, A>(after_change_stamp, listener)
+        self.subscribe_internal::<Value<T>, F, ArgsValid, ArgsInvalid>(after_change_stamp, listener)
     }
 
-    pub fn subscribe_boxed<T, F, A>(
+    pub fn subscribe_boxed<F, T, ArgsValid, ArgsInvalid>(
         &self,
         after_change_stamp: WnfChangeStamp,
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
+        F: WnfCallback<Box<T>, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
         T: CheckedBitPattern,
-        F: WnfStateChangeListener<Box<T>, A> + Send + ?Sized + 'static,
     {
-        self.subscribe_internal::<Boxed<T>, F, A>(after_change_stamp, listener)
+        self.subscribe_internal::<Boxed<T>, F, ArgsValid, ArgsInvalid>(after_change_stamp, listener)
     }
 
-    pub fn subscribe_slice<T, F, A>(
+    pub fn subscribe_slice<F, T, ArgsValid, ArgsInvalid>(
         &self,
         after_change_stamp: WnfChangeStamp,
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
+        F: WnfCallback<Box<[T]>, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
         T: CheckedBitPattern,
-        F: WnfStateChangeListener<Box<[T]>, A> + Send + ?Sized + 'static,
     {
-        self.subscribe_internal::<BoxedSlice<T>, F, A>(after_change_stamp, listener)
+        self.subscribe_internal::<BoxedSlice<T>, F, ArgsValid, ArgsInvalid>(after_change_stamp, listener)
     }
 
-    fn subscribe_internal<B, F, A>(
+    fn subscribe_internal<B, F, ArgsValid, ArgsInvalid>(
         &self,
         after_change_stamp: WnfChangeStamp,
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
         B: FromByteBuffer,
-        F: WnfStateChangeListener<B::Data, A> + Send + ?Sized + 'static,
+        F: WnfCallback<B::Data, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
     {
-        extern "system" fn callback<B, F, A>(
+        extern "system" fn callback<B, F, ArgsValid, ArgsInvalid>(
             state_name: u64,
             change_stamp: u32,
             _type_id: *const GUID,
@@ -564,7 +565,7 @@ impl RawWnfState {
         ) -> NTSTATUS
         where
             B: FromByteBuffer,
-            F: WnfStateChangeListener<B::Data, A> + Send + ?Sized + 'static,
+            F: WnfCallback<B::Data, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
         {
             let _ = panic::catch_unwind(|| {
                 let span = trace_span!(
@@ -579,8 +580,13 @@ impl RawWnfState {
                 let context: &WnfSubscriptionContext<F> = unsafe { &*context.cast() };
                 let maybe_data = unsafe { B::from_byte_buffer(buffer, buffer_size) };
 
-                context.with_listener(|listener| {
-                    listener.call(maybe_data, change_stamp.into());
+                context.with_listener(|listener| match maybe_data {
+                    Some(data) => {
+                        listener.call_valid(data, change_stamp.into());
+                    }
+                    None => {
+                        listener.call_invalid(change_stamp.into());
+                    }
                 });
             });
 
@@ -595,7 +601,7 @@ impl RawWnfState {
                 &mut subscription,
                 self.state_name.opaque_value(),
                 after_change_stamp.into(),
-                callback::<B, F, A>,
+                callback::<B, F, ArgsValid, ArgsInvalid>,
                 &*context as *const _ as *mut c_void,
                 ptr::null(),
                 0,
