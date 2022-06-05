@@ -27,7 +27,7 @@ mod state;
 mod state_name;
 mod subscription;
 
+// TODO move single vs. slice from methods to types?
 // TODO apply: abstract over returning T vs. Option<T>?
 // TODO restructure modules by query, update, subscribe etc.
-// TODO move <T> back to state, implement "cast" methods
 // TODO wait (sync + async)

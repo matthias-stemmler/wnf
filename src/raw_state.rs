@@ -1,9 +1,11 @@
 use std::alloc::Layout;
 use std::borrow::Borrow;
 use std::ffi::c_void;
+use std::fmt::{Debug, Formatter};
+use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::mem::{ManuallyDrop, MaybeUninit};
-use std::{alloc, mem, panic, ptr, slice};
+use std::{alloc, fmt, mem, panic, ptr, slice};
 
 use tracing::{debug, trace_span};
 use windows::core::GUID;
@@ -22,18 +24,59 @@ use crate::{
     WnfStateNameLifetime,
 };
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub(crate) struct RawWnfState {
+pub(crate) struct RawWnfState<T> {
     state_name: WnfStateName,
+    _marker: PhantomData<fn(T) -> T>,
 }
 
-impl RawWnfState {
+// cannot derive these as that would impose unnecessary trait bounds on T
+impl<T> Copy for RawWnfState<T> {}
+
+impl<T> Clone for RawWnfState<T> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<T> PartialEq<Self> for RawWnfState<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.state_name == other.state_name
+    }
+}
+
+impl<T> Eq for RawWnfState<T> {}
+
+impl<T> Hash for RawWnfState<T> {
+    fn hash<H>(&self, state: &mut H)
+    where
+        H: Hasher,
+    {
+        self.state_name.hash(state);
+    }
+}
+
+impl<T> Debug for RawWnfState<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("RawWnfState")
+            .field("state_name", &self.state_name)
+            .finish()
+    }
+}
+
+impl<T> RawWnfState<T> {
     pub(crate) fn from_state_name(state_name: WnfStateName) -> Self {
-        Self { state_name }
+        Self {
+            state_name,
+            _marker: PhantomData,
+        }
     }
 
     pub(crate) fn state_name(&self) -> WnfStateName {
         self.state_name
+    }
+
+    pub(crate) fn cast<U>(self) -> RawWnfState<U> {
+        RawWnfState::from_state_name(self.state_name)
     }
 
     pub(crate) fn create_temporary() -> Result<Self, WnfCreateError> {
@@ -156,32 +199,25 @@ impl RawWnfState {
             Err(result.into())
         }
     }
+}
 
-    pub fn get<T>(&self) -> Result<T, WnfQueryError>
-    where
-        T: CheckedBitPattern,
-    {
+impl<T> RawWnfState<T>
+where
+    T: CheckedBitPattern,
+{
+    pub fn get(&self) -> Result<T, WnfQueryError> {
         self.query().map(WnfStampedData::into_data)
     }
 
-    pub fn get_boxed<T>(&self) -> Result<Box<T>, WnfQueryError>
-    where
-        T: CheckedBitPattern,
-    {
+    pub fn get_boxed(&self) -> Result<Box<T>, WnfQueryError> {
         self.query_boxed().map(WnfStampedData::into_data)
     }
 
-    pub fn get_slice<T>(&self) -> Result<Box<[T]>, WnfQueryError>
-    where
-        T: CheckedBitPattern,
-    {
+    pub fn get_slice(&self) -> Result<Box<[T]>, WnfQueryError> {
         self.query_slice().map(WnfStampedData::into_data)
     }
 
-    pub fn query<T>(&self) -> Result<WnfStampedData<T>, WnfQueryError>
-    where
-        T: CheckedBitPattern,
-    {
+    pub fn query(&self) -> Result<WnfStampedData<T>, WnfQueryError> {
         let mut bits = MaybeUninit::<T::Bits>::uninit();
 
         let (size, change_stamp) = unsafe { self.query_internal(bits.as_mut_ptr(), mem::size_of::<T::Bits>()) }?;
@@ -202,10 +238,7 @@ impl RawWnfState {
         }
     }
 
-    pub fn query_boxed<T>(&self) -> Result<WnfStampedData<Box<T>>, WnfQueryError>
-    where
-        T: CheckedBitPattern,
-    {
+    pub fn query_boxed(&self) -> Result<WnfStampedData<Box<T>>, WnfQueryError> {
         let mut bits = if mem::size_of::<T::Bits>() == 0 {
             let data = unsafe { mem::zeroed() };
             Box::new(data)
@@ -233,10 +266,7 @@ impl RawWnfState {
         }
     }
 
-    pub fn query_slice<T>(&self) -> Result<WnfStampedData<Box<[T]>>, WnfQueryError>
-    where
-        T: CheckedBitPattern,
-    {
+    pub fn query_slice(&self) -> Result<WnfStampedData<Box<[T]>>, WnfQueryError> {
         let stride = Layout::new::<T::Bits>().pad_to_align().size();
         let mut buffer: Vec<T::Bits> = Vec::new();
 
@@ -282,9 +312,9 @@ impl RawWnfState {
         }
     }
 
-    unsafe fn query_internal<T>(
+    unsafe fn query_internal(
         &self,
-        buffer: *mut T,
+        buffer: *mut T::Bits,
         buffer_size: usize,
     ) -> Result<(usize, WnfChangeStamp), windows::core::Error> {
         let mut change_stamp = WnfChangeStamp::default();
@@ -321,34 +351,35 @@ impl RawWnfState {
             Ok((size as usize, change_stamp))
         }
     }
+}
 
-    pub fn set<T, D>(&self, data: D) -> Result<(), WnfUpdateError>
+impl<T> RawWnfState<T>
+where
+    T: NoUninit,
+{
+    pub fn set<D>(&self, data: D) -> Result<(), WnfUpdateError>
     where
-        T: NoUninit,
         D: Borrow<T>,
     {
         self.set_slice(slice::from_ref(data.borrow()))
     }
 
-    pub fn set_slice<T, D>(&self, data: D) -> Result<(), WnfUpdateError>
+    pub fn set_slice<D>(&self, data: D) -> Result<(), WnfUpdateError>
     where
-        T: NoUninit,
         D: Borrow<[T]>,
     {
         Ok(self.update_slice_internal(data, None).ok()?)
     }
 
-    pub fn update<T, D>(&self, data: D, expected_change_stamp: WnfChangeStamp) -> Result<bool, WnfUpdateError>
+    pub fn update<D>(&self, data: D, expected_change_stamp: WnfChangeStamp) -> Result<bool, WnfUpdateError>
     where
-        T: NoUninit,
         D: Borrow<T>,
     {
         self.update_slice(slice::from_ref(data.borrow()), expected_change_stamp)
     }
 
-    pub fn update_slice<T, D>(&self, data: D, expected_change_stamp: WnfChangeStamp) -> Result<bool, WnfUpdateError>
+    pub fn update_slice<D>(&self, data: D, expected_change_stamp: WnfChangeStamp) -> Result<bool, WnfUpdateError>
     where
-        T: NoUninit,
         D: Borrow<[T]>,
     {
         let result = self.update_slice_internal(data, Some(expected_change_stamp));
@@ -361,9 +392,8 @@ impl RawWnfState {
         })
     }
 
-    pub fn update_slice_internal<T, D>(&self, data: D, expected_change_stamp: Option<WnfChangeStamp>) -> NTSTATUS
+    pub fn update_slice_internal<D>(&self, data: D, expected_change_stamp: Option<WnfChangeStamp>) -> NTSTATUS
     where
-        T: NoUninit,
         D: Borrow<[T]>,
     {
         let data = data.borrow();
@@ -395,10 +425,14 @@ impl RawWnfState {
 
         result
     }
+}
 
-    pub fn apply<T, D, F>(&self, mut transform: F) -> Result<bool, WnfApplyError>
+impl<T> RawWnfState<T>
+where
+    T: CheckedBitPattern + NoUninit,
+{
+    pub fn apply<D, F>(&self, mut transform: F) -> Result<bool, WnfApplyError>
     where
-        T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
         F: FnMut(T) -> Option<D>,
     {
@@ -415,9 +449,8 @@ impl RawWnfState {
         }
     }
 
-    pub fn apply_boxed<T, D, F>(&self, mut transform: F) -> Result<bool, WnfApplyError>
+    pub fn apply_boxed<D, F>(&self, mut transform: F) -> Result<bool, WnfApplyError>
     where
-        T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
         F: FnMut(Box<T>) -> Option<D>,
     {
@@ -434,9 +467,8 @@ impl RawWnfState {
         }
     }
 
-    pub fn apply_slice<T, D, F>(&self, mut transform: F) -> Result<bool, WnfApplyError>
+    pub fn apply_slice<D, F>(&self, mut transform: F) -> Result<bool, WnfApplyError>
     where
-        T: CheckedBitPattern + NoUninit,
         D: Borrow<[T]>,
         F: FnMut(Box<[T]>) -> Option<D>,
     {
@@ -453,9 +485,8 @@ impl RawWnfState {
         }
     }
 
-    pub fn try_apply<T, D, E, F>(&self, mut transform: F) -> Result<bool, WnfApplyError<E>>
+    pub fn try_apply<D, E, F>(&self, mut transform: F) -> Result<bool, WnfApplyError<E>>
     where
-        T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
         F: FnMut(T) -> Result<Option<D>, E>,
     {
@@ -472,9 +503,8 @@ impl RawWnfState {
         }
     }
 
-    pub fn try_apply_boxed<T, D, E, F>(&self, mut transform: F) -> Result<bool, WnfApplyError<E>>
+    pub fn try_apply_boxed<D, E, F>(&self, mut transform: F) -> Result<bool, WnfApplyError<E>>
     where
-        T: CheckedBitPattern + NoUninit,
         D: Borrow<T>,
         F: FnMut(Box<T>) -> Result<Option<D>, E>,
     {
@@ -491,9 +521,8 @@ impl RawWnfState {
         }
     }
 
-    pub fn try_apply_slice<T, D, E, F>(&self, mut transform: F) -> Result<bool, WnfApplyError<E>>
+    pub fn try_apply_slice<D, E, F>(&self, mut transform: F) -> Result<bool, WnfApplyError<E>>
     where
-        T: CheckedBitPattern + NoUninit,
         D: Borrow<[T]>,
         F: FnMut(Box<[T]>) -> Result<Option<D>, E>,
     {
@@ -509,39 +538,41 @@ impl RawWnfState {
             }
         }
     }
+}
 
-    pub fn subscribe<F, T, ArgsValid, ArgsInvalid>(
+impl<T> RawWnfState<T>
+where
+    T: CheckedBitPattern,
+{
+    pub fn subscribe<F, ArgsValid, ArgsInvalid>(
         &self,
         after_change_stamp: WnfChangeStamp,
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
         F: WnfCallback<T, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
-        T: CheckedBitPattern,
     {
         self.subscribe_internal::<Value<T>, F, ArgsValid, ArgsInvalid>(after_change_stamp, listener)
     }
 
-    pub fn subscribe_boxed<F, T, ArgsValid, ArgsInvalid>(
+    pub fn subscribe_boxed<F, ArgsValid, ArgsInvalid>(
         &self,
         after_change_stamp: WnfChangeStamp,
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
         F: WnfCallback<Box<T>, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
-        T: CheckedBitPattern,
     {
         self.subscribe_internal::<Boxed<T>, F, ArgsValid, ArgsInvalid>(after_change_stamp, listener)
     }
 
-    pub fn subscribe_slice<F, T, ArgsValid, ArgsInvalid>(
+    pub fn subscribe_slice<F, ArgsValid, ArgsInvalid>(
         &self,
         after_change_stamp: WnfChangeStamp,
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
         F: WnfCallback<Box<[T]>, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
-        T: CheckedBitPattern,
     {
         self.subscribe_internal::<BoxedSlice<T>, F, ArgsValid, ArgsInvalid>(after_change_stamp, listener)
     }

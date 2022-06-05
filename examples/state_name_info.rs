@@ -11,7 +11,7 @@ fn main() {
         .try_into()
         .expect("Failed to convert state name into descriptor");
 
-    let state = BorrowedWnfState::from_state_name(WNF_PO_ENERGY_SAVER_OVERRIDE);
+    let state = BorrowedWnfState::<u32>::from_state_name(WNF_PO_ENERGY_SAVER_OVERRIDE);
 
     let exists = state.exists().expect("Failed to determine if WNF state name exists");
 
