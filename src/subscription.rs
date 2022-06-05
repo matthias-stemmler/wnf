@@ -18,7 +18,6 @@ where
     _marker: PhantomData<&'a ()>,
 }
 
-// impl even if F is not Debug
 impl<F> Debug for WnfSubscriptionHandle<'_, F>
 where
     F: ?Sized,
@@ -45,7 +44,6 @@ where
     }
 }
 
-#[derive(Debug)]
 pub(crate) struct WnfSubscriptionHandleInner<F>
 where
     F: ?Sized,
@@ -54,10 +52,29 @@ where
     subscription: u64,
 }
 
-#[derive(Debug)]
+impl<F> Debug for WnfSubscriptionHandleInner<F>
+where
+    F: ?Sized,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("WnfSubscriptionHandleInner")
+            .field("subscription", &self.subscription)
+            .finish()
+    }
+}
+
 pub(crate) struct WnfSubscriptionContext<F>(Mutex<Option<Box<F>>>)
 where
     F: ?Sized;
+
+impl<F> Debug for WnfSubscriptionContext<F>
+where
+    F: ?Sized,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("WnfSubscriptionContext").field(&"..").finish()
+    }
+}
 
 impl<F> WnfSubscriptionContext<F>
 where

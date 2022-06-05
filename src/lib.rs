@@ -31,3 +31,4 @@ mod subscription;
 // TODO apply: abstract over returning T vs. Option<T>?
 // TODO restructure modules by query, update, subscribe etc.
 // TODO wait (sync + async)
+// TODO check Debug impls
