@@ -62,11 +62,3 @@ impl<T> WnfStampedData<T> {
         self.change_stamp
     }
 }
-
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[repr(u32)]
-pub(crate) enum WnfNameInfoClass {
-    StateNameExist = 0,
-    SubscribersPresent = 1,
-    IsQuiescent = 2,
-}
