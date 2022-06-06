@@ -26,11 +26,13 @@ mod manage;
 mod ntdll;
 mod ntdll_sys;
 mod query;
+mod read;
 mod security;
 mod state;
 mod state_name;
 mod subscribe;
 mod update;
+mod write;
 
 // TODO move single vs. slice from methods to types? -> maybe move FromByteBuffer etc. to bytes module
 // TODO apply: abstract over returning T vs. Option<T>?

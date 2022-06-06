@@ -10,7 +10,10 @@ use crate::security::{SecurityCreateError, SecurityDescriptor};
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::state_name::{WnfDataScope, WnfStateName, WnfStateNameLifetime};
 
-impl<T> OwnedWnfState<T> {
+impl<T> OwnedWnfState<T>
+where
+    T: ?Sized,
+{
     pub fn create_temporary() -> Result<Self, WnfCreateError> {
         RawWnfState::create_temporary().map(Self::from_raw)
     }
@@ -20,13 +23,19 @@ impl<T> OwnedWnfState<T> {
     }
 }
 
-impl<'a, T> BorrowedWnfState<'a, T> {
+impl<'a, T> BorrowedWnfState<'a, T>
+where
+    T: ?Sized,
+{
     pub fn delete(self) -> Result<(), WnfDeleteError> {
         self.into_raw().delete()
     }
 }
 
-impl<T> RawWnfState<T> {
+impl<T> RawWnfState<T>
+where
+    T: ?Sized,
+{
     pub(crate) fn create_temporary() -> Result<Self, WnfCreateError> {
         let mut opaque_value = 0;
 

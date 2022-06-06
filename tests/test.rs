@@ -57,10 +57,10 @@ fn set_boxed() {
 fn set_slice_by_ref() {
     let state = OwnedWnfState::create_temporary().unwrap();
 
-    let values: [u32; 3] = [0x12345678, 0xABCDEF01, 0x23456789];
-    state.set_slice(values.as_slice()).unwrap();
+    let values = [0x12345678, 0xABCDEF01, 0x23456789];
+    state.set(values.as_slice()).unwrap();
 
-    let read_slice = state.get_slice().unwrap();
+    let read_slice: Box<[u32]> = state.get_boxed().unwrap();
     assert_eq!(*read_slice, values);
 }
 
@@ -68,10 +68,10 @@ fn set_slice_by_ref() {
 fn set_slice_vec() {
     let state = OwnedWnfState::create_temporary().unwrap();
 
-    let values: [u32; 3] = [0x12345678, 0xABCDEF01, 0x23456789];
-    state.set_slice(values.to_vec()).unwrap();
+    let values = [0x12345678, 0xABCDEF01, 0x23456789];
+    state.set(values.to_vec()).unwrap();
 
-    let read_slice = state.get_slice().unwrap();
+    let read_slice: Box<[u32]> = state.get_boxed().unwrap();
     assert_eq!(*read_slice, values);
 }
 
@@ -101,10 +101,10 @@ fn get_boxed() {
 fn get_slice() {
     let state = OwnedWnfState::create_temporary().unwrap();
 
-    let values: [u32; 3] = [0x12345678, 0xABCDEF01, 0x23456789];
-    state.set_slice(values.as_slice()).unwrap();
+    let values = [0x12345678, 0xABCDEF01, 0x23456789];
+    state.set(values.as_slice()).unwrap();
 
-    let read_values = state.get_slice().unwrap();
+    let read_values: Box<[u32]> = state.get_boxed().unwrap();
     assert_eq!(*read_values, values);
 }
 
@@ -152,7 +152,7 @@ apply_tests! {
 #[test]
 fn apply_slice_to_vec() {
     let state = Arc::new(OwnedWnfState::create_temporary().unwrap());
-    state.set_slice([0u32, 0u32]).unwrap();
+    state.set([0, 0]).unwrap();
 
     const NUM_THREADS: u32 = 2;
     const NUM_ITERATIONS: u32 = 128;
@@ -165,7 +165,7 @@ fn apply_slice_to_vec() {
         handles.push(thread::spawn(move || {
             for _ in 0..NUM_ITERATIONS {
                 state
-                    .apply_slice(|vs| Some(vs.iter().map(|v| v + 1).collect::<Vec<_>>()))
+                    .apply_boxed(|vs: Box<[u32]>| Some(vs.iter().map(|v| v + 1).collect::<Vec<_>>()))
                     .unwrap();
             }
         }))
@@ -175,7 +175,7 @@ fn apply_slice_to_vec() {
         handle.join().unwrap();
     }
 
-    let read_value = state.get_slice().unwrap();
+    let read_value = state.get_boxed().unwrap();
     let expected_value = NUM_THREADS * NUM_ITERATIONS;
     assert_eq!(*read_value, [expected_value, expected_value]);
 }
@@ -237,19 +237,20 @@ fn try_apply_boxed_err() {
 fn try_apply_slice_ok() {
     let state = OwnedWnfState::create_temporary().unwrap();
 
-    state.set_slice([0u32]).unwrap();
-    let result = state.try_apply_slice::<_, TestError, _>(|vs| Ok(Some(vs.iter().map(|v| v + 1).collect::<Vec<_>>())));
+    state.set([0]).unwrap();
+    let result = state
+        .try_apply_boxed::<_, TestError, _>(|vs: Box<[u32]>| Ok(Some(vs.iter().map(|v| v + 1).collect::<Vec<_>>())));
 
     assert_eq!(result, Ok(true));
-    assert_eq!(*state.get_slice().unwrap(), [1]);
+    assert_eq!(*state.get_boxed().unwrap(), [1]);
 }
 
 #[test]
 fn try_apply_slice_err() {
     let state = OwnedWnfState::create_temporary().unwrap();
 
-    state.set_slice([0u32]).unwrap();
-    let result = state.try_apply_slice::<Vec<_>, _, _>(|_| Err(TestError));
+    state.set([0]).unwrap();
+    let result = state.try_apply_boxed::<Vec<_>, _, _>(|_: Box<[u32]>| Err(TestError));
 
     assert_eq!(result, Err(WnfApplyError::Transform(WnfTransformError(TestError))));
 }
