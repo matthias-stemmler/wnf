@@ -14,7 +14,7 @@ use crate::callback::WnfCallback;
 use crate::data::WnfChangeStamp;
 use crate::ntdll::NTDLL_TARGET;
 use crate::ntdll_sys;
-use crate::read::WnfRead;
+use crate::read::{Boxed, Unboxed, WnfRead, WnfReadRepr};
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::state_name::WnfStateName;
 
@@ -107,7 +107,7 @@ where
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        B: FromByteBuffer,
+        B: WnfReadRepr,
         F: WnfCallback<B::Data, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
     {
         extern "system" fn callback<B, F, ArgsValid, ArgsInvalid>(
@@ -119,7 +119,7 @@ where
             buffer_size: u32,
         ) -> NTSTATUS
         where
-            B: FromByteBuffer,
+            B: WnfReadRepr,
             F: WnfCallback<B::Data, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
         {
             let _ = panic::catch_unwind(|| {
@@ -133,7 +133,7 @@ where
                 let _enter = span.enter();
 
                 let context: &WnfSubscriptionContext<F> = unsafe { &*context.cast() };
-                let maybe_data = unsafe { B::from_byte_buffer(buffer, buffer_size) };
+                let maybe_data = unsafe { B::read_buffer(buffer, buffer_size) };
 
                 context.with_listener(|listener| match maybe_data {
                     Some(data) => {
@@ -187,12 +187,6 @@ where
             Err(result.into())
         }
     }
-}
-
-trait FromByteBuffer {
-    type Data;
-
-    unsafe fn from_byte_buffer(ptr: *const c_void, size: u32) -> Option<Self::Data>;
 }
 
 pub struct WnfSubscriptionHandle<'a, F>
@@ -360,35 +354,5 @@ impl From<NTSTATUS> for WnfUnsubscribeError {
     fn from(result: NTSTATUS) -> Self {
         let err: windows::core::Error = result.into();
         err.into()
-    }
-}
-
-#[derive(Debug)]
-struct Unboxed<T>(PhantomData<fn() -> T>);
-
-impl<T> FromByteBuffer for Unboxed<T>
-where
-    T: WnfRead,
-{
-    type Data = T;
-
-    unsafe fn from_byte_buffer(ptr: *const c_void, size: u32) -> Option<T> {
-        <T>::read_buffer(ptr, size)
-    }
-}
-
-#[derive(Debug)]
-struct Boxed<T>(PhantomData<fn() -> Box<T>>)
-where
-    T: ?Sized;
-
-impl<T> FromByteBuffer for Boxed<T>
-where
-    T: WnfRead + ?Sized,
-{
-    type Data = Box<T>;
-
-    unsafe fn from_byte_buffer(ptr: *const c_void, size: u32) -> Option<Box<T>> {
-        <T>::read_buffer_boxed(ptr, size)
     }
 }

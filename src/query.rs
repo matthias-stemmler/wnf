@@ -7,7 +7,7 @@ use windows::Win32::Foundation::{NTSTATUS, STATUS_BUFFER_TOO_SMALL};
 use crate::data::{WnfChangeStamp, WnfStampedData};
 use crate::ntdll::NTDLL_TARGET;
 use crate::ntdll_sys;
-use crate::read::{WnfRead, WnfReadError};
+use crate::read::{Boxed, Unboxed, WnfRead, WnfReadError, WnfReadRepr};
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 
 impl<T> OwnedWnfState<T>
@@ -83,11 +83,11 @@ where
     where
         T: Sized,
     {
-        Ok(unsafe { T::read(|buffer, buffer_size| self.query_raw(buffer, buffer_size)) }?)
+        Ok(unsafe { Unboxed::<T>::read(|buffer, buffer_size| self.query_raw(buffer, buffer_size)) }?)
     }
 
     pub fn query_boxed(&self) -> Result<WnfStampedData<Box<T>>, WnfQueryError> {
-        Ok(unsafe { T::read_boxed(|buffer, buffer_size| self.query_raw(buffer, buffer_size)) }?)
+        Ok(unsafe { Boxed::<T>::read(|buffer, buffer_size| self.query_raw(buffer, buffer_size)) }?)
     }
 
     unsafe fn query_raw(
