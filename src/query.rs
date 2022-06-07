@@ -83,11 +83,11 @@ where
     where
         T: Sized,
     {
-        Ok(unsafe { Unboxed::<T>::read(|buffer, buffer_size| self.query_raw(buffer, buffer_size)) }?)
+        Ok(unsafe { Unboxed::read(|buffer, buffer_size| self.query_raw(buffer, buffer_size)) }?)
     }
 
     pub fn query_boxed(&self) -> Result<WnfStampedData<Box<T>>, WnfQueryError> {
-        Ok(unsafe { Boxed::<T>::read(|buffer, buffer_size| self.query_raw(buffer, buffer_size)) }?)
+        Ok(unsafe { Boxed::read(|buffer, buffer_size| self.query_raw(buffer, buffer_size)) }?)
     }
 
     unsafe fn query_raw(

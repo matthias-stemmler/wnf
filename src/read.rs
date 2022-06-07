@@ -1,6 +1,5 @@
 use std::alloc::Layout;
 use std::ffi::c_void;
-use std::marker::PhantomData;
 use std::mem::ManuallyDrop;
 use std::mem::MaybeUninit;
 use std::{alloc, mem, ptr};
@@ -221,32 +220,33 @@ where
     }
 }
 
-pub(crate) trait WnfReadRepr {
-    type Bits: AnyBitPattern;
+pub(crate) trait WnfReadRepr<T>
+where
+    T: WnfRead + ?Sized,
+{
     type Data;
 
     unsafe fn read<E, F>(read_raw: F) -> Result<WnfStampedData<Self::Data>, E>
     where
         E: From<WnfReadError>,
-        F: FnMut(*mut Self::Bits, usize) -> Result<(usize, WnfChangeStamp), E>;
+        F: FnMut(*mut T::Bits, usize) -> Result<(usize, WnfChangeStamp), E>;
 
     unsafe fn read_buffer(ptr: *const c_void, size: u32) -> Option<Self::Data>;
 }
 
 #[derive(Debug)]
-pub(crate) struct Unboxed<T>(PhantomData<fn() -> T>);
+pub(crate) struct Unboxed;
 
-impl<T> WnfReadRepr for Unboxed<T>
+impl<T> WnfReadRepr<T> for Unboxed
 where
     T: WnfRead,
 {
-    type Bits = T::Bits;
     type Data = T;
 
     unsafe fn read<E, F>(read_raw: F) -> Result<WnfStampedData<Self::Data>, E>
     where
         E: From<WnfReadError>,
-        F: FnMut(*mut Self::Bits, usize) -> Result<(usize, WnfChangeStamp), E>,
+        F: FnMut(*mut T::Bits, usize) -> Result<(usize, WnfChangeStamp), E>,
     {
         T::read(read_raw)
     }
@@ -257,21 +257,18 @@ where
 }
 
 #[derive(Debug)]
-pub(crate) struct Boxed<T>(PhantomData<fn() -> Box<T>>)
-where
-    T: ?Sized;
+pub(crate) struct Boxed;
 
-impl<T> WnfReadRepr for Boxed<T>
+impl<T> WnfReadRepr<T> for Boxed
 where
     T: WnfRead + ?Sized,
 {
-    type Bits = T::Bits;
     type Data = Box<T>;
 
     unsafe fn read<E, F>(read_raw: F) -> Result<WnfStampedData<Self::Data>, E>
     where
         E: From<WnfReadError>,
-        F: FnMut(*mut Self::Bits, usize) -> Result<(usize, WnfChangeStamp), E>,
+        F: FnMut(*mut T::Bits, usize) -> Result<(usize, WnfChangeStamp), E>,
     {
         T::read_boxed(read_raw)
     }

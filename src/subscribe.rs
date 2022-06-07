@@ -87,7 +87,7 @@ where
         T: Sized,
         F: WnfCallback<T, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
     {
-        self.subscribe_internal::<Unboxed<T>, F, ArgsValid, ArgsInvalid>(after_change_stamp, listener)
+        self.subscribe_internal::<F, Unboxed, ArgsValid, ArgsInvalid>(after_change_stamp, listener)
     }
 
     pub fn subscribe_boxed<F, ArgsValid, ArgsInvalid>(
@@ -98,19 +98,19 @@ where
     where
         F: WnfCallback<Box<T>, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
     {
-        self.subscribe_internal::<Boxed<T>, F, ArgsValid, ArgsInvalid>(after_change_stamp, listener)
+        self.subscribe_internal::<F, Boxed, ArgsValid, ArgsInvalid>(after_change_stamp, listener)
     }
 
-    fn subscribe_internal<B, F, ArgsValid, ArgsInvalid>(
+    fn subscribe_internal<F, R, ArgsValid, ArgsInvalid>(
         &self,
         after_change_stamp: WnfChangeStamp,
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        B: WnfReadRepr,
-        F: WnfCallback<B::Data, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
+        F: WnfCallback<R::Data, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
+        R: WnfReadRepr<T>,
     {
-        extern "system" fn callback<B, F, ArgsValid, ArgsInvalid>(
+        extern "system" fn callback<F, R, T, ArgsValid, ArgsInvalid>(
             state_name: u64,
             change_stamp: u32,
             _type_id: *const GUID,
@@ -119,8 +119,9 @@ where
             buffer_size: u32,
         ) -> NTSTATUS
         where
-            B: WnfReadRepr,
-            F: WnfCallback<B::Data, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
+            F: WnfCallback<R::Data, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
+            R: WnfReadRepr<T>,
+            T: WnfRead + ?Sized,
         {
             let _ = panic::catch_unwind(|| {
                 let span = trace_span!(
@@ -133,7 +134,7 @@ where
                 let _enter = span.enter();
 
                 let context: &WnfSubscriptionContext<F> = unsafe { &*context.cast() };
-                let maybe_data = unsafe { B::read_buffer(buffer, buffer_size) };
+                let maybe_data = unsafe { R::read_buffer(buffer, buffer_size) };
 
                 context.with_listener(|listener| match maybe_data {
                     Some(data) => {
@@ -156,7 +157,7 @@ where
                 &mut subscription,
                 self.state_name.opaque_value(),
                 after_change_stamp.into(),
-                callback::<B, F, ArgsValid, ArgsInvalid>,
+                callback::<F, R, T, ArgsValid, ArgsInvalid>,
                 &*context as *const _ as *mut c_void,
                 ptr::null(),
                 0,
