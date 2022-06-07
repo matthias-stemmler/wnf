@@ -1,6 +1,8 @@
 use std::alloc::Layout;
+use std::ffi::c_void;
+use std::mem::ManuallyDrop;
 use std::mem::MaybeUninit;
-use std::{alloc, mem};
+use std::{alloc, mem, ptr};
 
 use thiserror::Error;
 
@@ -20,6 +22,12 @@ pub trait WnfRead {
     where
         E: From<WnfReadError>,
         F: FnMut(*mut Self::Bits, usize) -> Result<(usize, WnfChangeStamp), E>;
+
+    unsafe fn read_buffer(ptr: *const c_void, size: u32) -> Option<Self>
+    where
+        Self: Sized;
+
+    unsafe fn read_buffer_boxed(ptr: *const c_void, size: u32) -> Option<Box<Self>>;
 }
 
 impl<T> WnfRead for T
@@ -85,6 +93,37 @@ where
             Err(E::from(WnfReadError::InvalidBitPattern))
         }
     }
+
+    unsafe fn read_buffer(ptr: *const c_void, size: u32) -> Option<Self> {
+        if size as usize != mem::size_of::<T::Bits>() {
+            return None;
+        }
+
+        let bits: T::Bits = ptr::read_unaligned(ptr.cast());
+
+        if T::is_valid_bit_pattern(&bits) {
+            Some(*(&bits as *const T::Bits as *const T))
+        } else {
+            None
+        }
+    }
+
+    unsafe fn read_buffer_boxed(ptr: *const c_void, size: u32) -> Option<Box<Self>> {
+        if size as usize != mem::size_of::<T::Bits>() {
+            return None;
+        }
+
+        let bits = if mem::size_of::<T::Bits>() == 0 {
+            Box::new(mem::zeroed())
+        } else {
+            let layout = Layout::new::<T::Bits>();
+            let data = alloc::alloc(layout) as *mut T::Bits;
+            ptr::copy_nonoverlapping(ptr as *const T::Bits, data as *mut T::Bits, 1);
+            Box::from_raw(data)
+        };
+
+        T::is_valid_bit_pattern(&bits).then(|| Box::from_raw(Box::into_raw(bits) as *mut T))
+    }
 }
 
 impl<T> WnfRead for [T]
@@ -147,6 +186,36 @@ where
             Ok(WnfStampedData::from_data_change_stamp(data, change_stamp))
         } else {
             Err(E::from(WnfReadError::InvalidBitPattern))
+        }
+    }
+
+    unsafe fn read_buffer(_: *const c_void, _: u32) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        unreachable!("slice is unsized")
+    }
+
+    unsafe fn read_buffer_boxed(ptr: *const c_void, size: u32) -> Option<Box<Self>> {
+        if mem::size_of::<T>() == 0 {
+            return (size == 0).then(|| Vec::new().into_boxed_slice());
+        }
+
+        if size as usize % mem::size_of::<T>() != 0 {
+            return None;
+        }
+
+        let len = size as usize / mem::size_of::<T>();
+        let mut data = Vec::with_capacity(len);
+        ptr::copy_nonoverlapping(ptr.cast(), data.as_mut_ptr(), len);
+        data.set_len(len);
+
+        if data.iter().all(T::is_valid_bit_pattern) {
+            let mut data = ManuallyDrop::new(data);
+            let data = Vec::from_raw_parts(data.as_mut_ptr() as *mut T, data.len(), data.capacity());
+            Some(data.into_boxed_slice())
+        } else {
+            None
         }
     }
 }

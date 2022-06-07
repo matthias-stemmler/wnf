@@ -330,6 +330,94 @@ fn subscribe() {
 }
 
 #[test]
+fn subscribe_boxed() {
+    let state = OwnedWnfState::create_temporary().unwrap();
+    let (tx, rx) = mpsc::channel();
+    let mut subscriptions = Vec::new();
+
+    const NUM_SUBSCRIPTIONS: usize = 2;
+
+    for _ in 0..NUM_SUBSCRIPTIONS {
+        let tx = tx.clone();
+        subscriptions.push(
+            state
+                .subscribe_boxed(
+                    WnfChangeStamp::initial(),
+                    Box::new(move |data: Box<u32>, change_stamp| {
+                        tx.send((data, change_stamp)).unwrap();
+                    }),
+                )
+                .unwrap(),
+        )
+    }
+
+    drop(tx);
+
+    for i in 0..3 {
+        state.set(i).unwrap();
+
+        for _ in 0..NUM_SUBSCRIPTIONS {
+            let (data, change_stamp) = rx.recv_timeout(Duration::from_secs(1)).unwrap();
+            assert_eq!(*data, i);
+            assert_eq!(change_stamp, WnfChangeStamp::from(i + 1));
+        }
+    }
+
+    for subscription in subscriptions {
+        subscription.unsubscribe().map_err(|(err, _)| err).unwrap();
+    }
+
+    assert_eq!(
+        rx.recv_timeout(Duration::from_secs(1)),
+        Err(RecvTimeoutError::Disconnected)
+    );
+}
+
+#[test]
+fn subscribe_slice() {
+    let state = OwnedWnfState::create_temporary().unwrap();
+    let (tx, rx) = mpsc::channel();
+    let mut subscriptions = Vec::new();
+
+    const NUM_SUBSCRIPTIONS: usize = 2;
+
+    for _ in 0..NUM_SUBSCRIPTIONS {
+        let tx = tx.clone();
+        subscriptions.push(
+            state
+                .subscribe_boxed(
+                    WnfChangeStamp::initial(),
+                    Box::new(move |data: Box<[u32]>, change_stamp| {
+                        tx.send((data, change_stamp)).unwrap();
+                    }),
+                )
+                .unwrap(),
+        )
+    }
+
+    drop(tx);
+
+    for i in 0..3 {
+        state.set([i, i]).unwrap();
+
+        for _ in 0..NUM_SUBSCRIPTIONS {
+            let (data, change_stamp) = rx.recv_timeout(Duration::from_secs(1)).unwrap();
+            assert_eq!(*data, [i, i]);
+            assert_eq!(change_stamp, WnfChangeStamp::from(i + 1));
+        }
+    }
+
+    for subscription in subscriptions {
+        subscription.unsubscribe().map_err(|(err, _)| err).unwrap();
+    }
+
+    assert_eq!(
+        rx.recv_timeout(Duration::from_secs(1)),
+        Err(RecvTimeoutError::Disconnected)
+    );
+}
+
+#[test]
 fn subscribe_catch_invalid() {
     #[derive(Debug, PartialEq)]
     enum Message {

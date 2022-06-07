@@ -1,27 +1,26 @@
-use std::alloc::Layout;
 use std::ffi::c_void;
 use std::fmt::{Debug, Formatter};
 use std::marker::PhantomData;
 use std::mem::ManuallyDrop;
 use std::sync::Mutex;
-use std::{alloc, fmt, mem, panic, ptr};
+use std::{fmt, mem, panic, ptr};
 
 use thiserror::Error;
 use tracing::{debug, trace_span};
 use windows::core::GUID;
 use windows::Win32::Foundation::{NTSTATUS, STATUS_SUCCESS};
 
-use crate::bytes::CheckedBitPattern;
 use crate::callback::WnfCallback;
 use crate::data::WnfChangeStamp;
 use crate::ntdll::NTDLL_TARGET;
 use crate::ntdll_sys;
+use crate::read::WnfRead;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::state_name::WnfStateName;
 
 impl<T> OwnedWnfState<T>
 where
-    T: CheckedBitPattern,
+    T: WnfRead + ?Sized,
 {
     pub fn subscribe<F, ArgsValid, ArgsInvalid>(
         &self,
@@ -29,44 +28,7 @@ where
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        F: WnfCallback<T, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
-    {
-        self.raw.subscribe(after_change_stamp, listener)
-    }
-
-    pub fn subscribe_slice_boxed<F, ArgsValid, ArgsInvalid>(
-        &self,
-        after_change_stamp: WnfChangeStamp,
-        listener: Box<F>,
-    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
-    where
-        F: WnfCallback<Box<T>, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
-    {
-        self.raw.subscribe_boxed(after_change_stamp, listener)
-    }
-
-    pub fn subscribe_slice<F, ArgsValid, ArgsInvalid>(
-        &self,
-        after_change_stamp: WnfChangeStamp,
-        listener: Box<F>,
-    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
-    where
-        F: WnfCallback<Box<[T]>, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
-    {
-        self.raw.subscribe_slice(after_change_stamp, listener)
-    }
-}
-
-impl<T> BorrowedWnfState<'_, T>
-where
-    T: CheckedBitPattern,
-{
-    pub fn subscribe<F, ArgsValid, ArgsInvalid>(
-        &self,
-        after_change_stamp: WnfChangeStamp,
-        listener: Box<F>,
-    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
-    where
+        T: Sized,
         F: WnfCallback<T, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
     {
         self.raw.subscribe(after_change_stamp, listener)
@@ -82,22 +44,11 @@ where
     {
         self.raw.subscribe_boxed(after_change_stamp, listener)
     }
-
-    pub fn subscribe_slice<F, ArgsValid, ArgsInvalid>(
-        &self,
-        after_change_stamp: WnfChangeStamp,
-        listener: Box<F>,
-    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
-    where
-        F: WnfCallback<Box<[T]>, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
-    {
-        self.raw.subscribe_slice(after_change_stamp, listener)
-    }
 }
 
-impl<T> RawWnfState<T>
+impl<T> BorrowedWnfState<'_, T>
 where
-    T: CheckedBitPattern,
+    T: WnfRead + ?Sized,
 {
     pub fn subscribe<F, ArgsValid, ArgsInvalid>(
         &self,
@@ -105,6 +56,35 @@ where
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
+        T: Sized,
+        F: WnfCallback<T, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
+    {
+        self.raw.subscribe(after_change_stamp, listener)
+    }
+
+    pub fn subscribe_boxed<F, ArgsValid, ArgsInvalid>(
+        &self,
+        after_change_stamp: WnfChangeStamp,
+        listener: Box<F>,
+    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
+    where
+        F: WnfCallback<Box<T>, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
+    {
+        self.raw.subscribe_boxed(after_change_stamp, listener)
+    }
+}
+
+impl<T> RawWnfState<T>
+where
+    T: WnfRead + ?Sized,
+{
+    pub fn subscribe<F, ArgsValid, ArgsInvalid>(
+        &self,
+        after_change_stamp: WnfChangeStamp,
+        listener: Box<F>,
+    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
+    where
+        T: Sized,
         F: WnfCallback<T, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
     {
         self.subscribe_internal::<Value<T>, F, ArgsValid, ArgsInvalid>(after_change_stamp, listener)
@@ -119,17 +99,6 @@ where
         F: WnfCallback<Box<T>, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
     {
         self.subscribe_internal::<Boxed<T>, F, ArgsValid, ArgsInvalid>(after_change_stamp, listener)
-    }
-
-    pub fn subscribe_slice<F, ArgsValid, ArgsInvalid>(
-        &self,
-        after_change_stamp: WnfChangeStamp,
-        listener: Box<F>,
-    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
-    where
-        F: WnfCallback<Box<[T]>, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
-    {
-        self.subscribe_internal::<BoxedSlice<T>, F, ArgsValid, ArgsInvalid>(after_change_stamp, listener)
     }
 
     fn subscribe_internal<B, F, ArgsValid, ArgsInvalid>(
@@ -224,30 +193,6 @@ trait FromByteBuffer {
     type Data;
 
     unsafe fn from_byte_buffer(ptr: *const c_void, size: u32) -> Option<Self::Data>;
-}
-
-#[derive(Debug)]
-struct Value<T>(PhantomData<fn() -> T>);
-
-impl<T> FromByteBuffer for Value<T>
-where
-    T: CheckedBitPattern,
-{
-    type Data = T;
-
-    unsafe fn from_byte_buffer(ptr: *const c_void, size: u32) -> Option<T> {
-        if size as usize != mem::size_of::<T::Bits>() {
-            return None;
-        }
-
-        let bits: T::Bits = ptr::read_unaligned(ptr.cast());
-
-        if T::is_valid_bit_pattern(&bits) {
-            Some(*(&bits as *const T::Bits as *const T))
-        } else {
-            None
-        }
-    }
 }
 
 pub struct WnfSubscriptionHandle<'a, F>
@@ -419,61 +364,31 @@ impl From<NTSTATUS> for WnfUnsubscribeError {
 }
 
 #[derive(Debug)]
-struct Boxed<T>(PhantomData<fn() -> Box<T>>);
+struct Value<T>(PhantomData<fn() -> T>);
 
-impl<T> FromByteBuffer for Boxed<T>
+impl<T> FromByteBuffer for Value<T>
 where
-    T: CheckedBitPattern,
+    T: WnfRead,
 {
-    type Data = Box<T>;
+    type Data = T;
 
-    unsafe fn from_byte_buffer(ptr: *const c_void, size: u32) -> Option<Box<T>> {
-        if size as usize != mem::size_of::<T::Bits>() {
-            return None;
-        }
-
-        let bits = if mem::size_of::<T::Bits>() == 0 {
-            Box::new(mem::zeroed())
-        } else {
-            let layout = Layout::new::<T::Bits>();
-            let data = alloc::alloc(layout) as *mut T::Bits;
-            ptr::copy_nonoverlapping(ptr as *const T::Bits, data as *mut T::Bits, 1);
-            Box::from_raw(data)
-        };
-
-        T::is_valid_bit_pattern(&bits).then(|| Box::from_raw(Box::into_raw(bits) as *mut T))
+    unsafe fn from_byte_buffer(ptr: *const c_void, size: u32) -> Option<T> {
+        <T>::read_buffer(ptr, size)
     }
 }
 
 #[derive(Debug)]
-struct BoxedSlice<T>(PhantomData<fn() -> Box<[T]>>);
-
-impl<T> FromByteBuffer for BoxedSlice<T>
+struct Boxed<T>(PhantomData<fn() -> Box<T>>)
 where
-    T: CheckedBitPattern,
+    T: ?Sized;
+
+impl<T> FromByteBuffer for Boxed<T>
+where
+    T: WnfRead + ?Sized,
 {
-    type Data = Box<[T]>;
+    type Data = Box<T>;
 
-    unsafe fn from_byte_buffer(ptr: *const c_void, size: u32) -> Option<Box<[T]>> {
-        if mem::size_of::<T>() == 0 {
-            return (size == 0).then(|| Vec::new().into_boxed_slice());
-        }
-
-        if size as usize % mem::size_of::<T>() != 0 {
-            return None;
-        }
-
-        let len = size as usize / mem::size_of::<T>();
-        let mut data = Vec::with_capacity(len);
-        ptr::copy_nonoverlapping(ptr.cast(), data.as_mut_ptr(), len);
-        data.set_len(len);
-
-        if data.iter().all(T::is_valid_bit_pattern) {
-            let mut data = ManuallyDrop::new(data);
-            let data = Vec::from_raw_parts(data.as_mut_ptr() as *mut T, data.len(), data.capacity());
-            Some(data.into_boxed_slice())
-        } else {
-            None
-        }
+    unsafe fn from_byte_buffer(ptr: *const c_void, size: u32) -> Option<Box<T>> {
+        <T>::read_buffer_boxed(ptr, size)
     }
 }
