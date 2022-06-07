@@ -87,7 +87,7 @@ where
         T: Sized,
         F: WnfCallback<T, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
     {
-        self.subscribe_internal::<Value<T>, F, ArgsValid, ArgsInvalid>(after_change_stamp, listener)
+        self.subscribe_internal::<Unboxed<T>, F, ArgsValid, ArgsInvalid>(after_change_stamp, listener)
     }
 
     pub fn subscribe_boxed<F, ArgsValid, ArgsInvalid>(
@@ -364,9 +364,9 @@ impl From<NTSTATUS> for WnfUnsubscribeError {
 }
 
 #[derive(Debug)]
-struct Value<T>(PhantomData<fn() -> T>);
+struct Unboxed<T>(PhantomData<fn() -> T>);
 
-impl<T> FromByteBuffer for Value<T>
+impl<T> FromByteBuffer for Unboxed<T>
 where
     T: WnfRead,
 {
