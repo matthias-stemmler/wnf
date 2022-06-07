@@ -34,67 +34,66 @@ impl<T> WnfRead for T
 where
     T: CheckedBitPattern,
 {
-    type Bits = <Self as CheckedBitPattern>::Bits;
+    type Bits = T::Bits;
 
-    unsafe fn read<E, F>(mut read_raw: F) -> Result<WnfStampedData<Self>, E>
+    unsafe fn read<E, F>(mut read_raw: F) -> Result<WnfStampedData<T>, E>
     where
-        Self: Sized,
         E: From<WnfReadError>,
-        F: FnMut(*mut Self::Bits, usize) -> Result<(usize, WnfChangeStamp), E>,
+        F: FnMut(*mut T::Bits, usize) -> Result<(usize, WnfChangeStamp), E>,
     {
-        let mut bits = MaybeUninit::<Self::Bits>::uninit();
+        let mut bits = MaybeUninit::<T::Bits>::uninit();
 
-        let (size, change_stamp) = read_raw(bits.as_mut_ptr(), mem::size_of::<Self::Bits>())?;
-        if size != mem::size_of::<Self::Bits>() {
+        let (size, change_stamp) = read_raw(bits.as_mut_ptr(), mem::size_of::<T::Bits>())?;
+        if size != mem::size_of::<T::Bits>() {
             return Err(E::from(WnfReadError::WrongSize {
-                expected: mem::size_of::<Self::Bits>(),
+                expected: mem::size_of::<T::Bits>(),
                 actual: size,
             }));
         }
 
         let bits = bits.assume_init();
 
-        if Self::is_valid_bit_pattern(&bits) {
-            let data = *(&bits as *const Self::Bits as *const Self);
+        if T::is_valid_bit_pattern(&bits) {
+            let data = *(&bits as *const T::Bits as *const Self);
             Ok(WnfStampedData::from_data_change_stamp(data, change_stamp))
         } else {
             Err(E::from(WnfReadError::InvalidBitPattern))
         }
     }
 
-    unsafe fn read_boxed<E, F>(mut read_raw: F) -> Result<WnfStampedData<Box<Self>>, E>
+    unsafe fn read_boxed<E, F>(mut read_raw: F) -> Result<WnfStampedData<Box<T>>, E>
     where
         E: From<WnfReadError>,
-        F: FnMut(*mut Self::Bits, usize) -> Result<(usize, WnfChangeStamp), E>,
+        F: FnMut(*mut T::Bits, usize) -> Result<(usize, WnfChangeStamp), E>,
     {
-        let mut bits = if mem::size_of::<Self::Bits>() == 0 {
+        let mut bits = if mem::size_of::<T::Bits>() == 0 {
             let data = mem::zeroed();
             Box::new(data)
         } else {
-            let layout = Layout::new::<Self::Bits>();
-            let data = alloc::alloc(layout) as *mut MaybeUninit<Self::Bits>;
+            let layout = Layout::new::<T::Bits>();
+            let data = alloc::alloc(layout) as *mut MaybeUninit<T::Bits>;
             Box::from_raw(data)
         };
 
-        let (size, change_stamp) = read_raw(bits.as_mut_ptr(), mem::size_of::<Self::Bits>())?;
-        if size != mem::size_of::<Self::Bits>() {
+        let (size, change_stamp) = read_raw(bits.as_mut_ptr(), mem::size_of::<T::Bits>())?;
+        if size != mem::size_of::<T::Bits>() {
             return Err(E::from(WnfReadError::WrongSize {
-                expected: mem::size_of::<Self::Bits>(),
+                expected: mem::size_of::<T::Bits>(),
                 actual: size,
             }));
         }
 
-        let bits = Box::from_raw(Box::into_raw(bits) as *mut Self::Bits);
+        let bits = Box::from_raw(Box::into_raw(bits) as *mut T::Bits);
 
-        if Self::is_valid_bit_pattern(&bits) {
-            let data = Box::from_raw(Box::into_raw(bits) as *mut Self);
+        if T::is_valid_bit_pattern(&bits) {
+            let data = Box::from_raw(Box::into_raw(bits) as *mut T);
             Ok(WnfStampedData::from_data_change_stamp(data, change_stamp))
         } else {
             Err(E::from(WnfReadError::InvalidBitPattern))
         }
     }
 
-    unsafe fn read_buffer(ptr: *const c_void, size: u32) -> Option<Self> {
+    unsafe fn read_buffer(ptr: *const c_void, size: u32) -> Option<T> {
         if size as usize != mem::size_of::<T::Bits>() {
             return None;
         }
@@ -108,7 +107,7 @@ where
         }
     }
 
-    unsafe fn read_buffer_boxed(ptr: *const c_void, size: u32) -> Option<Box<Self>> {
+    unsafe fn read_buffer_boxed(ptr: *const c_void, size: u32) -> Option<Box<T>> {
         if size as usize != mem::size_of::<T::Bits>() {
             return None;
         }
@@ -132,45 +131,42 @@ where
 {
     type Bits = T::Bits;
 
-    unsafe fn read<E, F>(_: F) -> Result<WnfStampedData<Self>, E>
+    unsafe fn read<E, F>(_: F) -> Result<WnfStampedData<[T]>, E>
     where
-        Self: Sized,
-        E: From<WnfReadError>,
-        F: FnMut(*mut Self::Bits, usize) -> Result<(usize, WnfChangeStamp), E>,
+        [T]: Sized,
     {
         unreachable!("slice is unsized")
     }
 
-    unsafe fn read_boxed<E, F>(mut read_raw: F) -> Result<WnfStampedData<Box<Self>>, E>
+    unsafe fn read_boxed<E, F>(mut read_raw: F) -> Result<WnfStampedData<Box<[T]>>, E>
     where
         E: From<WnfReadError>,
-        F: FnMut(*mut Self::Bits, usize) -> Result<(usize, WnfChangeStamp), E>,
+        F: FnMut(*mut T::Bits, usize) -> Result<(usize, WnfChangeStamp), E>,
     {
-        let stride = Layout::new::<Self::Bits>().pad_to_align().size();
-        let mut buffer: Vec<Self::Bits> = Vec::new();
+        let mut buffer: Vec<T::Bits> = Vec::new();
 
         let (len, change_stamp) = loop {
-            let (size, change_stamp) = read_raw(buffer.as_mut_ptr(), buffer.capacity() * stride)?;
+            let (size, change_stamp) = read_raw(buffer.as_mut_ptr(), buffer.capacity() * mem::size_of::<T::Bits>())?;
 
             if size == 0 {
                 break (0, change_stamp);
             }
 
-            if mem::size_of::<Self::Bits>() == 0 {
+            if mem::size_of::<T::Bits>() == 0 {
                 return Err(E::from(WnfReadError::WrongSize {
                     expected: 0,
                     actual: size,
                 }));
             }
 
-            if size % mem::size_of::<Self::Bits>() != 0 {
+            if size % mem::size_of::<T::Bits>() != 0 {
                 return Err(E::from(WnfReadError::WrongSizeMultiple {
-                    expected_modulus: mem::size_of::<Self::Bits>(),
+                    expected_modulus: mem::size_of::<T::Bits>(),
                     actual: size,
                 }));
             }
 
-            let len = size / stride;
+            let len = size / mem::size_of::<T::Bits>();
             if len > buffer.capacity() {
                 buffer.reserve(len - buffer.capacity());
             } else {
@@ -182,21 +178,21 @@ where
 
         if buffer.iter().all(T::is_valid_bit_pattern) {
             let data = buffer.into_boxed_slice();
-            let data = Box::from_raw(Box::into_raw(data) as *mut Self);
+            let data = Box::from_raw(Box::into_raw(data) as *mut [T]);
             Ok(WnfStampedData::from_data_change_stamp(data, change_stamp))
         } else {
             Err(E::from(WnfReadError::InvalidBitPattern))
         }
     }
 
-    unsafe fn read_buffer(_: *const c_void, _: u32) -> Option<Self>
+    unsafe fn read_buffer(_: *const c_void, _: u32) -> Option<[T]>
     where
-        Self: Sized,
+        [T]: Sized,
     {
         unreachable!("slice is unsized")
     }
 
-    unsafe fn read_buffer_boxed(ptr: *const c_void, size: u32) -> Option<Box<Self>> {
+    unsafe fn read_buffer_boxed(ptr: *const c_void, size: u32) -> Option<Box<[T]>> {
         if mem::size_of::<T>() == 0 {
             return (size == 0).then(|| Vec::new().into_boxed_slice());
         }
@@ -243,7 +239,7 @@ where
 {
     type Data = T;
 
-    unsafe fn read<E, F>(read_raw: F) -> Result<WnfStampedData<Self::Data>, E>
+    unsafe fn read<E, F>(read_raw: F) -> Result<WnfStampedData<T>, E>
     where
         E: From<WnfReadError>,
         F: FnMut(*mut T::Bits, usize) -> Result<(usize, WnfChangeStamp), E>,
@@ -251,7 +247,7 @@ where
         T::read(read_raw)
     }
 
-    unsafe fn read_buffer(ptr: *const c_void, size: u32) -> Option<Self::Data> {
+    unsafe fn read_buffer(ptr: *const c_void, size: u32) -> Option<T> {
         T::read_buffer(ptr, size)
     }
 }
@@ -265,7 +261,7 @@ where
 {
     type Data = Box<T>;
 
-    unsafe fn read<E, F>(read_raw: F) -> Result<WnfStampedData<Self::Data>, E>
+    unsafe fn read<E, F>(read_raw: F) -> Result<WnfStampedData<Box<T>>, E>
     where
         E: From<WnfReadError>,
         F: FnMut(*mut T::Bits, usize) -> Result<(usize, WnfChangeStamp), E>,
@@ -273,7 +269,7 @@ where
         T::read_boxed(read_raw)
     }
 
-    unsafe fn read_buffer(ptr: *const c_void, size: u32) -> Option<Self::Data> {
+    unsafe fn read_buffer(ptr: *const c_void, size: u32) -> Option<Box<T>> {
         T::read_buffer_boxed(ptr, size)
     }
 }

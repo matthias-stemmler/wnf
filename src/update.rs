@@ -1,5 +1,5 @@
 use std::borrow::Borrow;
-use std::ptr;
+use std::{mem, ptr};
 
 use thiserror::Error;
 use tracing::debug;
@@ -57,19 +57,17 @@ where
     where
         D: Borrow<T>,
     {
-        Ok(data
-            .borrow()
-            .write(|buffer, buffer_size| self.update_raw(buffer, buffer_size, None))
-            .ok()?)
+        let data = data.borrow();
+        self.update_raw(data, mem::size_of_val(data), None).ok()?;
+        Ok(())
     }
 
     pub fn update<D>(&self, data: D, expected_change_stamp: WnfChangeStamp) -> Result<bool, WnfUpdateError>
     where
         D: Borrow<T>,
     {
-        let result = data
-            .borrow()
-            .write(|buffer, buffer_size| self.update_raw(buffer, buffer_size, Some(expected_change_stamp)));
+        let data = data.borrow();
+        let result = self.update_raw(data, mem::size_of_val(data), Some(expected_change_stamp));
 
         Ok(if result == STATUS_UNSUCCESSFUL {
             false

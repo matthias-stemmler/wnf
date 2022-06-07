@@ -34,10 +34,10 @@ mod subscribe;
 mod update;
 mod write;
 
-// TODO move single vs. slice from methods to types? -> maybe move FromByteBuffer etc. to bytes module
 // TODO apply: abstract over returning T vs. Option<T>?
 // TODO wait (sync + async)
 // TODO check Debug impls
 // TODO builder pattern for creation, including max size
 // TODO create permanent/persistent states
 // TODO consts for well-known states?
+// TODO ZST tests
