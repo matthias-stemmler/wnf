@@ -9,9 +9,8 @@ use wnf::OwnedWnfState;
 fn main() {
     tracing_subscriber::fmt().with_max_level(LevelFilter::DEBUG).init();
 
-    let state = Arc::new(OwnedWnfState::create_temporary().expect("Failed to create temporary WNF state"));
-
-    state.set(0u32).expect("Failed to set WNF state data");
+    let state = Arc::new(OwnedWnfState::<u32>::create_temporary().expect("Failed to create temporary WNF state"));
+    state.set(0).expect("Failed to set WNF state data");
 
     let mut handles = Vec::new();
 
@@ -21,7 +20,7 @@ fn main() {
         handles.push(thread::spawn(move || {
             for _ in 0..5 {
                 state
-                    .apply(|v: u32| Some(v + 1))
+                    .apply(|v| Some(v + 1))
                     .expect("Failed to apply transformation to WNF state data");
             }
         }));
@@ -31,6 +30,6 @@ fn main() {
         handle.join().expect("Failed to join thread");
     }
 
-    let data: u32 = state.get().expect("Failed to get WNF state data");
+    let data = state.get().expect("Failed to get WNF state data");
     info!(data);
 }

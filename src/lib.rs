@@ -32,7 +32,6 @@ mod state;
 mod state_name;
 mod subscribe;
 mod update;
-mod write;
 
 // TODO apply: abstract over returning T vs. Option<T>?
 // TODO wait (sync + async)

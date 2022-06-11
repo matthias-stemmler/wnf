@@ -1,12 +1,18 @@
 // must hold: size is multiple of alignment
+/// # Safety
+/// TODO
 pub unsafe trait AnyBitPattern: Copy + Sized {}
 
+/// # Safety
+/// TODO
 pub unsafe trait CheckedBitPattern: Copy + Sized {
     type Bits: AnyBitPattern;
 
     fn is_valid_bit_pattern(bits: &Self::Bits) -> bool;
 }
 
+/// # Safety
+/// TODO
 unsafe impl<T> CheckedBitPattern for T
 where
     T: AnyBitPattern,
@@ -20,6 +26,8 @@ where
 }
 
 // must hold: size is multiple of alignment
+/// # Safety
+/// TODO
 pub unsafe trait NoUninit {}
 
 unsafe impl AnyBitPattern for () {}

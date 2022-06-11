@@ -62,3 +62,9 @@ impl<T> WnfStampedData<T> {
         self.change_stamp
     }
 }
+
+impl<T> From<(T, WnfChangeStamp)> for WnfStampedData<T> {
+    fn from((data, change_stamp): (T, WnfChangeStamp)) -> Self {
+        Self { data, change_stamp }
+    }
+}

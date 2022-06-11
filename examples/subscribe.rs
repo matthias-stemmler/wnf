@@ -15,15 +15,15 @@ fn main() {
         .with_thread_ids(true)
         .init();
 
-    let state = OwnedWnfState::create_temporary().expect("Failed to create temporary WNF state");
-    state.set(0u32).expect("Failed to set WNF state data");
+    let state = OwnedWnfState::<u32>::create_temporary().expect("Failed to create temporary WNF state");
+    state.set(0).expect("Failed to set WNF state data");
 
     let (tx, rx) = mpsc::channel();
 
     let subscription = state
         .subscribe(
             WnfChangeStamp::initial(),
-            Box::new(move |data: u32, change_stamp: WnfChangeStamp| {
+            Box::new(move |data, change_stamp| {
                 info!(data, ?change_stamp);
                 tx.send(data).expect("Failed to send data to mpsc channel");
             }),
@@ -36,7 +36,7 @@ fn main() {
 
     let mut receive_count: usize = 0;
 
-    for data in rx.into_iter() {
+    for data in rx {
         receive_count += 1;
         if data == LAST_DATA {
             break;

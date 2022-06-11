@@ -23,7 +23,7 @@ where
     }
 }
 
-impl<'a, T> BorrowedWnfState<'a, T>
+impl<T> BorrowedWnfState<'_, T>
 where
     T: ?Sized,
 {

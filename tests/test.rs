@@ -22,9 +22,9 @@ fn create_temporary() {
 
 #[test]
 fn set_by_value() {
-    let state = OwnedWnfState::create_temporary().unwrap();
+    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
-    let value: u32 = 0x12345678;
+    let value = 0x12345678;
     state.set(value).unwrap();
 
     let read_value = state.get().unwrap();
@@ -55,31 +55,31 @@ fn set_boxed() {
 
 #[test]
 fn set_slice_by_ref() {
-    let state = OwnedWnfState::create_temporary().unwrap();
+    let state = OwnedWnfState::<[u32]>::create_temporary().unwrap();
 
     let values = [0x12345678, 0xABCDEF01, 0x23456789];
     state.set(values.as_slice()).unwrap();
 
-    let read_slice: Box<[u32]> = state.get_boxed().unwrap();
+    let read_slice = state.get_boxed().unwrap();
     assert_eq!(*read_slice, values);
 }
 
 #[test]
 fn set_slice_vec() {
-    let state = OwnedWnfState::create_temporary().unwrap();
+    let state = OwnedWnfState::<[u32]>::create_temporary().unwrap();
 
     let values = [0x12345678, 0xABCDEF01, 0x23456789];
     state.set(values.to_vec()).unwrap();
 
-    let read_slice: Box<[u32]> = state.get_boxed().unwrap();
+    let read_slice = state.get_boxed().unwrap();
     assert_eq!(*read_slice, values);
 }
 
 #[test]
 fn get_by_value() {
-    let state = OwnedWnfState::create_temporary().unwrap();
+    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
-    let value: u32 = 0x12345678;
+    let value = 0x12345678;
     state.set(value).unwrap();
 
     let read_value = state.get().unwrap();
@@ -88,9 +88,9 @@ fn get_by_value() {
 
 #[test]
 fn get_boxed() {
-    let state = OwnedWnfState::create_temporary().unwrap();
+    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
-    let value: u32 = 0x12345678;
+    let value = 0x12345678;
     state.set(value).unwrap();
 
     let read_value = state.get_boxed().unwrap();
@@ -99,22 +99,22 @@ fn get_boxed() {
 
 #[test]
 fn get_slice() {
-    let state = OwnedWnfState::create_temporary().unwrap();
+    let state = OwnedWnfState::<[u32]>::create_temporary().unwrap();
 
     let values = [0x12345678, 0xABCDEF01, 0x23456789];
     state.set(values.as_slice()).unwrap();
 
-    let read_values: Box<[u32]> = state.get_boxed().unwrap();
+    let read_values = state.get_boxed().unwrap();
     assert_eq!(*read_values, values);
 }
 
 macro_rules! apply_tests {
-    ($($name:ident: $apply:expr,)*) => {
+    ($($name:ident: $state:ident => $apply:expr,)*) => {
         $(
             #[test]
             fn $name() {
-                let state = Arc::new(OwnedWnfState::create_temporary().unwrap());
-                state.set(0u32).unwrap();
+                let state = Arc::new(OwnedWnfState::<u32>::create_temporary().unwrap());
+                state.set(0).unwrap();
 
                 const NUM_THREADS: u32 = 2;
                 const NUM_ITERATIONS: u32 = 128;
@@ -126,7 +126,8 @@ macro_rules! apply_tests {
 
                     handles.push(thread::spawn(move || {
                         for _ in 0..NUM_ITERATIONS {
-                            $apply(state.borrow()).unwrap();
+                            let $state = state.borrow();
+                            $apply.unwrap();
                         }
                     }));
                 }
@@ -143,15 +144,15 @@ macro_rules! apply_tests {
 }
 
 apply_tests! {
-    apply_value_to_value: |state: BorrowedWnfState<'_, _>| state.apply(|v| Some(v + 1)),
-    apply_value_to_boxed: |state: BorrowedWnfState<'_, _>| state.apply(|v| Some(Box::new(v + 1))),
-    apply_boxed_to_value: |state: BorrowedWnfState<'_, _>| state.apply_boxed(|v| Some(*v + 1)),
-    apply_boxed_to_boxed: |state: BorrowedWnfState<'_, _>| state.apply_boxed(|v| Some(Box::new(*v + 1))),
+    apply_value_to_value: state => state.apply(|v| Some(v + 1)),
+    apply_value_to_boxed: state => state.apply(|v| Some(Box::new(v + 1))),
+    apply_boxed_to_value: state => state.apply_boxed(|v| Some(*v + 1)),
+    apply_boxed_to_boxed: state => state.apply_boxed(|v| Some(Box::new(*v + 1))),
 }
 
 #[test]
 fn apply_slice_to_vec() {
-    let state = Arc::new(OwnedWnfState::create_temporary().unwrap());
+    let state = Arc::new(OwnedWnfState::<[u32]>::create_temporary().unwrap());
     state.set([0, 0]).unwrap();
 
     const NUM_THREADS: u32 = 2;
@@ -165,7 +166,7 @@ fn apply_slice_to_vec() {
         handles.push(thread::spawn(move || {
             for _ in 0..NUM_ITERATIONS {
                 state
-                    .apply_boxed(|vs: Box<[u32]>| Some(vs.iter().map(|v| v + 1).collect::<Vec<_>>()))
+                    .apply_boxed(|vs| Some(vs.iter().map(|v| v + 1).collect::<Vec<_>>()))
                     .unwrap();
             }
         }))
@@ -182,10 +183,10 @@ fn apply_slice_to_vec() {
 
 #[test]
 fn apply_early_termination() {
-    let state = OwnedWnfState::create_temporary().unwrap();
+    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
-    state.set(0u32).unwrap();
-    let applied = state.apply::<u32, _>(|_| None).unwrap();
+    state.set(0).unwrap();
+    let applied = state.apply(|_| None::<u32>).unwrap();
 
     assert!(!applied);
     assert_eq!(state.get().unwrap(), 0);
@@ -193,10 +194,10 @@ fn apply_early_termination() {
 
 #[test]
 fn try_apply_by_value_ok() {
-    let state = OwnedWnfState::create_temporary().unwrap();
+    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
-    state.set(0u32).unwrap();
-    let result = state.try_apply::<_, TestError, _>(|v| Ok(Some(v + 1)));
+    state.set(0).unwrap();
+    let result = state.try_apply(|v| Ok::<_, TestError>(Some(v + 1)));
 
     assert_eq!(result, Ok(true));
     assert_eq!(state.get().unwrap(), 1);
@@ -204,20 +205,20 @@ fn try_apply_by_value_ok() {
 
 #[test]
 fn try_apply_by_value_err() {
-    let state = OwnedWnfState::create_temporary().unwrap();
+    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
-    state.set(0u32).unwrap();
-    let result = state.try_apply::<u32, _, _>(|_| Err(TestError));
+    state.set(0).unwrap();
+    let result = state.try_apply(|_| Err::<Option<u32>, _>(TestError));
 
     assert_eq!(result, Err(WnfApplyError::Transform(WnfTransformError(TestError))));
 }
 
 #[test]
 fn try_apply_boxed_ok() {
-    let state = OwnedWnfState::create_temporary().unwrap();
+    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
-    state.set(0u32).unwrap();
-    let result = state.try_apply_boxed::<_, TestError, _>(|v| Ok(Some(*v + 1)));
+    state.set(0).unwrap();
+    let result = state.try_apply_boxed(|v| Ok::<_, TestError>(Some(*v + 1)));
 
     assert_eq!(result, Ok(true));
     assert_eq!(state.get().unwrap(), 1);
@@ -225,21 +226,20 @@ fn try_apply_boxed_ok() {
 
 #[test]
 fn try_apply_boxed_err() {
-    let state = OwnedWnfState::create_temporary().unwrap();
+    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
-    state.set(0u32).unwrap();
-    let result = state.try_apply_boxed::<u32, _, _>(|_| Err(TestError));
+    state.set(0).unwrap();
+    let result = state.try_apply_boxed(|_| Err::<Option<u32>, _>(TestError));
 
     assert_eq!(result, Err(WnfApplyError::Transform(WnfTransformError(TestError))));
 }
 
 #[test]
 fn try_apply_slice_ok() {
-    let state = OwnedWnfState::create_temporary().unwrap();
+    let state = OwnedWnfState::<[u32]>::create_temporary().unwrap();
 
     state.set([0]).unwrap();
-    let result = state
-        .try_apply_boxed::<_, TestError, _>(|vs: Box<[u32]>| Ok(Some(vs.iter().map(|v| v + 1).collect::<Vec<_>>())));
+    let result = state.try_apply_boxed(|vs| Ok::<_, TestError>(Some(vs.iter().map(|v| v + 1).collect::<Vec<_>>())));
 
     assert_eq!(result, Ok(true));
     assert_eq!(*state.get_boxed().unwrap(), [1]);
@@ -247,10 +247,10 @@ fn try_apply_slice_ok() {
 
 #[test]
 fn try_apply_slice_err() {
-    let state = OwnedWnfState::create_temporary().unwrap();
+    let state = OwnedWnfState::<[u32]>::create_temporary().unwrap();
 
     state.set([0]).unwrap();
-    let result = state.try_apply_boxed::<Vec<_>, _, _>(|_: Box<[u32]>| Err(TestError));
+    let result = state.try_apply_boxed(|_| Err::<Option<Vec<_>>, _>(TestError));
 
     assert_eq!(result, Err(WnfApplyError::Transform(WnfTransformError(TestError))));
 }
@@ -287,7 +287,7 @@ fn borrowed_wnf_state_delete() {
 
 #[test]
 fn subscribe() {
-    let state = OwnedWnfState::create_temporary().unwrap();
+    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
     let (tx, rx) = mpsc::channel();
     let mut subscriptions = Vec::new();
 
@@ -299,7 +299,7 @@ fn subscribe() {
             state
                 .subscribe(
                     WnfChangeStamp::initial(),
-                    Box::new(move |data: u32, change_stamp| {
+                    Box::new(move |data, change_stamp| {
                         tx.send((data, change_stamp)).unwrap();
                     }),
                 )
@@ -331,7 +331,7 @@ fn subscribe() {
 
 #[test]
 fn subscribe_boxed() {
-    let state = OwnedWnfState::create_temporary().unwrap();
+    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
     let (tx, rx) = mpsc::channel();
     let mut subscriptions = Vec::new();
 
@@ -343,7 +343,7 @@ fn subscribe_boxed() {
             state
                 .subscribe_boxed(
                     WnfChangeStamp::initial(),
-                    Box::new(move |data: Box<u32>, change_stamp| {
+                    Box::new(move |data, change_stamp| {
                         tx.send((data, change_stamp)).unwrap();
                     }),
                 )
@@ -375,7 +375,7 @@ fn subscribe_boxed() {
 
 #[test]
 fn subscribe_slice() {
-    let state = OwnedWnfState::create_temporary().unwrap();
+    let state = OwnedWnfState::<[u32]>::create_temporary().unwrap();
     let (tx, rx) = mpsc::channel();
     let mut subscriptions = Vec::new();
 
@@ -387,7 +387,7 @@ fn subscribe_slice() {
             state
                 .subscribe_boxed(
                     WnfChangeStamp::initial(),
-                    Box::new(move |data: Box<[u32]>, change_stamp| {
+                    Box::new(move |data, change_stamp| {
                         tx.send((data, change_stamp)).unwrap();
                     }),
                 )
@@ -425,7 +425,7 @@ fn subscribe_catch_invalid() {
         Invalid(WnfChangeStamp),
     }
 
-    let state = OwnedWnfState::create_temporary().unwrap();
+    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
     let (tx, rx) = mpsc::channel();
     let tx_invalid = tx.clone();
@@ -495,7 +495,7 @@ fn subscribers_present() {
 
 #[test]
 fn is_quiescent() {
-    let state = OwnedWnfState::create_temporary().unwrap();
+    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
     let (tx, rx) = mpsc::channel();
 
     let subscription = state
@@ -509,7 +509,7 @@ fn is_quiescent() {
 
     assert!(state.is_quiescent().unwrap());
 
-    state.set(42u32).unwrap();
+    state.set(42).unwrap();
     assert!(!state.is_quiescent().unwrap());
 
     tx.send(()).unwrap();
