@@ -22,7 +22,7 @@ where
 }
 
 #[derive(Debug)]
-pub(crate) struct Unboxed;
+pub(crate) enum Unboxed {}
 
 impl<T> WnfRead<T> for Unboxed
 where
@@ -72,7 +72,7 @@ where
 }
 
 #[derive(Debug)]
-pub(crate) struct Boxed;
+pub(crate) enum Boxed {}
 
 impl<T> WnfRead<T> for Boxed
 where

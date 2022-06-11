@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 #![deny(improper_ctypes)]
 #![deny(improper_ctypes_definitions)]
+#![deny(missing_debug_implementations)]
 
 #[macro_use]
 extern crate num_derive;
