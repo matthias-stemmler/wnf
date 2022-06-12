@@ -5,118 +5,88 @@ use thiserror::Error;
 use tracing::debug;
 use windows::Win32::Foundation::{NTSTATUS, STATUS_BUFFER_TOO_SMALL};
 
-use crate::bytes::CheckedBitPattern;
 use crate::data::{WnfChangeStamp, WnfStampedData};
 use crate::ntdll::NTDLL_TARGET;
-use crate::read::{Boxed, Unboxed, WnfRead, WnfReadError};
+use crate::read::{WnfRead, WnfReadBoxed, WnfReadError};
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::{ntdll_sys, WnfStateName};
 
 impl<T> OwnedWnfState<T>
 where
-    T: CheckedBitPattern,
+    T: WnfRead,
 {
     pub fn get(&self) -> Result<T, WnfQueryError> {
         self.raw.get()
     }
 
+    pub fn query(&self) -> Result<WnfStampedData<T>, WnfQueryError> {
+        self.raw.query()
+    }
+}
+
+impl<T> OwnedWnfState<T>
+where
+    T: WnfReadBoxed + ?Sized,
+{
     pub fn get_boxed(&self) -> Result<Box<T>, WnfQueryError> {
         self.raw.get_boxed()
     }
 
-    pub fn query(&self) -> Result<WnfStampedData<T>, WnfQueryError> {
-        self.raw.query()
-    }
-
     pub fn query_boxed(&self) -> Result<WnfStampedData<Box<T>>, WnfQueryError> {
-        self.raw.query_boxed()
-    }
-}
-
-impl<T> OwnedWnfState<[T]>
-where
-    T: CheckedBitPattern,
-{
-    pub fn get_boxed(&self) -> Result<Box<[T]>, WnfQueryError> {
-        self.raw.get_boxed()
-    }
-
-    pub fn query_boxed(&self) -> Result<WnfStampedData<Box<[T]>>, WnfQueryError> {
         self.raw.query_boxed()
     }
 }
 
 impl<T> BorrowedWnfState<'_, T>
 where
-    T: CheckedBitPattern,
+    T: WnfRead,
 {
     pub fn get(&self) -> Result<T, WnfQueryError> {
         self.raw.get()
     }
 
+    pub fn query(&self) -> Result<WnfStampedData<T>, WnfQueryError> {
+        self.raw.query()
+    }
+}
+
+impl<T> BorrowedWnfState<'_, T>
+where
+    T: WnfReadBoxed + ?Sized,
+{
     pub fn get_boxed(&self) -> Result<Box<T>, WnfQueryError> {
         self.raw.get_boxed()
     }
 
-    pub fn query(&self) -> Result<WnfStampedData<T>, WnfQueryError> {
-        self.raw.query()
-    }
-
     pub fn query_boxed(&self) -> Result<WnfStampedData<Box<T>>, WnfQueryError> {
-        self.raw.query_boxed()
-    }
-}
-
-impl<T> BorrowedWnfState<'_, [T]>
-where
-    T: CheckedBitPattern,
-{
-    pub fn get_boxed(&self) -> Result<Box<[T]>, WnfQueryError> {
-        self.raw.get_boxed()
-    }
-
-    pub fn query_boxed(&self) -> Result<WnfStampedData<Box<[T]>>, WnfQueryError> {
         self.raw.query_boxed()
     }
 }
 
 impl<T> RawWnfState<T>
 where
-    T: CheckedBitPattern,
+    T: WnfRead,
 {
     pub fn get(&self) -> Result<T, WnfQueryError> {
         self.query().map(WnfStampedData::into_data)
     }
 
-    pub fn get_boxed(&self) -> Result<Box<T>, WnfQueryError> {
-        self.query_boxed().map(WnfStampedData::into_data)
-    }
-
     pub fn query(&self) -> Result<WnfStampedData<T>, WnfQueryError> {
-        let data = unsafe { Unboxed::from_reader(|buffer, buffer_size| query(self.state_name, buffer, buffer_size)) }?;
-        Ok(data.into())
-    }
-
-    pub fn query_boxed(&self) -> Result<WnfStampedData<Box<T>>, WnfQueryError> {
-        let data = unsafe {
-            <Boxed as WnfRead<T>>::from_reader(|buffer, buffer_size| query(self.state_name, buffer, buffer_size))
-        }?;
+        let data = unsafe { T::from_reader(|buffer, buffer_size| query(self.state_name, buffer, buffer_size)) }?;
         Ok(data.into())
     }
 }
 
-impl<T> RawWnfState<[T]>
+impl<T> RawWnfState<T>
 where
-    T: CheckedBitPattern,
+    T: WnfReadBoxed + ?Sized,
 {
-    pub fn get_boxed(&self) -> Result<Box<[T]>, WnfQueryError> {
+    pub fn get_boxed(&self) -> Result<Box<T>, WnfQueryError> {
         self.query_boxed().map(WnfStampedData::into_data)
     }
 
-    pub fn query_boxed(&self) -> Result<WnfStampedData<Box<[T]>>, WnfQueryError> {
-        let data = unsafe {
-            <Boxed as WnfRead<[T]>>::from_reader(|buffer, buffer_size| query(self.state_name, buffer, buffer_size))
-        }?;
+    pub fn query_boxed(&self) -> Result<WnfStampedData<Box<T>>, WnfQueryError> {
+        let data = unsafe { T::from_reader_boxed(|buffer, buffer_size| query(self.state_name, buffer, buffer_size)) }?;
         Ok(data.into())
     }
 }

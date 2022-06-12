@@ -37,7 +37,7 @@ mod update;
 // TODO apply: abstract over returning T vs. Option<T>?
 // TODO wait (sync + async)
 // TODO check Debug impls
-// TODO builder pattern for creation, including max size
+// TODO builder pattern for creation, including max size and type_id
 // TODO create permanent/persistent states
 // TODO consts for well-known states?
 // TODO ZST tests

@@ -10,18 +10,17 @@ use tracing::{debug, trace_span};
 use windows::core::GUID;
 use windows::Win32::Foundation::{NTSTATUS, STATUS_SUCCESS};
 
-use crate::bytes::CheckedBitPattern;
 use crate::callback::WnfCallback;
 use crate::data::WnfChangeStamp;
 use crate::ntdll::NTDLL_TARGET;
 use crate::ntdll_sys;
-use crate::read::{Boxed, Unboxed, WnfRead};
+use crate::read::{Boxed, Unboxed, WnfRead, WnfReadBoxed, WnfReadRepr};
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::state_name::WnfStateName;
 
 impl<T> OwnedWnfState<T>
 where
-    T: CheckedBitPattern,
+    T: WnfRead,
 {
     pub fn subscribe<F, ArgsValid, ArgsInvalid>(
         &self,
@@ -33,22 +32,11 @@ where
     {
         self.raw.subscribe(after_change_stamp, listener)
     }
-
-    pub fn subscribe_boxed<F, ArgsValid, ArgsInvalid>(
-        &self,
-        after_change_stamp: WnfChangeStamp,
-        listener: Box<F>,
-    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
-    where
-        F: WnfCallback<Box<T>, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
-    {
-        self.raw.subscribe_boxed(after_change_stamp, listener)
-    }
 }
 
-impl<T> OwnedWnfState<[T]>
+impl<T> OwnedWnfState<T>
 where
-    T: CheckedBitPattern,
+    T: WnfReadBoxed + ?Sized,
 {
     pub fn subscribe_boxed<F, ArgsValid, ArgsInvalid>(
         &self,
@@ -56,7 +44,7 @@ where
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        F: WnfCallback<Box<[T]>, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
+        F: WnfCallback<Box<T>, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
     {
         self.raw.subscribe_boxed(after_change_stamp, listener)
     }
@@ -64,7 +52,7 @@ where
 
 impl<T> BorrowedWnfState<'_, T>
 where
-    T: CheckedBitPattern,
+    T: WnfRead,
 {
     pub fn subscribe<F, ArgsValid, ArgsInvalid>(
         &self,
@@ -76,7 +64,12 @@ where
     {
         self.raw.subscribe(after_change_stamp, listener)
     }
+}
 
+impl<T> BorrowedWnfState<'_, T>
+where
+    T: WnfReadBoxed + ?Sized,
+{
     pub fn subscribe_boxed<F, ArgsValid, ArgsInvalid>(
         &self,
         after_change_stamp: WnfChangeStamp,
@@ -89,25 +82,9 @@ where
     }
 }
 
-impl<T> BorrowedWnfState<'_, [T]>
-where
-    T: CheckedBitPattern,
-{
-    pub fn subscribe_boxed<F, ArgsValid, ArgsInvalid>(
-        &self,
-        after_change_stamp: WnfChangeStamp,
-        listener: Box<F>,
-    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
-    where
-        F: WnfCallback<Box<[T]>, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
-    {
-        self.raw.subscribe_boxed(after_change_stamp, listener)
-    }
-}
-
 impl<T> RawWnfState<T>
 where
-    T: CheckedBitPattern,
+    T: WnfRead,
 {
     pub fn subscribe<F, ArgsValid, ArgsInvalid>(
         &self,
@@ -119,7 +96,12 @@ where
     {
         subscribe::<F, Unboxed, T, ArgsValid, ArgsInvalid>(self.state_name, after_change_stamp, listener)
     }
+}
 
+impl<T> RawWnfState<T>
+where
+    T: WnfReadBoxed + ?Sized,
+{
     pub fn subscribe_boxed<F, ArgsValid, ArgsInvalid>(
         &self,
         after_change_stamp: WnfChangeStamp,
@@ -132,22 +114,6 @@ where
     }
 }
 
-impl<T> RawWnfState<[T]>
-where
-    T: CheckedBitPattern,
-{
-    pub fn subscribe_boxed<F, ArgsValid, ArgsInvalid>(
-        &self,
-        after_change_stamp: WnfChangeStamp,
-        listener: Box<F>,
-    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
-    where
-        F: WnfCallback<Box<[T]>, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
-    {
-        subscribe::<F, Boxed, [T], ArgsValid, ArgsInvalid>(self.state_name, after_change_stamp, listener)
-    }
-}
-
 fn subscribe<'a, F, R, T, ArgsValid, ArgsInvalid>(
     state_name: WnfStateName,
     after_change_stamp: WnfChangeStamp,
@@ -155,7 +121,7 @@ fn subscribe<'a, F, R, T, ArgsValid, ArgsInvalid>(
 ) -> Result<WnfSubscriptionHandle<'a, F>, WnfSubscribeError>
 where
     F: WnfCallback<R::Data, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
-    R: WnfRead<T>,
+    R: WnfReadRepr<T>,
     T: ?Sized,
 {
     extern "system" fn callback<F, R, T, ArgsValid, ArgsInvalid>(
@@ -168,7 +134,7 @@ where
     ) -> NTSTATUS
     where
         F: WnfCallback<R::Data, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
-        R: WnfRead<T>,
+        R: WnfReadRepr<T>,
         T: ?Sized,
     {
         let _ = panic::catch_unwind(|| {

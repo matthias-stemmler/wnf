@@ -3,14 +3,15 @@ use std::convert::Infallible;
 
 use thiserror::Error;
 
-use crate::bytes::{CheckedBitPattern, NoUninit};
+use crate::bytes::NoUninit;
 use crate::query::WnfQueryError;
+use crate::read::{WnfRead, WnfReadBoxed};
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::update::WnfUpdateError;
 
 impl<T> OwnedWnfState<T>
 where
-    T: CheckedBitPattern + NoUninit,
+    T: WnfRead + NoUninit,
 {
     pub fn apply<D, F>(&self, transform: F) -> Result<bool, WnfApplyError>
     where
@@ -18,14 +19,6 @@ where
         F: FnMut(T) -> Option<D>,
     {
         self.raw.apply(transform)
-    }
-
-    pub fn apply_boxed<D, F>(&self, transform: F) -> Result<bool, WnfApplyError>
-    where
-        D: Borrow<T>,
-        F: FnMut(Box<T>) -> Option<D>,
-    {
-        self.raw.apply_boxed(transform)
     }
 
     pub fn try_apply<D, E, F>(&self, tranform: F) -> Result<bool, WnfApplyError<E>>
@@ -35,6 +28,19 @@ where
     {
         self.raw.try_apply(tranform)
     }
+}
+
+impl<T> OwnedWnfState<T>
+where
+    T: WnfReadBoxed + NoUninit + ?Sized,
+{
+    pub fn apply_boxed<D, F>(&self, transform: F) -> Result<bool, WnfApplyError>
+    where
+        D: Borrow<T>,
+        F: FnMut(Box<T>) -> Option<D>,
+    {
+        self.raw.apply_boxed(transform)
+    }
 
     pub fn try_apply_boxed<D, E, F>(&self, transform: F) -> Result<bool, WnfApplyError<E>>
     where
@@ -45,30 +51,9 @@ where
     }
 }
 
-impl<T> OwnedWnfState<[T]>
-where
-    T: CheckedBitPattern + NoUninit,
-{
-    pub fn apply_boxed<D, F>(&self, transform: F) -> Result<bool, WnfApplyError>
-    where
-        D: Borrow<[T]>,
-        F: FnMut(Box<[T]>) -> Option<D>,
-    {
-        self.raw.apply_boxed(transform)
-    }
-
-    pub fn try_apply_boxed<D, E, F>(&self, transform: F) -> Result<bool, WnfApplyError<E>>
-    where
-        D: Borrow<[T]>,
-        F: FnMut(Box<[T]>) -> Result<Option<D>, E>,
-    {
-        self.raw.try_apply_boxed(transform)
-    }
-}
-
 impl<T> BorrowedWnfState<'_, T>
 where
-    T: CheckedBitPattern + NoUninit,
+    T: WnfRead + NoUninit,
 {
     pub fn apply<D, F>(&self, transform: F) -> Result<bool, WnfApplyError>
     where
@@ -78,20 +63,25 @@ where
         self.raw.apply(transform)
     }
 
-    pub fn apply_boxed<D, F>(&self, transform: F) -> Result<bool, WnfApplyError>
-    where
-        D: Borrow<T>,
-        F: FnMut(Box<T>) -> Option<D>,
-    {
-        self.raw.apply_boxed(transform)
-    }
-
     pub fn try_apply<D, E, F>(&self, transform: F) -> Result<bool, WnfApplyError<E>>
     where
         D: Borrow<T>,
         F: FnMut(T) -> Result<Option<D>, E>,
     {
         self.raw.try_apply(transform)
+    }
+}
+
+impl<T> BorrowedWnfState<'_, T>
+where
+    T: WnfReadBoxed + NoUninit + ?Sized,
+{
+    pub fn apply_boxed<D, F>(&self, transform: F) -> Result<bool, WnfApplyError>
+    where
+        D: Borrow<T>,
+        F: FnMut(Box<T>) -> Option<D>,
+    {
+        self.raw.apply_boxed(transform)
     }
 
     pub fn try_apply_boxed<D, E, F>(&self, transform: F) -> Result<bool, WnfApplyError<E>>
@@ -103,30 +93,9 @@ where
     }
 }
 
-impl<T> BorrowedWnfState<'_, [T]>
-where
-    T: CheckedBitPattern + NoUninit,
-{
-    pub fn apply_boxed<D, F>(&self, transform: F) -> Result<bool, WnfApplyError>
-    where
-        D: Borrow<[T]>,
-        F: FnMut(Box<[T]>) -> Option<D>,
-    {
-        self.raw.apply_boxed(transform)
-    }
-
-    pub fn try_apply_boxed<D, E, F>(&self, transform: F) -> Result<bool, WnfApplyError<E>>
-    where
-        D: Borrow<[T]>,
-        F: FnMut(Box<[T]>) -> Result<Option<D>, E>,
-    {
-        self.raw.try_apply_boxed(transform)
-    }
-}
-
 impl<T> RawWnfState<T>
 where
-    T: CheckedBitPattern + NoUninit,
+    T: WnfRead + NoUninit,
 {
     pub fn apply<D, F>(&self, mut transform: F) -> Result<bool, WnfApplyError>
     where
@@ -135,24 +104,6 @@ where
     {
         loop {
             let (data, change_stamp) = self.query()?.into_data_change_stamp();
-            match transform(data) {
-                None => return Ok(false),
-                Some(data) => {
-                    if self.update(data, change_stamp)? {
-                        return Ok(true);
-                    }
-                }
-            }
-        }
-    }
-
-    pub fn apply_boxed<D, F>(&self, mut transform: F) -> Result<bool, WnfApplyError>
-    where
-        D: Borrow<T>,
-        F: FnMut(Box<T>) -> Option<D>,
-    {
-        loop {
-            let (data, change_stamp) = self.query_boxed()?.into_data_change_stamp();
             match transform(data) {
                 None => return Ok(false),
                 Some(data) => {
@@ -181,34 +132,16 @@ where
             }
         }
     }
-
-    pub fn try_apply_boxed<D, E, F>(&self, mut transform: F) -> Result<bool, WnfApplyError<E>>
-    where
-        D: Borrow<T>,
-        F: FnMut(Box<T>) -> Result<Option<D>, E>,
-    {
-        loop {
-            let (data, change_stamp) = self.query_boxed()?.into_data_change_stamp();
-            match transform(data).map_err(WnfTransformError::from)? {
-                None => return Ok(false),
-                Some(data) => {
-                    if self.update(data, change_stamp)? {
-                        return Ok(true);
-                    }
-                }
-            }
-        }
-    }
 }
 
-impl<T> RawWnfState<[T]>
+impl<T> RawWnfState<T>
 where
-    T: CheckedBitPattern + NoUninit,
+    T: WnfReadBoxed + NoUninit + ?Sized,
 {
     pub fn apply_boxed<D, F>(&self, mut transform: F) -> Result<bool, WnfApplyError>
     where
-        D: Borrow<[T]>,
-        F: FnMut(Box<[T]>) -> Option<D>,
+        D: Borrow<T>,
+        F: FnMut(Box<T>) -> Option<D>,
     {
         loop {
             let (data, change_stamp) = self.query_boxed()?.into_data_change_stamp();
@@ -225,8 +158,8 @@ where
 
     pub fn try_apply_boxed<D, E, F>(&self, mut transform: F) -> Result<bool, WnfApplyError<E>>
     where
-        D: Borrow<[T]>,
-        F: FnMut(Box<[T]>) -> Result<Option<D>, E>,
+        D: Borrow<T>,
+        F: FnMut(Box<T>) -> Result<Option<D>, E>,
     {
         loop {
             let (data, change_stamp) = self.query_boxed()?.into_data_change_stamp();

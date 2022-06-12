@@ -7,30 +7,29 @@ use thiserror::Error;
 
 use crate::bytes::CheckedBitPattern;
 
-pub(crate) trait WnfRead<T>
-where
-    T: ?Sized,
-{
-    type Data;
+pub trait WnfRead: Sized {
+    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Option<Self>;
 
-    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Option<Self::Data>;
-
-    unsafe fn from_reader<E, F, Meta>(reader: F) -> Result<(Self::Data, Meta), E>
+    unsafe fn from_reader<E, F, Meta>(reader: F) -> Result<(Self, Meta), E>
     where
         E: From<WnfReadError>,
         F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>;
 }
 
-#[derive(Debug)]
-pub(crate) enum Unboxed {}
+pub trait WnfReadBoxed {
+    unsafe fn from_buffer_boxed(ptr: *const c_void, size: usize) -> Option<Box<Self>>;
 
-impl<T> WnfRead<T> for Unboxed
+    unsafe fn from_reader_boxed<E, F, Meta>(reader: F) -> Result<(Box<Self>, Meta), E>
+    where
+        E: From<WnfReadError>,
+        F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>;
+}
+
+impl<T> WnfRead for T
 where
     T: CheckedBitPattern,
 {
-    type Data = T;
-
-    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Option<T> {
+    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Option<Self> {
         if size != mem::size_of::<T::Bits>() {
             return None;
         }
@@ -44,7 +43,7 @@ where
         }
     }
 
-    unsafe fn from_reader<E, F, Meta>(mut reader: F) -> Result<(T, Meta), E>
+    unsafe fn from_reader<E, F, Meta>(mut reader: F) -> Result<(Self, Meta), E>
     where
         E: From<WnfReadError>,
         F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>,
@@ -71,16 +70,11 @@ where
     }
 }
 
-#[derive(Debug)]
-pub(crate) enum Boxed {}
-
-impl<T> WnfRead<T> for Boxed
+impl<T> WnfReadBoxed for T
 where
     T: CheckedBitPattern,
 {
-    type Data = Box<T>;
-
-    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Option<Box<T>> {
+    unsafe fn from_buffer_boxed(ptr: *const c_void, size: usize) -> Option<Box<Self>> {
         if size != mem::size_of::<T::Bits>() {
             return None;
         }
@@ -101,7 +95,7 @@ where
         }
     }
 
-    unsafe fn from_reader<E, F, Meta>(mut reader: F) -> Result<(Box<T>, Meta), E>
+    unsafe fn from_reader_boxed<E, F, Meta>(mut reader: F) -> Result<(Box<Self>, Meta), E>
     where
         E: From<WnfReadError>,
         F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>,
@@ -134,13 +128,11 @@ where
     }
 }
 
-impl<T> WnfRead<[T]> for Boxed
+impl<T> WnfReadBoxed for [T]
 where
     T: CheckedBitPattern,
 {
-    type Data = Box<[T]>;
-
-    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Option<Box<[T]>> {
+    unsafe fn from_buffer_boxed(ptr: *const c_void, size: usize) -> Option<Box<Self>> {
         if mem::size_of::<T>() == 0 {
             return (size == 0).then(|| Vec::new().into_boxed_slice());
         }
@@ -162,7 +154,7 @@ where
         }
     }
 
-    unsafe fn from_reader<E, F, Meta>(mut reader: F) -> Result<(Box<[T]>, Meta), E>
+    unsafe fn from_reader_boxed<E, F, Meta>(mut reader: F) -> Result<(Box<Self>, Meta), E>
     where
         E: From<WnfReadError>,
         F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>,
@@ -211,6 +203,64 @@ where
         } else {
             Err(E::from(WnfReadError::InvalidBitPattern))
         }
+    }
+}
+
+pub(crate) trait WnfReadRepr<T>
+where
+    T: ?Sized,
+{
+    type Data;
+
+    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Option<Self::Data>;
+
+    unsafe fn from_reader<E, F, Meta>(reader: F) -> Result<(Self::Data, Meta), E>
+    where
+        E: From<WnfReadError>,
+        F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>;
+}
+
+#[derive(Debug)]
+pub(crate) enum Unboxed {}
+
+impl<T> WnfReadRepr<T> for Unboxed
+where
+    T: WnfRead,
+{
+    type Data = T;
+
+    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Option<T> {
+        T::from_buffer(ptr, size)
+    }
+
+    unsafe fn from_reader<E, F, Meta>(reader: F) -> Result<(T, Meta), E>
+    where
+        E: From<WnfReadError>,
+        F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>,
+    {
+        T::from_reader(reader)
+    }
+}
+
+#[derive(Debug)]
+pub(crate) enum Boxed {}
+
+impl<T> WnfReadRepr<T> for Boxed
+where
+    T: WnfReadBoxed + ?Sized,
+{
+    type Data = Box<T>;
+
+    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Option<Box<T>> {
+        T::from_buffer_boxed(ptr, size)
+    }
+
+    unsafe fn from_reader<E, F, Meta>(reader: F) -> Result<(Box<T>, Meta), E>
+    where
+        E: From<WnfReadError>,
+        F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>,
+    {
+        T::from_reader_boxed(reader)
     }
 }
 
