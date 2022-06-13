@@ -148,7 +148,7 @@ where
             let _enter = span.enter();
 
             let context: &WnfSubscriptionContext<F> = unsafe { &*context.cast() };
-            let maybe_data = unsafe { R::from_buffer(buffer, buffer_size as usize) };
+            let maybe_data = unsafe { R::from_buffer(buffer, buffer_size as usize) }.ok();
 
             context.with_listener(|listener| match maybe_data {
                 Some(data) => {

@@ -8,7 +8,7 @@ use thiserror::Error;
 use crate::bytes::CheckedBitPattern;
 
 pub trait WnfRead: Sized {
-    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Option<Self>;
+    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Result<Self, WnfReadError>;
 
     unsafe fn from_reader<E, F, Meta>(reader: F) -> Result<(Self, Meta), E>
     where
@@ -17,7 +17,7 @@ pub trait WnfRead: Sized {
 }
 
 pub trait WnfReadBoxed {
-    unsafe fn from_buffer_boxed(ptr: *const c_void, size: usize) -> Option<Box<Self>>;
+    unsafe fn from_buffer_boxed(ptr: *const c_void, size: usize) -> Result<Box<Self>, WnfReadError>;
 
     unsafe fn from_reader_boxed<E, F, Meta>(reader: F) -> Result<(Box<Self>, Meta), E>
     where
@@ -29,17 +29,20 @@ impl<T> WnfRead for T
 where
     T: CheckedBitPattern,
 {
-    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Option<Self> {
+    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Result<Self, WnfReadError> {
         if size != mem::size_of::<T::Bits>() {
-            return None;
+            return Err(WnfReadError::WrongSize {
+                expected: mem::size_of::<T::Bits>(),
+                actual: size,
+            });
         }
 
         let bits: T::Bits = ptr::read_unaligned(ptr.cast());
 
         if T::is_valid_bit_pattern(&bits) {
-            Some(*(&bits as *const T::Bits as *const T))
+            Ok(*(&bits as *const T::Bits as *const T))
         } else {
-            None
+            Err(WnfReadError::InvalidBitPattern)
         }
     }
 
@@ -74,9 +77,12 @@ impl<T> WnfReadBoxed for T
 where
     T: CheckedBitPattern,
 {
-    unsafe fn from_buffer_boxed(ptr: *const c_void, size: usize) -> Option<Box<Self>> {
+    unsafe fn from_buffer_boxed(ptr: *const c_void, size: usize) -> Result<Box<Self>, WnfReadError> {
         if size != mem::size_of::<T::Bits>() {
-            return None;
+            return Err(WnfReadError::WrongSize {
+                expected: mem::size_of::<T::Bits>(),
+                actual: size,
+            });
         }
 
         let bits = if mem::size_of::<T::Bits>() == 0 {
@@ -89,9 +95,9 @@ where
         };
 
         if T::is_valid_bit_pattern(&bits) {
-            Some(Box::from_raw(Box::into_raw(bits) as *mut T))
+            Ok(Box::from_raw(Box::into_raw(bits) as *mut T))
         } else {
-            None
+            Err(WnfReadError::InvalidBitPattern)
         }
     }
 
@@ -132,13 +138,23 @@ impl<T> WnfReadBoxed for [T]
 where
     T: CheckedBitPattern,
 {
-    unsafe fn from_buffer_boxed(ptr: *const c_void, size: usize) -> Option<Box<Self>> {
+    unsafe fn from_buffer_boxed(ptr: *const c_void, size: usize) -> Result<Box<Self>, WnfReadError> {
         if mem::size_of::<T>() == 0 {
-            return (size == 0).then(|| Vec::new().into_boxed_slice());
+            return if size == 0 {
+                Ok(Vec::new().into_boxed_slice())
+            } else {
+                Err(WnfReadError::WrongSize {
+                    expected: 0,
+                    actual: size,
+                })
+            };
         }
 
         if size % mem::size_of::<T>() != 0 {
-            return None;
+            return Err(WnfReadError::WrongSizeMultiple {
+                expected_modulus: mem::size_of::<T>(),
+                actual: size,
+            });
         }
 
         let len = size / mem::size_of::<T>();
@@ -148,9 +164,9 @@ where
 
         if buffer.iter().all(T::is_valid_bit_pattern) {
             let data = buffer.into_boxed_slice();
-            Some(Box::from_raw(Box::into_raw(data) as *mut [T]))
+            Ok(Box::from_raw(Box::into_raw(data) as *mut [T]))
         } else {
-            None
+            Err(WnfReadError::InvalidBitPattern)
         }
     }
 
@@ -212,7 +228,7 @@ where
 {
     type Data;
 
-    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Option<Self::Data>;
+    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Result<Self::Data, WnfReadError>;
 
     unsafe fn from_reader<E, F, Meta>(reader: F) -> Result<(Self::Data, Meta), E>
     where
@@ -229,7 +245,7 @@ where
 {
     type Data = T;
 
-    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Option<T> {
+    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Result<T, WnfReadError> {
         T::from_buffer(ptr, size)
     }
 
@@ -251,7 +267,7 @@ where
 {
     type Data = Box<T>;
 
-    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Option<Box<T>> {
+    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Result<Box<T>, WnfReadError> {
         T::from_buffer_boxed(ptr, size)
     }
 
