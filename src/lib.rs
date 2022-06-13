@@ -6,7 +6,7 @@
 #[macro_use]
 extern crate num_derive;
 
-pub use apply::{WnfApplyError, WnfTransformError};
+pub use apply::{WnfApplyError, WnfTransformError, WnfTransformResult};
 pub use callback::{CatchInvalidExt, WnfCallback};
 pub use data::{WnfChangeStamp, WnfStampedData};
 pub use info::WnfInfoError;

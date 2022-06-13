@@ -10,17 +10,17 @@ use crate::read::{WnfRead, WnfReadBoxed};
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::update::WnfUpdateError;
 
-pub trait TransformResult<T> {
+pub trait WnfTransformResult<T> {
     fn data(&self) -> ControlFlow<(), &T>;
 }
 
-impl<T> TransformResult<T> for T {
+impl<T> WnfTransformResult<T> for T {
     fn data(&self) -> ControlFlow<(), &T> {
         ControlFlow::Continue(self)
     }
 }
 
-impl<T> TransformResult<T> for ControlFlow<(), T> {
+impl<T> WnfTransformResult<T> for ControlFlow<(), T> {
     fn data(&self) -> ControlFlow<(), &T> {
         match *self {
             ControlFlow::Continue(ref data) => ControlFlow::Continue(data),
@@ -29,13 +29,13 @@ impl<T> TransformResult<T> for ControlFlow<(), T> {
     }
 }
 
-impl<T, Meta> TransformResult<T> for (T, Meta) {
+impl<T, Meta> WnfTransformResult<T> for (T, Meta) {
     fn data(&self) -> ControlFlow<(), &T> {
         ControlFlow::Continue(&self.0)
     }
 }
 
-impl<T, Meta> TransformResult<T> for (ControlFlow<(), T>, Meta) {
+impl<T, Meta> WnfTransformResult<T> for (ControlFlow<(), T>, Meta) {
     fn data(&self) -> ControlFlow<(), &T> {
         match self.0 {
             ControlFlow::Continue(ref data) => ControlFlow::Continue(data),
@@ -52,7 +52,7 @@ where
     where
         D: Borrow<T>,
         F: FnMut(T) -> Return,
-        Return: TransformResult<D>,
+        Return: WnfTransformResult<D>,
     {
         self.raw.apply(transform)
     }
@@ -61,7 +61,7 @@ where
     where
         D: Borrow<T>,
         F: FnMut(T) -> Result<Return, E>,
-        Return: TransformResult<D>,
+        Return: WnfTransformResult<D>,
     {
         self.raw.try_apply(transform)
     }
@@ -75,7 +75,7 @@ where
     where
         D: Borrow<T>,
         F: FnMut(Box<T>) -> Return,
-        Return: TransformResult<D>,
+        Return: WnfTransformResult<D>,
     {
         self.raw.apply_boxed(transform)
     }
@@ -84,7 +84,7 @@ where
     where
         D: Borrow<T>,
         F: FnMut(Box<T>) -> Result<Return, E>,
-        Return: TransformResult<D>,
+        Return: WnfTransformResult<D>,
     {
         self.raw.try_apply_boxed(transform)
     }
@@ -98,7 +98,7 @@ where
     where
         D: Borrow<T>,
         F: FnMut(T) -> Return,
-        Return: TransformResult<D>,
+        Return: WnfTransformResult<D>,
     {
         self.raw.apply(transform)
     }
@@ -107,7 +107,7 @@ where
     where
         D: Borrow<T>,
         F: FnMut(T) -> Result<Return, E>,
-        Return: TransformResult<D>,
+        Return: WnfTransformResult<D>,
     {
         self.raw.try_apply(transform)
     }
@@ -121,7 +121,7 @@ where
     where
         D: Borrow<T>,
         F: FnMut(Box<T>) -> Return,
-        Return: TransformResult<D>,
+        Return: WnfTransformResult<D>,
     {
         self.raw.apply_boxed(transform)
     }
@@ -130,7 +130,7 @@ where
     where
         D: Borrow<T>,
         F: FnMut(Box<T>) -> Result<Return, E>,
-        Return: TransformResult<D>,
+        Return: WnfTransformResult<D>,
     {
         self.raw.try_apply_boxed(transform)
     }
@@ -144,7 +144,7 @@ where
     where
         D: Borrow<T>,
         F: FnMut(T) -> Return,
-        Return: TransformResult<D>,
+        Return: WnfTransformResult<D>,
     {
         let result = loop {
             let (data, change_stamp) = self.query()?.into_data_change_stamp();
@@ -166,7 +166,7 @@ where
     where
         D: Borrow<T>,
         F: FnMut(T) -> Result<Return, E>,
-        Return: TransformResult<D>,
+        Return: WnfTransformResult<D>,
     {
         let result = loop {
             let (data, change_stamp) = self.query()?.into_data_change_stamp();
@@ -193,7 +193,7 @@ where
     where
         D: Borrow<T>,
         F: FnMut(Box<T>) -> Return,
-        Return: TransformResult<D>,
+        Return: WnfTransformResult<D>,
     {
         let result = loop {
             let (data, change_stamp) = self.query_boxed()?.into_data_change_stamp();
@@ -215,7 +215,7 @@ where
     where
         D: Borrow<T>,
         F: FnMut(Box<T>) -> Result<Return, E>,
-        Return: TransformResult<D>,
+        Return: WnfTransformResult<D>,
     {
         let result = loop {
             let (data, change_stamp) = self.query_boxed()?.into_data_change_stamp();
