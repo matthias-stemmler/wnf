@@ -34,7 +34,10 @@ mod state_name;
 mod subscribe;
 mod update;
 
-// TODO apply: abstract over returning T vs. Option<T>?
+// TODO Use callback varargs mechanism for apply
+// TODO different api for .catch_invalid
+// TODO implement replace in terms of apply
+
 // TODO wait (sync + async)
 // TODO check Debug impls
 // TODO builder pattern for creation, including max size and type_id

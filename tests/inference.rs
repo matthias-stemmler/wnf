@@ -39,25 +39,25 @@ fn data_type_can_be_inferred_from_query_boxed_call() {
 #[test]
 fn data_type_can_be_inferred_from_apply_call() {
     let state = OwnedWnfState::create_temporary().unwrap();
-    state.apply(|x: ()| Some(x)).unwrap();
+    state.apply(|x: ()| x).unwrap();
 }
 
 #[test]
 fn data_type_can_be_inferred_from_apply_boxed_call() {
     let state = OwnedWnfState::create_temporary().unwrap();
-    state.apply_boxed(|x: Box<()>| Some(x)).unwrap();
+    state.apply_boxed(|x: Box<()>| x).unwrap();
 }
 
 #[test]
 fn data_type_can_be_inferred_from_try_apply_call() {
     let state = OwnedWnfState::create_temporary().unwrap();
-    state.try_apply(|x: ()| Ok::<_, TestError>(Some(x))).unwrap();
+    state.try_apply(|x: ()| Ok::<_, TestError>(x)).unwrap();
 }
 
 #[test]
 fn data_type_can_be_inferred_from_try_apply_boxed_call() {
     let state = OwnedWnfState::create_temporary().unwrap();
-    state.try_apply_boxed(|x: Box<()>| Ok::<_, TestError>(Some(x))).unwrap();
+    state.try_apply_boxed(|x: Box<()>| Ok::<_, TestError>(x)).unwrap();
 }
 
 #[test]

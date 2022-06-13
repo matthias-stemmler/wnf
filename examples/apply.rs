@@ -20,7 +20,7 @@ fn main() {
         handles.push(thread::spawn(move || {
             for _ in 0..5 {
                 state
-                    .apply(|v| Some(v + 1))
+                    .apply(|v| v + 1)
                     .expect("Failed to apply transformation to WNF state data");
             }
         }));
