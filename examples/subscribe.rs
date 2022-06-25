@@ -4,7 +4,7 @@ use tracing::info;
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::fmt::format::FmtSpan;
 
-use wnf::{OwnedWnfState, WnfChangeStamp};
+use wnf::{OwnedWnfState, WnfChangeStamp, WnfDataAccessor};
 
 const LAST_DATA: u32 = 10;
 
@@ -23,7 +23,8 @@ fn main() {
     let subscription = state
         .subscribe(
             WnfChangeStamp::initial(),
-            Box::new(move |data, change_stamp| {
+            Box::new(move |accessor: WnfDataAccessor<_>, change_stamp| {
+                let data = accessor.get().expect("Data is invalid");
                 info!(data, ?change_stamp);
                 tx.send(data).expect("Failed to send data to mpsc channel");
             }),

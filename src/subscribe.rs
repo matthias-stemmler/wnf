@@ -10,191 +10,169 @@ use tracing::{debug, trace_span};
 use windows::core::GUID;
 use windows::Win32::Foundation::{NTSTATUS, STATUS_SUCCESS};
 
-use crate::callback::WnfCallbackMaybeInvalid;
 use crate::data::WnfChangeStamp;
 use crate::ntdll::NTDLL_TARGET;
-use crate::ntdll_sys;
-use crate::read::{Boxed, Unboxed, WnfRead, WnfReadBoxed, WnfReadRepr};
+use crate::read::{WnfRead, WnfReadBoxed};
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::state_name::WnfStateName;
+use crate::{ntdll_sys, WnfReadError};
 
 impl<T> OwnedWnfState<T>
 where
-    T: WnfRead,
-{
-    pub fn subscribe<F, Args>(
-        &self,
-        after_change_stamp: WnfChangeStamp,
-        listener: Box<F>,
-    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
-    where
-        F: WnfCallbackMaybeInvalid<T, Args> + Send + ?Sized + 'static,
-    {
-        self.raw.subscribe(after_change_stamp, listener)
-    }
-}
-
-impl<T> OwnedWnfState<T>
-where
-    T: WnfReadBoxed + ?Sized,
-{
-    pub fn subscribe_boxed<F, Args>(
-        &self,
-        after_change_stamp: WnfChangeStamp,
-        listener: Box<F>,
-    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
-    where
-        F: WnfCallbackMaybeInvalid<Box<T>, Args> + Send + ?Sized + 'static,
-    {
-        self.raw.subscribe_boxed(after_change_stamp, listener)
-    }
-}
-
-impl<T> BorrowedWnfState<'_, T>
-where
-    T: WnfRead,
-{
-    pub fn subscribe<F, Args>(
-        &self,
-        after_change_stamp: WnfChangeStamp,
-        listener: Box<F>,
-    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
-    where
-        F: WnfCallbackMaybeInvalid<T, Args> + Send + ?Sized + 'static,
-    {
-        self.raw.subscribe(after_change_stamp, listener)
-    }
-}
-
-impl<T> BorrowedWnfState<'_, T>
-where
-    T: WnfReadBoxed + ?Sized,
-{
-    pub fn subscribe_boxed<F, Args>(
-        &self,
-        after_change_stamp: WnfChangeStamp,
-        listener: Box<F>,
-    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
-    where
-        F: WnfCallbackMaybeInvalid<Box<T>, Args> + Send + ?Sized + 'static,
-    {
-        self.raw.subscribe_boxed(after_change_stamp, listener)
-    }
-}
-
-impl<T> RawWnfState<T>
-where
-    T: WnfRead,
-{
-    pub fn subscribe<F, Args>(
-        &self,
-        after_change_stamp: WnfChangeStamp,
-        listener: Box<F>,
-    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
-    where
-        F: WnfCallbackMaybeInvalid<T, Args> + Send + ?Sized + 'static,
-    {
-        subscribe::<F, Unboxed, T, Args>(self.state_name, after_change_stamp, listener)
-    }
-}
-
-impl<T> RawWnfState<T>
-where
-    T: WnfReadBoxed + ?Sized,
-{
-    pub fn subscribe_boxed<F, Args>(
-        &self,
-        after_change_stamp: WnfChangeStamp,
-        listener: Box<F>,
-    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
-    where
-        F: WnfCallbackMaybeInvalid<Box<T>, Args> + Send + ?Sized + 'static,
-    {
-        subscribe::<F, Boxed, T, Args>(self.state_name, after_change_stamp, listener)
-    }
-}
-
-fn subscribe<'a, F, R, T, Args>(
-    state_name: WnfStateName,
-    after_change_stamp: WnfChangeStamp,
-    listener: Box<F>,
-) -> Result<WnfSubscriptionHandle<'a, F>, WnfSubscribeError>
-where
-    F: WnfCallbackMaybeInvalid<R::Data, Args> + Send + ?Sized + 'static,
-    R: WnfReadRepr<T>,
     T: ?Sized,
 {
-    extern "system" fn callback<F, R, T, Args>(
-        state_name: u64,
-        change_stamp: u32,
-        _type_id: *const GUID,
-        context: *mut c_void,
-        buffer: *const c_void,
-        buffer_size: u32,
-    ) -> NTSTATUS
+    pub fn subscribe<F>(
+        &self,
+        after_change_stamp: WnfChangeStamp,
+        listener: Box<F>,
+    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        F: WnfCallbackMaybeInvalid<R::Data, Args> + Send + ?Sized + 'static,
-        R: WnfReadRepr<T>,
-        T: ?Sized,
+        F: FnMut(WnfDataAccessor<T>, WnfChangeStamp) + Send + ?Sized + 'static,
     {
-        let _ = panic::catch_unwind(|| {
-            let span = trace_span!(
-                target: NTDLL_TARGET,
-                "WnfUserCallback",
-                input.state_name = %WnfStateName::from_opaque_value(state_name),
-                input.change_stamp = change_stamp,
-                input.buffer_size = buffer_size
-            );
-            let _enter = span.enter();
-
-            let context: &WnfSubscriptionContext<F> = unsafe { &*context.cast() };
-            let result = unsafe { R::from_buffer(buffer, buffer_size as usize) };
-
-            context.with_listener(|listener| {
-                listener.call_on_result(result, change_stamp.into());
-            });
-        });
-
-        STATUS_SUCCESS
+        self.raw.subscribe(after_change_stamp, listener)
     }
+}
 
-    let mut subscription = 0;
-    let context = Box::new(WnfSubscriptionContext::new(listener));
+impl<T> BorrowedWnfState<'_, T>
+where
+    T: ?Sized,
+{
+    pub fn subscribe<F>(
+        &self,
+        after_change_stamp: WnfChangeStamp,
+        listener: Box<F>,
+    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
+    where
+        F: FnMut(WnfDataAccessor<T>, WnfChangeStamp) + Send + ?Sized + 'static,
+    {
+        self.raw.subscribe(after_change_stamp, listener)
+    }
+}
 
-    let result = unsafe {
-        ntdll_sys::RtlSubscribeWnfStateChangeNotification(
-            &mut subscription,
-            state_name.opaque_value(),
-            after_change_stamp.into(),
-            callback::<F, R, T, Args>,
-            &*context as *const _ as *mut c_void,
-            ptr::null(),
-            0,
-            0,
-        )
-    };
+impl<T> RawWnfState<T>
+where
+    T: ?Sized,
+{
+    pub fn subscribe<F>(
+        &self,
+        after_change_stamp: WnfChangeStamp,
+        listener: Box<F>,
+    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
+    where
+        F: FnMut(WnfDataAccessor<T>, WnfChangeStamp) + Send + ?Sized + 'static,
+    {
+        extern "system" fn callback<F, T>(
+            state_name: u64,
+            change_stamp: u32,
+            _type_id: *const GUID,
+            context: *mut c_void,
+            buffer: *const c_void,
+            buffer_size: u32,
+        ) -> NTSTATUS
+        where
+            F: FnMut(WnfDataAccessor<T>, WnfChangeStamp) + Send + ?Sized + 'static,
+            T: ?Sized,
+        {
+            let _ = panic::catch_unwind(|| {
+                let span = trace_span!(
+                    target: NTDLL_TARGET,
+                    "WnfUserCallback",
+                    input.state_name = %WnfStateName::from_opaque_value(state_name),
+                    input.change_stamp = change_stamp,
+                    input.buffer_size = buffer_size
+                );
+                let _enter = span.enter();
 
-    if result.is_ok() {
-        debug!(
-            target: NTDLL_TARGET,
-            ?result,
-            input.state_name = %state_name,
-            input.after_change_stamp = %after_change_stamp,
-            output.subscription = subscription,
-            "RtlSubscribeWnfStateChangeNotification",
-        );
+                let context: &WnfSubscriptionContext<F> = unsafe { &*context.cast() };
+                let accessor = unsafe { WnfDataAccessor::new(buffer, buffer_size as usize) };
 
-        Ok(WnfSubscriptionHandle::new(context, subscription))
-    } else {
-        debug!(
-            target: NTDLL_TARGET,
-            ?result,
-            input.state_name = %state_name,
-            input.after_change_stamp = %after_change_stamp,
-            "RtlSubscribeWnfStateChangeNotification",
-        );
+                context.with_listener(|listener| {
+                    listener(accessor, change_stamp.into());
+                });
+            });
 
-        Err(result.into())
+            STATUS_SUCCESS
+        }
+
+        let mut subscription = 0;
+        let context = Box::new(WnfSubscriptionContext::new(listener));
+
+        let result = unsafe {
+            ntdll_sys::RtlSubscribeWnfStateChangeNotification(
+                &mut subscription,
+                self.state_name.opaque_value(),
+                after_change_stamp.into(),
+                callback::<F, T>,
+                &*context as *const _ as *mut c_void,
+                ptr::null(),
+                0,
+                0,
+            )
+        };
+
+        if result.is_ok() {
+            debug!(
+                target: NTDLL_TARGET,
+                ?result,
+                input.state_name = %self.state_name,
+                input.after_change_stamp = %after_change_stamp,
+                output.subscription = subscription,
+                "RtlSubscribeWnfStateChangeNotification",
+            );
+
+            Ok(WnfSubscriptionHandle::new(context, subscription))
+        } else {
+            debug!(
+                target: NTDLL_TARGET,
+                ?result,
+                input.state_name = %self.state_name,
+                input.after_change_stamp = %after_change_stamp,
+                "RtlSubscribeWnfStateChangeNotification",
+            );
+
+            Err(result.into())
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct WnfDataAccessor<T>
+where
+    T: ?Sized,
+{
+    buffer: *const c_void,
+    buffer_size: usize,
+    _marker: PhantomData<fn() -> T>,
+}
+
+impl<T> WnfDataAccessor<T>
+where
+    T: ?Sized,
+{
+    unsafe fn new(buffer: *const c_void, buffer_size: usize) -> Self {
+        Self {
+            buffer,
+            buffer_size,
+            _marker: PhantomData,
+        }
+    }
+}
+
+impl<T> WnfDataAccessor<T>
+where
+    T: WnfRead,
+{
+    pub fn get(&self) -> Result<T, WnfReadError> {
+        unsafe { T::from_buffer(self.buffer, self.buffer_size) }
+    }
+}
+
+impl<T> WnfDataAccessor<T>
+where
+    T: WnfReadBoxed + ?Sized,
+{
+    pub fn get_boxed(&self) -> Result<Box<T>, WnfReadError> {
+        unsafe { T::from_buffer_boxed(self.buffer, self.buffer_size) }
     }
 }
 

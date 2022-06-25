@@ -1,4 +1,4 @@
-use wnf::{OwnedWnfState, WnfChangeStamp};
+use wnf::{OwnedWnfState, WnfChangeStamp, WnfDataAccessor};
 
 #[test]
 fn data_type_can_be_inferred_from_set_call() {
@@ -64,15 +64,7 @@ fn data_type_can_be_inferred_from_try_apply_boxed_call() {
 fn data_type_can_be_inferred_from_subscribe_call() {
     let state = OwnedWnfState::create_temporary().unwrap();
     state
-        .subscribe(WnfChangeStamp::initial(), Box::new(|_: ()| {}))
-        .unwrap();
-}
-
-#[test]
-fn data_type_can_be_inferred_from_subscribe_boxed_call() {
-    let state = OwnedWnfState::create_temporary().unwrap();
-    state
-        .subscribe_boxed(WnfChangeStamp::initial(), Box::new(|_: Box<()>| {}))
+        .subscribe(WnfChangeStamp::initial(), Box::new(|_: WnfDataAccessor<()>, _| {}))
         .unwrap();
 }
 

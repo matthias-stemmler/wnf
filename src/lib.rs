@@ -8,7 +8,6 @@ extern crate num_derive;
 
 pub use apply::{WnfApplyError, WnfTransformError, WnfTransformResult};
 pub use bytes::NoUninit;
-pub use callback::{WnfCallbackMaybeInvalid, WnfCallbackOnResult};
 pub use data::{WnfChangeStamp, WnfOpaqueData, WnfStampedData};
 pub use info::WnfInfoError;
 pub use manage::{WnfCreateError, WnfDeleteError};
@@ -17,7 +16,7 @@ pub use read::{WnfRead, WnfReadError};
 pub use security::SecurityCreateError;
 pub use state::{BorrowAsWnfState, BorrowedWnfState, OwnedWnfState};
 pub use state_name::{WnfDataScope, WnfStateName, WnfStateNameDescriptor, WnfStateNameLifetime};
-pub use subscribe::{WnfSubscribeError, WnfUnsubscribeError};
+pub use subscribe::{WnfDataAccessor, WnfSubscribeError, WnfUnsubscribeError};
 pub use update::WnfUpdateError;
 
 mod apply;
@@ -39,7 +38,6 @@ mod update;
 
 // TODO apply without callback trait, always receiving data (non-result) + change stamp
 // TODO apply without metadata? -> can replace still be implemented?
-// TODO subscribe with accessor + change stamp, where accessor has `get` and `get_boxed` methods returning result
 // TODO wait: sync + async, with predicate (receiving value + change stamp directly, no accessor, no result, failing if invalid, returning last value)
 // TODO   and without predicate (ignoring whether valid/invalid, returning nothing), boxed + unboxed, no `try_` version
 

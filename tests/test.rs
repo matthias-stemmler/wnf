@@ -5,8 +5,8 @@ use std::thread;
 use std::time::Duration;
 
 use wnf::{
-    BorrowAsWnfState, BorrowedWnfState, OwnedWnfState, WnfApplyError, WnfCallbackOnResult, WnfChangeStamp,
-    WnfDataScope, WnfReadError, WnfStateNameDescriptor, WnfStateNameLifetime, WnfTransformError,
+    BorrowAsWnfState, BorrowedWnfState, OwnedWnfState, WnfApplyError, WnfChangeStamp, WnfDataAccessor, WnfDataScope,
+    WnfStateNameDescriptor, WnfStateNameLifetime, WnfTransformError,
 };
 
 #[test]
@@ -336,8 +336,8 @@ fn subscribe() {
             state
                 .subscribe(
                     WnfChangeStamp::initial(),
-                    Box::new(move |data, change_stamp| {
-                        tx.send((data, change_stamp)).unwrap();
+                    Box::new(move |accessor: WnfDataAccessor<_>, change_stamp| {
+                        tx.send((accessor.get().unwrap(), change_stamp)).unwrap();
                     }),
                 )
                 .unwrap(),
@@ -378,10 +378,10 @@ fn subscribe_boxed() {
         let tx = tx.clone();
         subscriptions.push(
             state
-                .subscribe_boxed(
+                .subscribe(
                     WnfChangeStamp::initial(),
-                    Box::new(move |data, change_stamp| {
-                        tx.send((data, change_stamp)).unwrap();
+                    Box::new(move |accessor: WnfDataAccessor<_>, change_stamp| {
+                        tx.send((accessor.get_boxed().unwrap(), change_stamp)).unwrap();
                     }),
                 )
                 .unwrap(),
@@ -422,10 +422,10 @@ fn subscribe_slice() {
         let tx = tx.clone();
         subscriptions.push(
             state
-                .subscribe_boxed(
+                .subscribe(
                     WnfChangeStamp::initial(),
-                    Box::new(move |data, change_stamp| {
-                        tx.send((data, change_stamp)).unwrap();
+                    Box::new(move |accessor: WnfDataAccessor<_>, change_stamp| {
+                        tx.send((accessor.get_boxed().unwrap(), change_stamp)).unwrap();
                     }),
                 )
                 .unwrap(),
@@ -452,43 +452,6 @@ fn subscribe_slice() {
         rx.recv_timeout(Duration::from_secs(1)),
         Err(RecvTimeoutError::Disconnected)
     );
-}
-
-#[test]
-fn subscribe_with_callback_on_result() {
-    #[derive(Debug, PartialEq)]
-    enum Message {
-        Valid(u32, WnfChangeStamp),
-        Invalid(WnfReadError, WnfChangeStamp),
-    }
-
-    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
-
-    let (tx, rx) = mpsc::channel();
-
-    let subscription = state
-        .subscribe(
-            WnfChangeStamp::initial(),
-            Box::new(WnfCallbackOnResult::from(move |result, change_stamp| {
-                tx.send(match result {
-                    Ok(data) => Message::Valid(data, change_stamp),
-                    Err(err) => Message::Invalid(err, change_stamp),
-                })
-                .unwrap()
-            })),
-        )
-        .unwrap();
-
-    state.set(42u32).unwrap();
-    assert_eq!(rx.recv().unwrap(), Message::Valid(42, 1.into()));
-
-    state.borrow_as_wnf_state().cast().set(42u16).unwrap();
-    assert_eq!(
-        rx.recv().unwrap(),
-        Message::Invalid(WnfReadError::WrongSize { expected: 4, actual: 2 }, 2.into())
-    );
-
-    subscription.unsubscribe().unwrap();
 }
 
 #[test]
@@ -524,7 +487,7 @@ fn subscribers_present() {
     let state = OwnedWnfState::<()>::create_temporary().unwrap();
     assert!(!state.subscribers_present().unwrap());
 
-    let subscription = state.subscribe(WnfChangeStamp::initial(), Box::new(|| {})).unwrap();
+    let subscription = state.subscribe(WnfChangeStamp::initial(), Box::new(|_, _| {})).unwrap();
     assert!(state.subscribers_present().unwrap());
 
     subscription.unsubscribe().map_err(|(err, _)| err).unwrap();
@@ -539,7 +502,7 @@ fn is_quiescent() {
     let subscription = state
         .subscribe(
             WnfChangeStamp::initial(),
-            Box::new(move || {
+            Box::new(move |_, _| {
                 let _ = rx.recv();
             }),
         )

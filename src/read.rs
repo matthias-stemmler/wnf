@@ -253,64 +253,6 @@ where
     }
 }
 
-pub(crate) trait WnfReadRepr<T>
-where
-    T: ?Sized,
-{
-    type Data;
-
-    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Result<Self::Data, WnfReadError>;
-
-    unsafe fn from_reader<E, F, Meta>(reader: F) -> Result<(Self::Data, Meta), E>
-    where
-        E: From<WnfReadError>,
-        F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>;
-}
-
-#[derive(Debug)]
-pub(crate) enum Unboxed {}
-
-impl<T> WnfReadRepr<T> for Unboxed
-where
-    T: WnfRead,
-{
-    type Data = T;
-
-    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Result<T, WnfReadError> {
-        T::from_buffer(ptr, size)
-    }
-
-    unsafe fn from_reader<E, F, Meta>(reader: F) -> Result<(T, Meta), E>
-    where
-        E: From<WnfReadError>,
-        F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>,
-    {
-        T::from_reader(reader)
-    }
-}
-
-#[derive(Debug)]
-pub(crate) enum Boxed {}
-
-impl<T> WnfReadRepr<T> for Boxed
-where
-    T: WnfReadBoxed + ?Sized,
-{
-    type Data = Box<T>;
-
-    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Result<Box<T>, WnfReadError> {
-        T::from_buffer_boxed(ptr, size)
-    }
-
-    unsafe fn from_reader<E, F, Meta>(reader: F) -> Result<(Box<T>, Meta), E>
-    where
-        E: From<WnfReadError>,
-        F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>,
-    {
-        T::from_reader_boxed(reader)
-    }
-}
-
 #[derive(Debug, Error, PartialEq)]
 pub enum WnfReadError {
     #[error("failed to read WNF state data: data has wrong size (expected {expected}, got {actual})")]
