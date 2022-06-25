@@ -6,7 +6,7 @@
 #[macro_use]
 extern crate num_derive;
 
-pub use apply::{WnfApplyError, WnfTransformError, WnfTransformResult};
+pub use apply::{WnfApplyError, WnfTransformError};
 pub use bytes::NoUninit;
 pub use data::{WnfChangeStamp, WnfOpaqueData, WnfStampedData};
 pub use info::WnfInfoError;
@@ -35,11 +35,9 @@ mod state_name;
 mod subscribe;
 mod update;
 
-// TODO apply without metadata? -> can replace still be implemented?
 // TODO wait: sync + async, with predicate (receiving value + change stamp directly, no accessor, no result, failing if invalid, returning last value)
 // TODO   and without predicate (ignoring whether valid/invalid, returning nothing), boxed + unboxed, no `try_` version
 
-// TODO check for explicitly specified types in tests/examples
 // TODO check Debug impls
 // TODO builder pattern for creation, including max size and type_id
 // TODO create permanent/persistent states

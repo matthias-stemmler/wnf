@@ -61,6 +61,18 @@ fn data_type_can_be_inferred_from_try_apply_boxed_call() {
 }
 
 #[test]
+fn data_type_can_be_inferred_from_replace_call() {
+    let state = OwnedWnfState::create_temporary().unwrap();
+    state.replace(()).unwrap();
+}
+
+#[test]
+fn data_type_can_be_inferred_from_replace_boxed_call() {
+    let state = OwnedWnfState::create_temporary().unwrap();
+    state.replace_boxed(()).unwrap();
+}
+
+#[test]
 fn data_type_can_be_inferred_from_subscribe_call() {
     let state = OwnedWnfState::create_temporary().unwrap();
     state

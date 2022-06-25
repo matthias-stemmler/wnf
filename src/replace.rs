@@ -60,8 +60,12 @@ where
     where
         D: Borrow<T>,
     {
-        self.apply::<&T, _, _>(|old_value, _| (new_value.borrow(), old_value))
-            .map(|(_, old_value)| old_value)
+        let mut old_value = None;
+        self.apply(|value, _| {
+            old_value = Some(value);
+            new_value.borrow()
+        })?;
+        Ok(old_value.unwrap())
     }
 }
 
@@ -73,7 +77,11 @@ where
     where
         D: Borrow<T>,
     {
-        self.apply_boxed::<&T, _, _>(|old_value, _| (new_value.borrow(), old_value))
-            .map(|(_, old_value)| old_value)
+        let mut old_value = None;
+        self.apply_boxed(|value, _| {
+            old_value = Some(value);
+            new_value.borrow()
+        })?;
+        Ok(old_value.unwrap())
     }
 }

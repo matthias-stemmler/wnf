@@ -35,7 +35,7 @@ fn main() {
         state.set(i).expect("Failed to set WNF state data");
     }
 
-    let mut receive_count: usize = 0;
+    let mut receive_count = 0;
 
     for data in rx {
         receive_count += 1;
