@@ -144,10 +144,10 @@ macro_rules! apply_tests {
 }
 
 apply_tests! {
-    apply_value_to_value: state => state.apply(|v: u32| v + 1),
-    apply_value_to_boxed: state => state.apply(|v: u32| Box::new(v + 1)),
-    apply_boxed_to_value: state => state.apply_boxed(|v: Box<u32>| *v + 1),
-    apply_boxed_to_boxed: state => state.apply_boxed(|v: Box<u32>| Box::new(*v + 1)),
+    apply_value_to_value: state => state.apply(|v: u32, _| v + 1),
+    apply_value_to_boxed: state => state.apply(|v: u32, _| Box::new(v + 1)),
+    apply_boxed_to_value: state => state.apply_boxed(|v: Box<u32>, _| *v + 1),
+    apply_boxed_to_boxed: state => state.apply_boxed(|v: Box<u32>, _| Box::new(*v + 1)),
 }
 
 #[test]
@@ -166,7 +166,7 @@ fn apply_slice_to_vec() {
         handles.push(thread::spawn(move || {
             for _ in 0..NUM_ITERATIONS {
                 state
-                    .apply_boxed(|vs: Box<[u32]>| vs.iter().map(|v| v + 1).collect::<Vec<_>>())
+                    .apply_boxed(|vs: Box<[u32]>, _| vs.iter().map(|v| v + 1).collect::<Vec<_>>())
                     .unwrap();
             }
         }))
@@ -186,7 +186,7 @@ fn apply_early_termination() {
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
     state.set(0).unwrap();
-    let result = state.apply::<u32, _, _, _>(|| ControlFlow::Break(())).unwrap();
+    let result = state.apply::<u32, _, _>(|_, _| ControlFlow::Break(())).unwrap();
 
     assert!(result.is_break());
     assert_eq!(state.get().unwrap(), 0);
@@ -198,7 +198,7 @@ fn apply_meta() {
 
     state.set(0).unwrap();
     let result = state
-        .apply::<u32, _, _, _>(|| (ControlFlow::Break(()), "meta"))
+        .apply::<u32, _, _>(|_, _| (ControlFlow::Break(()), "meta"))
         .unwrap();
 
     assert!(result.0.is_break());
@@ -210,7 +210,7 @@ fn try_apply_by_value_ok() {
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
     state.set(0).unwrap();
-    let result = state.try_apply(|v| Ok::<_, TestError>(v + 1)).unwrap();
+    let result = state.try_apply(|v, _| Ok::<_, TestError>(v + 1)).unwrap();
 
     assert_eq!(result, 1);
     assert_eq!(state.get().unwrap(), 1);
@@ -221,7 +221,7 @@ fn try_apply_by_value_err() {
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
     state.set(0).unwrap();
-    let result = state.try_apply(|| Err::<u32, _>(TestError));
+    let result = state.try_apply(|_, _| Err::<u32, _>(TestError));
 
     assert_eq!(result, Err(WnfApplyError::Transform(WnfTransformError(TestError))));
 }
@@ -231,7 +231,9 @@ fn try_apply_boxed_ok() {
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
     state.set(0).unwrap();
-    let result = state.try_apply_boxed(|v: Box<u32>| Ok::<_, TestError>(*v + 1)).unwrap();
+    let result = state
+        .try_apply_boxed(|v: Box<u32>, _| Ok::<_, TestError>(*v + 1))
+        .unwrap();
 
     assert_eq!(result, 1);
     assert_eq!(state.get().unwrap(), 1);
@@ -242,7 +244,7 @@ fn try_apply_boxed_err() {
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
     state.set(0).unwrap();
-    let result = state.try_apply_boxed(|| Err::<u32, _>(TestError));
+    let result = state.try_apply_boxed(|_, _| Err::<u32, _>(TestError));
 
     assert_eq!(result, Err(WnfApplyError::Transform(WnfTransformError(TestError))));
 }
@@ -253,7 +255,7 @@ fn try_apply_slice_ok() {
 
     state.set([0]).unwrap();
     let result = state
-        .try_apply_boxed(|vs: Box<[u32]>| Ok::<_, TestError>(vs.iter().map(|v| v + 1).collect::<Vec<_>>()))
+        .try_apply_boxed(|vs: Box<[u32]>, _| Ok::<_, TestError>(vs.iter().map(|v| v + 1).collect::<Vec<_>>()))
         .unwrap();
 
     assert_eq!(result, [1]);
@@ -265,7 +267,7 @@ fn try_apply_slice_err() {
     let state = OwnedWnfState::<[u32]>::create_temporary().unwrap();
 
     state.set([0]).unwrap();
-    let result = state.try_apply_boxed::<Vec<_>, _, _, _, _>(|| Err::<Vec<_>, _>(TestError));
+    let result = state.try_apply_boxed::<Vec<_>, _, _, _>(|_, _| Err::<Vec<_>, _>(TestError));
 
     assert_eq!(result, Err(WnfApplyError::Transform(WnfTransformError(TestError))));
 }

@@ -60,7 +60,7 @@ where
     where
         D: Borrow<T>,
     {
-        self.apply::<&T, _, _, _>(|old_value| (new_value.borrow(), old_value))
+        self.apply::<&T, _, _>(|old_value, _| (new_value.borrow(), old_value))
             .map(|(_, old_value)| old_value)
     }
 }
@@ -73,7 +73,7 @@ where
     where
         D: Borrow<T>,
     {
-        self.apply_boxed::<&T, _, _, _>(|old_value| (new_value.borrow(), old_value))
+        self.apply_boxed::<&T, _, _>(|old_value, _| (new_value.borrow(), old_value))
             .map(|(_, old_value)| old_value)
     }
 }
