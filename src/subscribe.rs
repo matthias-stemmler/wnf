@@ -22,13 +22,13 @@ impl<T> OwnedWnfState<T>
 where
     T: WnfRead,
 {
-    pub fn subscribe<F, ArgsValid, ArgsInvalid>(
+    pub fn subscribe<F, Args>(
         &self,
         after_change_stamp: WnfChangeStamp,
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        F: WnfCallback<T, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
+        F: WnfCallback<T, Args> + Send + ?Sized + 'static,
     {
         self.raw.subscribe(after_change_stamp, listener)
     }
@@ -38,13 +38,13 @@ impl<T> OwnedWnfState<T>
 where
     T: WnfReadBoxed + ?Sized,
 {
-    pub fn subscribe_boxed<F, ArgsValid, ArgsInvalid>(
+    pub fn subscribe_boxed<F, Args>(
         &self,
         after_change_stamp: WnfChangeStamp,
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        F: WnfCallback<Box<T>, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
+        F: WnfCallback<Box<T>, Args> + Send + ?Sized + 'static,
     {
         self.raw.subscribe_boxed(after_change_stamp, listener)
     }
@@ -54,13 +54,13 @@ impl<T> BorrowedWnfState<'_, T>
 where
     T: WnfRead,
 {
-    pub fn subscribe<F, ArgsValid, ArgsInvalid>(
+    pub fn subscribe<F, Args>(
         &self,
         after_change_stamp: WnfChangeStamp,
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        F: WnfCallback<T, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
+        F: WnfCallback<T, Args> + Send + ?Sized + 'static,
     {
         self.raw.subscribe(after_change_stamp, listener)
     }
@@ -70,13 +70,13 @@ impl<T> BorrowedWnfState<'_, T>
 where
     T: WnfReadBoxed + ?Sized,
 {
-    pub fn subscribe_boxed<F, ArgsValid, ArgsInvalid>(
+    pub fn subscribe_boxed<F, Args>(
         &self,
         after_change_stamp: WnfChangeStamp,
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        F: WnfCallback<Box<T>, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
+        F: WnfCallback<Box<T>, Args> + Send + ?Sized + 'static,
     {
         self.raw.subscribe_boxed(after_change_stamp, listener)
     }
@@ -86,15 +86,15 @@ impl<T> RawWnfState<T>
 where
     T: WnfRead,
 {
-    pub fn subscribe<F, ArgsValid, ArgsInvalid>(
+    pub fn subscribe<F, Args>(
         &self,
         after_change_stamp: WnfChangeStamp,
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        F: WnfCallback<T, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
+        F: WnfCallback<T, Args> + Send + ?Sized + 'static,
     {
-        subscribe::<F, Unboxed, T, ArgsValid, ArgsInvalid>(self.state_name, after_change_stamp, listener)
+        subscribe::<F, Unboxed, T, Args>(self.state_name, after_change_stamp, listener)
     }
 }
 
@@ -102,29 +102,29 @@ impl<T> RawWnfState<T>
 where
     T: WnfReadBoxed + ?Sized,
 {
-    pub fn subscribe_boxed<F, ArgsValid, ArgsInvalid>(
+    pub fn subscribe_boxed<F, Args>(
         &self,
         after_change_stamp: WnfChangeStamp,
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        F: WnfCallback<Box<T>, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
+        F: WnfCallback<Box<T>, Args> + Send + ?Sized + 'static,
     {
-        subscribe::<F, Boxed, T, ArgsValid, ArgsInvalid>(self.state_name, after_change_stamp, listener)
+        subscribe::<F, Boxed, T, Args>(self.state_name, after_change_stamp, listener)
     }
 }
 
-fn subscribe<'a, F, R, T, ArgsValid, ArgsInvalid>(
+fn subscribe<'a, F, R, T, Args>(
     state_name: WnfStateName,
     after_change_stamp: WnfChangeStamp,
     listener: Box<F>,
 ) -> Result<WnfSubscriptionHandle<'a, F>, WnfSubscribeError>
 where
-    F: WnfCallback<R::Data, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
+    F: WnfCallback<R::Data, Args> + Send + ?Sized + 'static,
     R: WnfReadRepr<T>,
     T: ?Sized,
 {
-    extern "system" fn callback<F, R, T, ArgsValid, ArgsInvalid>(
+    extern "system" fn callback<F, R, T, Args>(
         state_name: u64,
         change_stamp: u32,
         _type_id: *const GUID,
@@ -133,7 +133,7 @@ where
         buffer_size: u32,
     ) -> NTSTATUS
     where
-        F: WnfCallback<R::Data, ArgsValid, ArgsInvalid> + Send + ?Sized + 'static,
+        F: WnfCallback<R::Data, Args> + Send + ?Sized + 'static,
         R: WnfReadRepr<T>,
         T: ?Sized,
     {
@@ -148,15 +148,10 @@ where
             let _enter = span.enter();
 
             let context: &WnfSubscriptionContext<F> = unsafe { &*context.cast() };
-            let maybe_data = unsafe { R::from_buffer(buffer, buffer_size as usize) }.ok();
+            let result = unsafe { R::from_buffer(buffer, buffer_size as usize) };
 
-            context.with_listener(|listener| match maybe_data {
-                Some(data) => {
-                    listener.call_valid(data, change_stamp.into());
-                }
-                None => {
-                    listener.call_invalid(change_stamp.into());
-                }
+            context.with_listener(|listener| {
+                listener.call(result, change_stamp.into());
             });
         });
 
@@ -171,7 +166,7 @@ where
             &mut subscription,
             state_name.opaque_value(),
             after_change_stamp.into(),
-            callback::<F, R, T, ArgsValid, ArgsInvalid>,
+            callback::<F, R, T, Args>,
             &*context as *const _ as *mut c_void,
             ptr::null(),
             0,

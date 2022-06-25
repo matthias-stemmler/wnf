@@ -1,149 +1,78 @@
+use crate::read::WnfReadError;
 use crate::WnfChangeStamp;
 
-pub trait WnfCallback<T, ArgsValid, ArgsInvalid, Return = ()> {
-    fn call_valid(&mut self, data: T, change_stamp: WnfChangeStamp) -> Return;
-
-    fn call_invalid(&mut self, change_stamp: WnfChangeStamp) -> Option<Return>;
+pub trait WnfCallback<T, Args, Return = ()> {
+    fn call(&mut self, result: Result<T, WnfReadError>, change_stamp: WnfChangeStamp) -> Option<Return>;
 }
 
-impl<F, T, Return> WnfCallback<T, (), (), Return> for F
+impl<F, T, Return> WnfCallback<T, (), Return> for F
 where
     F: FnMut() -> Return,
 {
-    fn call_valid(&mut self, _: T, _: WnfChangeStamp) -> Return {
-        self()
-    }
-
-    fn call_invalid(&mut self, _: WnfChangeStamp) -> Option<Return> {
-        None
-    }
-}
-
-impl<F, T, Return> WnfCallback<T, (T,), (), Return> for F
-where
-    F: FnMut(T) -> Return,
-{
-    fn call_valid(&mut self, data: T, _: WnfChangeStamp) -> Return {
-        self(data)
-    }
-
-    fn call_invalid(&mut self, _: WnfChangeStamp) -> Option<Return> {
-        None
-    }
-}
-
-impl<F, T, Return> WnfCallback<T, (T, WnfChangeStamp), (), Return> for F
-where
-    F: FnMut(T, WnfChangeStamp) -> Return,
-{
-    fn call_valid(&mut self, data: T, change_stamp: WnfChangeStamp) -> Return {
-        self(data, change_stamp)
-    }
-
-    fn call_invalid(&mut self, _: WnfChangeStamp) -> Option<Return> {
-        None
-    }
-}
-
-impl<F, G, T, Return> WnfCallback<T, (), (), Return> for CatchInvalid<F, G>
-where
-    F: FnMut() -> Return,
-    G: FnMut() -> Return,
-{
-    fn call_valid(&mut self, _: T, _: WnfChangeStamp) -> Return {
-        (self.valid_handler)()
-    }
-
-    fn call_invalid(&mut self, _: WnfChangeStamp) -> Option<Return> {
-        Some((self.invalid_handler)())
-    }
-}
-
-impl<F, G, T, Return> WnfCallback<T, (), (WnfChangeStamp,), Return> for CatchInvalid<F, G>
-where
-    F: FnMut() -> Return,
-    G: FnMut(WnfChangeStamp) -> Return,
-{
-    fn call_valid(&mut self, _: T, _: WnfChangeStamp) -> Return {
-        (self.valid_handler)()
-    }
-
-    fn call_invalid(&mut self, change_stamp: WnfChangeStamp) -> Option<Return> {
-        Some((self.invalid_handler)(change_stamp))
-    }
-}
-
-impl<F, G, T, Return> WnfCallback<T, (T,), (), Return> for CatchInvalid<F, G>
-where
-    F: FnMut(T) -> Return,
-    G: FnMut() -> Return,
-{
-    fn call_valid(&mut self, data: T, _: WnfChangeStamp) -> Return {
-        (self.valid_handler)(data)
-    }
-
-    fn call_invalid(&mut self, _: WnfChangeStamp) -> Option<Return> {
-        Some((self.invalid_handler)())
-    }
-}
-
-impl<F, G, T, Return> WnfCallback<T, (T,), (WnfChangeStamp,), Return> for CatchInvalid<F, G>
-where
-    F: FnMut(T) -> Return,
-    G: FnMut(WnfChangeStamp) -> Return,
-{
-    fn call_valid(&mut self, data: T, _: WnfChangeStamp) -> Return {
-        (self.valid_handler)(data)
-    }
-
-    fn call_invalid(&mut self, change_stamp: WnfChangeStamp) -> Option<Return> {
-        Some((self.invalid_handler)(change_stamp))
-    }
-}
-
-impl<F, G, T, Return> WnfCallback<T, (T, WnfChangeStamp), (), Return> for CatchInvalid<F, G>
-where
-    F: FnMut(T, WnfChangeStamp) -> Return,
-    G: FnMut() -> Return,
-{
-    fn call_valid(&mut self, data: T, change_stamp: WnfChangeStamp) -> Return {
-        (self.valid_handler)(data, change_stamp)
-    }
-
-    fn call_invalid(&mut self, _: WnfChangeStamp) -> Option<Return> {
-        Some((self.invalid_handler)())
-    }
-}
-
-impl<F, G, T, Return> WnfCallback<T, (T, WnfChangeStamp), (WnfChangeStamp,), Return> for CatchInvalid<F, G>
-where
-    F: FnMut(T, WnfChangeStamp) -> Return,
-    G: FnMut(WnfChangeStamp) -> Return,
-{
-    fn call_valid(&mut self, data: T, change_stamp: WnfChangeStamp) -> Return {
-        (self.valid_handler)(data, change_stamp)
-    }
-
-    fn call_invalid(&mut self, change_stamp: WnfChangeStamp) -> Option<Return> {
-        Some((self.invalid_handler)(change_stamp))
-    }
-}
-
-#[derive(Debug)]
-pub struct CatchInvalid<F, G> {
-    valid_handler: F,
-    invalid_handler: G,
-}
-
-pub trait CatchInvalidExt<T, ArgsInvalid>: Sized {
-    fn catch_invalid<G>(self, invalid_handler: G) -> CatchInvalid<Self, G> {
-        CatchInvalid {
-            valid_handler: self,
-            invalid_handler,
+    fn call(&mut self, result: Result<T, WnfReadError>, _: WnfChangeStamp) -> Option<Return> {
+        match result {
+            Ok(..) => Some(self()),
+            Err(..) => None,
         }
     }
 }
 
-impl<F, T, Return> CatchInvalidExt<T, ()> for F where F: FnMut() -> Return {}
-impl<F, T, Return> CatchInvalidExt<T, (T,)> for F where F: FnMut(T) -> Return {}
-impl<F, T, Return> CatchInvalidExt<T, (T, WnfChangeStamp)> for F where F: FnMut(T, WnfChangeStamp) -> Return {}
+impl<F, T, Return> WnfCallback<T, (T,), Return> for F
+where
+    F: FnMut(T) -> Return,
+{
+    fn call(&mut self, result: Result<T, WnfReadError>, _: WnfChangeStamp) -> Option<Return> {
+        match result {
+            Ok(data) => Some(self(data)),
+            Err(..) => None,
+        }
+    }
+}
+
+impl<F, T, Return> WnfCallback<T, (T, WnfChangeStamp), Return> for F
+where
+    F: FnMut(T, WnfChangeStamp) -> Return,
+{
+    fn call(&mut self, result: Result<T, WnfReadError>, change_stamp: WnfChangeStamp) -> Option<Return> {
+        match result {
+            Ok(data) => Some(self(data, change_stamp)),
+            Err(..) => None,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct WnfCallbackMaybeInvalid<F>(F);
+
+impl<F> From<F> for WnfCallbackMaybeInvalid<F> {
+    fn from(f: F) -> Self {
+        Self(f)
+    }
+}
+
+impl<F, T, Return> WnfCallback<T, (), Return> for WnfCallbackMaybeInvalid<F>
+where
+    F: FnMut() -> Return,
+{
+    fn call(&mut self, _: Result<T, WnfReadError>, _: WnfChangeStamp) -> Option<Return> {
+        Some((self.0)())
+    }
+}
+
+impl<F, T, Return> WnfCallback<T, (T,), Return> for WnfCallbackMaybeInvalid<F>
+where
+    F: FnMut(Result<T, WnfReadError>) -> Return,
+{
+    fn call(&mut self, result: Result<T, WnfReadError>, _: WnfChangeStamp) -> Option<Return> {
+        Some((self.0)(result))
+    }
+}
+
+impl<F, T, Return> WnfCallback<T, (T, WnfChangeStamp), Return> for WnfCallbackMaybeInvalid<F>
+where
+    F: FnMut(Result<T, WnfReadError>, WnfChangeStamp) -> Return,
+{
+    fn call(&mut self, result: Result<T, WnfReadError>, change_stamp: WnfChangeStamp) -> Option<Return> {
+        Some((self.0)(result, change_stamp))
+    }
+}

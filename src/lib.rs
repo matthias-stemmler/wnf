@@ -7,11 +7,12 @@
 extern crate num_derive;
 
 pub use apply::{WnfApplyError, WnfTransformError, WnfTransformResult};
-pub use callback::{CatchInvalidExt, WnfCallback};
+pub use callback::{WnfCallback, WnfCallbackMaybeInvalid};
 pub use data::{WnfChangeStamp, WnfStampedData};
 pub use info::WnfInfoError;
 pub use manage::{WnfCreateError, WnfDeleteError};
 pub use query::WnfQueryError;
+pub use read::WnfReadError;
 pub use security::SecurityCreateError;
 pub use state::{BorrowedWnfState, OwnedWnfState};
 pub use state_name::{WnfDataScope, WnfStateName, WnfStateNameDescriptor, WnfStateNameLifetime};

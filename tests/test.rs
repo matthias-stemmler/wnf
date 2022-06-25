@@ -4,10 +4,9 @@ use std::sync::{mpsc, Arc};
 use std::thread;
 use std::time::Duration;
 
-use wnf::CatchInvalidExt;
 use wnf::{
-    BorrowedWnfState, OwnedWnfState, WnfApplyError, WnfChangeStamp, WnfDataScope, WnfStateNameDescriptor,
-    WnfStateNameLifetime, WnfTransformError,
+    BorrowedWnfState, OwnedWnfState, WnfApplyError, WnfCallbackMaybeInvalid, WnfChangeStamp, WnfDataScope,
+    WnfReadError, WnfStateNameDescriptor, WnfStateNameLifetime, WnfTransformError,
 };
 
 #[test]
@@ -436,25 +435,23 @@ fn subscribe_catch_invalid() {
     #[derive(Debug, PartialEq)]
     enum Message {
         Valid(u32, WnfChangeStamp),
-        Invalid(WnfChangeStamp),
+        Invalid(WnfReadError, WnfChangeStamp),
     }
 
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
     let (tx, rx) = mpsc::channel();
-    let tx_invalid = tx.clone();
 
     let subscription = state
         .subscribe(
             WnfChangeStamp::initial(),
-            Box::new(
-                (move |data, change_stamp| {
-                    tx.send(Message::Valid(data, change_stamp)).unwrap();
+            Box::new(WnfCallbackMaybeInvalid::from(move |result, change_stamp| {
+                tx.send(match result {
+                    Ok(data) => Message::Valid(data, change_stamp),
+                    Err(err) => Message::Invalid(err, change_stamp),
                 })
-                .catch_invalid(move |change_stamp| {
-                    tx_invalid.send(Message::Invalid(change_stamp)).unwrap();
-                }),
-            ),
+                .unwrap()
+            })),
         )
         .unwrap();
 
@@ -462,7 +459,10 @@ fn subscribe_catch_invalid() {
     assert_eq!(rx.recv().unwrap(), Message::Valid(42, 1.into()));
 
     state.borrow().cast().set(42u16).unwrap();
-    assert_eq!(rx.recv().unwrap(), Message::Invalid(2.into()));
+    assert_eq!(
+        rx.recv().unwrap(),
+        Message::Invalid(WnfReadError::WrongSize { expected: 4, actual: 2 }, 2.into())
+    );
 
     subscription.unsubscribe().unwrap();
 }
