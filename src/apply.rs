@@ -5,6 +5,7 @@ use std::ops::ControlFlow;
 use thiserror::Error;
 
 use crate::bytes::NoUninit;
+use crate::callback::WnfCallback;
 use crate::query::WnfQueryError;
 use crate::read::{WnfRead, WnfReadBoxed};
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
@@ -48,19 +49,19 @@ impl<T> OwnedWnfState<T>
 where
     T: WnfRead + NoUninit,
 {
-    pub fn apply<D, F, Return>(&self, transform: F) -> Result<Return, WnfApplyError>
+    pub fn apply<D, F, Args, Return>(&self, transform: F) -> Result<Return, WnfApplyError>
     where
         D: Borrow<T>,
-        F: FnMut(T) -> Return,
+        F: WnfCallback<T, Args, Return>,
         Return: WnfTransformResult<D>,
     {
         self.raw.apply(transform)
     }
 
-    pub fn try_apply<D, E, F, Return>(&self, transform: F) -> Result<Return, WnfApplyError<E>>
+    pub fn try_apply<D, E, F, Args, Return>(&self, transform: F) -> Result<Return, WnfApplyError<E>>
     where
         D: Borrow<T>,
-        F: FnMut(T) -> Result<Return, E>,
+        F: WnfCallback<T, Args, Result<Return, E>>,
         Return: WnfTransformResult<D>,
     {
         self.raw.try_apply(transform)
@@ -71,19 +72,19 @@ impl<T> OwnedWnfState<T>
 where
     T: WnfReadBoxed + NoUninit + ?Sized,
 {
-    pub fn apply_boxed<D, F, Return>(&self, transform: F) -> Result<Return, WnfApplyError>
+    pub fn apply_boxed<D, F, Args, Return>(&self, transform: F) -> Result<Return, WnfApplyError>
     where
         D: Borrow<T>,
-        F: FnMut(Box<T>) -> Return,
+        F: WnfCallback<Box<T>, Args, Return>,
         Return: WnfTransformResult<D>,
     {
         self.raw.apply_boxed(transform)
     }
 
-    pub fn try_apply_boxed<D, E, F, Return>(&self, transform: F) -> Result<Return, WnfApplyError<E>>
+    pub fn try_apply_boxed<D, E, F, Args, Return>(&self, transform: F) -> Result<Return, WnfApplyError<E>>
     where
         D: Borrow<T>,
-        F: FnMut(Box<T>) -> Result<Return, E>,
+        F: WnfCallback<Box<T>, Args, Result<Return, E>>,
         Return: WnfTransformResult<D>,
     {
         self.raw.try_apply_boxed(transform)
@@ -94,19 +95,19 @@ impl<T> BorrowedWnfState<'_, T>
 where
     T: WnfRead + NoUninit,
 {
-    pub fn apply<D, F, Return>(&self, transform: F) -> Result<Return, WnfApplyError>
+    pub fn apply<D, F, Args, Return>(&self, transform: F) -> Result<Return, WnfApplyError>
     where
         D: Borrow<T>,
-        F: FnMut(T) -> Return,
+        F: WnfCallback<T, Args, Return>,
         Return: WnfTransformResult<D>,
     {
         self.raw.apply(transform)
     }
 
-    pub fn try_apply<D, E, F, Return>(&self, transform: F) -> Result<Return, WnfApplyError<E>>
+    pub fn try_apply<D, E, F, Args, Return>(&self, transform: F) -> Result<Return, WnfApplyError<E>>
     where
         D: Borrow<T>,
-        F: FnMut(T) -> Result<Return, E>,
+        F: WnfCallback<T, Args, Result<Return, E>>,
         Return: WnfTransformResult<D>,
     {
         self.raw.try_apply(transform)
@@ -117,19 +118,19 @@ impl<T> BorrowedWnfState<'_, T>
 where
     T: WnfReadBoxed + NoUninit + ?Sized,
 {
-    pub fn apply_boxed<D, F, Return>(&self, transform: F) -> Result<Return, WnfApplyError>
+    pub fn apply_boxed<D, F, Args, Return>(&self, transform: F) -> Result<Return, WnfApplyError>
     where
         D: Borrow<T>,
-        F: FnMut(Box<T>) -> Return,
+        F: WnfCallback<Box<T>, Args, Return>,
         Return: WnfTransformResult<D>,
     {
         self.raw.apply_boxed(transform)
     }
 
-    pub fn try_apply_boxed<D, E, F, Return>(&self, transform: F) -> Result<Return, WnfApplyError<E>>
+    pub fn try_apply_boxed<D, E, F, Args, Return>(&self, transform: F) -> Result<Return, WnfApplyError<E>>
     where
         D: Borrow<T>,
-        F: FnMut(Box<T>) -> Result<Return, E>,
+        F: WnfCallback<Box<T>, Args, Result<Return, E>>,
         Return: WnfTransformResult<D>,
     {
         self.raw.try_apply_boxed(transform)
@@ -140,15 +141,15 @@ impl<T> RawWnfState<T>
 where
     T: WnfRead + NoUninit,
 {
-    pub fn apply<D, F, Return>(&self, mut transform: F) -> Result<Return, WnfApplyError>
+    pub fn apply<D, F, Args, Return>(&self, mut transform: F) -> Result<Return, WnfApplyError>
     where
         D: Borrow<T>,
-        F: FnMut(T) -> Return,
+        F: WnfCallback<T, Args, Return>,
         Return: WnfTransformResult<D>,
     {
         let result = loop {
             let (data, change_stamp) = self.query()?.into_data_change_stamp();
-            let result = transform(data);
+            let result = transform.call(data, change_stamp);
             match result.data() {
                 ControlFlow::Break(()) => break result,
                 ControlFlow::Continue(data) => {
@@ -162,15 +163,15 @@ where
         Ok(result)
     }
 
-    pub fn try_apply<D, E, F, Return>(&self, mut transform: F) -> Result<Return, WnfApplyError<E>>
+    pub fn try_apply<D, E, F, Args, Return>(&self, mut transform: F) -> Result<Return, WnfApplyError<E>>
     where
         D: Borrow<T>,
-        F: FnMut(T) -> Result<Return, E>,
+        F: WnfCallback<T, Args, Result<Return, E>>,
         Return: WnfTransformResult<D>,
     {
         let result = loop {
             let (data, change_stamp) = self.query()?.into_data_change_stamp();
-            let result = transform(data).map_err(WnfTransformError::from)?;
+            let result = transform.call(data, change_stamp).map_err(WnfTransformError::from)?;
             match result.data() {
                 ControlFlow::Break(()) => break result,
                 ControlFlow::Continue(data) => {
@@ -189,15 +190,15 @@ impl<T> RawWnfState<T>
 where
     T: WnfReadBoxed + NoUninit + ?Sized,
 {
-    pub fn apply_boxed<D, F, Return>(&self, mut transform: F) -> Result<Return, WnfApplyError>
+    pub fn apply_boxed<D, F, Args, Return>(&self, mut transform: F) -> Result<Return, WnfApplyError>
     where
         D: Borrow<T>,
-        F: FnMut(Box<T>) -> Return,
+        F: WnfCallback<Box<T>, Args, Return>,
         Return: WnfTransformResult<D>,
     {
         let result = loop {
             let (data, change_stamp) = self.query_boxed()?.into_data_change_stamp();
-            let result = transform(data);
+            let result = transform.call(data, change_stamp);
             match result.data() {
                 ControlFlow::Break(()) => break result,
                 ControlFlow::Continue(data) => {
@@ -211,15 +212,15 @@ where
         Ok(result)
     }
 
-    pub fn try_apply_boxed<D, E, F, Return>(&self, mut transform: F) -> Result<Return, WnfApplyError<E>>
+    pub fn try_apply_boxed<D, E, F, Args, Return>(&self, mut transform: F) -> Result<Return, WnfApplyError<E>>
     where
         D: Borrow<T>,
-        F: FnMut(Box<T>) -> Result<Return, E>,
+        F: WnfCallback<Box<T>, Args, Result<Return, E>>,
         Return: WnfTransformResult<D>,
     {
         let result = loop {
             let (data, change_stamp) = self.query_boxed()?.into_data_change_stamp();
-            let result = transform(data).map_err(WnfTransformError::from)?;
+            let result = transform.call(data, change_stamp).map_err(WnfTransformError::from)?;
             match result.data() {
                 ControlFlow::Break(()) => break result,
                 ControlFlow::Continue(data) => {

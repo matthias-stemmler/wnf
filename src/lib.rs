@@ -7,7 +7,7 @@
 extern crate num_derive;
 
 pub use apply::{WnfApplyError, WnfTransformError, WnfTransformResult};
-pub use callback::{WnfCallback, WnfCallbackMaybeInvalid};
+pub use callback::{WnfCallbackMaybeInvalid, WnfCallbackOnResult};
 pub use data::{WnfChangeStamp, WnfStampedData};
 pub use info::WnfInfoError;
 pub use manage::{WnfCreateError, WnfDeleteError};

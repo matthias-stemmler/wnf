@@ -10,7 +10,7 @@ use tracing::{debug, trace_span};
 use windows::core::GUID;
 use windows::Win32::Foundation::{NTSTATUS, STATUS_SUCCESS};
 
-use crate::callback::WnfCallback;
+use crate::callback::WnfCallbackMaybeInvalid;
 use crate::data::WnfChangeStamp;
 use crate::ntdll::NTDLL_TARGET;
 use crate::ntdll_sys;
@@ -28,7 +28,7 @@ where
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        F: WnfCallback<T, Args> + Send + ?Sized + 'static,
+        F: WnfCallbackMaybeInvalid<T, Args> + Send + ?Sized + 'static,
     {
         self.raw.subscribe(after_change_stamp, listener)
     }
@@ -44,7 +44,7 @@ where
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        F: WnfCallback<Box<T>, Args> + Send + ?Sized + 'static,
+        F: WnfCallbackMaybeInvalid<Box<T>, Args> + Send + ?Sized + 'static,
     {
         self.raw.subscribe_boxed(after_change_stamp, listener)
     }
@@ -60,7 +60,7 @@ where
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        F: WnfCallback<T, Args> + Send + ?Sized + 'static,
+        F: WnfCallbackMaybeInvalid<T, Args> + Send + ?Sized + 'static,
     {
         self.raw.subscribe(after_change_stamp, listener)
     }
@@ -76,7 +76,7 @@ where
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        F: WnfCallback<Box<T>, Args> + Send + ?Sized + 'static,
+        F: WnfCallbackMaybeInvalid<Box<T>, Args> + Send + ?Sized + 'static,
     {
         self.raw.subscribe_boxed(after_change_stamp, listener)
     }
@@ -92,7 +92,7 @@ where
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        F: WnfCallback<T, Args> + Send + ?Sized + 'static,
+        F: WnfCallbackMaybeInvalid<T, Args> + Send + ?Sized + 'static,
     {
         subscribe::<F, Unboxed, T, Args>(self.state_name, after_change_stamp, listener)
     }
@@ -108,7 +108,7 @@ where
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        F: WnfCallback<Box<T>, Args> + Send + ?Sized + 'static,
+        F: WnfCallbackMaybeInvalid<Box<T>, Args> + Send + ?Sized + 'static,
     {
         subscribe::<F, Boxed, T, Args>(self.state_name, after_change_stamp, listener)
     }
@@ -120,7 +120,7 @@ fn subscribe<'a, F, R, T, Args>(
     listener: Box<F>,
 ) -> Result<WnfSubscriptionHandle<'a, F>, WnfSubscribeError>
 where
-    F: WnfCallback<R::Data, Args> + Send + ?Sized + 'static,
+    F: WnfCallbackMaybeInvalid<R::Data, Args> + Send + ?Sized + 'static,
     R: WnfReadRepr<T>,
     T: ?Sized,
 {
@@ -133,7 +133,7 @@ where
         buffer_size: u32,
     ) -> NTSTATUS
     where
-        F: WnfCallback<R::Data, Args> + Send + ?Sized + 'static,
+        F: WnfCallbackMaybeInvalid<R::Data, Args> + Send + ?Sized + 'static,
         R: WnfReadRepr<T>,
         T: ?Sized,
     {
@@ -151,7 +151,7 @@ where
             let result = unsafe { R::from_buffer(buffer, buffer_size as usize) };
 
             context.with_listener(|listener| {
-                listener.call(result, change_stamp.into());
+                listener.call_on_result(result, change_stamp.into());
             });
         });
 
