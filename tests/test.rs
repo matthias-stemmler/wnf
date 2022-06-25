@@ -433,7 +433,7 @@ fn subscribe_slice() {
 }
 
 #[test]
-fn subscribe_catch_invalid() {
+fn subscribe_with_callback_on_result() {
     #[derive(Debug, PartialEq)]
     enum Message {
         Valid(u32, WnfChangeStamp),
