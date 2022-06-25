@@ -5,8 +5,8 @@ use std::thread;
 use std::time::Duration;
 
 use wnf::{
-    BorrowedWnfState, OwnedWnfState, WnfApplyError, WnfCallbackOnResult, WnfChangeStamp, WnfDataScope, WnfReadError,
-    WnfStateNameDescriptor, WnfStateNameLifetime, WnfTransformError,
+    BorrowAsWnfState, BorrowedWnfState, OwnedWnfState, WnfApplyError, WnfCallbackOnResult, WnfChangeStamp,
+    WnfDataScope, WnfReadError, WnfStateNameDescriptor, WnfStateNameLifetime, WnfTransformError,
 };
 
 #[test]
@@ -126,7 +126,7 @@ macro_rules! apply_tests {
 
                     handles.push(thread::spawn(move || {
                         for _ in 0..NUM_ITERATIONS {
-                            let $state = state.borrow();
+                            let $state = state.borrow_as_wnf_state();
                             $apply.unwrap();
                         }
                     }));
@@ -186,7 +186,7 @@ fn apply_early_termination() {
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
     state.set(0).unwrap();
-    let result = state.apply::<u32, _, _, _>(|_| ControlFlow::Break(())).unwrap();
+    let result = state.apply::<u32, _, _, _>(|| ControlFlow::Break(())).unwrap();
 
     assert!(result.is_break());
     assert_eq!(state.get().unwrap(), 0);
@@ -198,7 +198,7 @@ fn apply_meta() {
 
     state.set(0).unwrap();
     let result = state
-        .apply::<u32, _, _, _>(|_| (ControlFlow::Break(()), "meta"))
+        .apply::<u32, _, _, _>(|| (ControlFlow::Break(()), "meta"))
         .unwrap();
 
     assert!(result.0.is_break());
@@ -221,7 +221,7 @@ fn try_apply_by_value_err() {
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
     state.set(0).unwrap();
-    let result = state.try_apply(|_| Err::<u32, _>(TestError));
+    let result = state.try_apply(|| Err::<u32, _>(TestError));
 
     assert_eq!(result, Err(WnfApplyError::Transform(WnfTransformError(TestError))));
 }
@@ -242,7 +242,7 @@ fn try_apply_boxed_err() {
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
     state.set(0).unwrap();
-    let result = state.try_apply_boxed(|_| Err::<u32, _>(TestError));
+    let result = state.try_apply_boxed(|| Err::<u32, _>(TestError));
 
     assert_eq!(result, Err(WnfApplyError::Transform(WnfTransformError(TestError))));
 }
@@ -265,9 +265,31 @@ fn try_apply_slice_err() {
     let state = OwnedWnfState::<[u32]>::create_temporary().unwrap();
 
     state.set([0]).unwrap();
-    let result = state.try_apply_boxed::<Vec<_>, _, _, _, _>(|_| Err::<Vec<_>, _>(TestError));
+    let result = state.try_apply_boxed::<Vec<_>, _, _, _, _>(|| Err::<Vec<_>, _>(TestError));
 
     assert_eq!(result, Err(WnfApplyError::Transform(WnfTransformError(TestError))));
+}
+
+#[test]
+fn replace() {
+    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
+
+    state.set(0).unwrap();
+    let old_value = state.replace(1).unwrap();
+
+    assert_eq!(state.get().unwrap(), 1);
+    assert_eq!(old_value, 0);
+}
+
+#[test]
+fn replace_boxed() {
+    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
+
+    state.set(0).unwrap();
+    let old_value = state.replace_boxed(1).unwrap();
+
+    assert_eq!(state.get().unwrap(), 1);
+    assert_eq!(*old_value, 0);
 }
 
 #[test]
@@ -460,7 +482,7 @@ fn subscribe_with_callback_on_result() {
     state.set(42u32).unwrap();
     assert_eq!(rx.recv().unwrap(), Message::Valid(42, 1.into()));
 
-    state.borrow().cast().set(42u16).unwrap();
+    state.borrow_as_wnf_state().cast().set(42u16).unwrap();
     assert_eq!(
         rx.recv().unwrap(),
         Message::Invalid(WnfReadError::WrongSize { expected: 4, actual: 2 }, 2.into())

@@ -22,9 +22,9 @@ impl<F, T, Return> WnfCallbackMaybeInvalid<T, (), Return> for F
 where
     F: FnMut() -> Return,
 {
-    fn call_on_result(&mut self, result: Result<T, WnfReadError>, change_stamp: WnfChangeStamp) -> Option<Return> {
+    fn call_on_result(&mut self, result: Result<T, WnfReadError>, _: WnfChangeStamp) -> Option<Return> {
         match result {
-            Ok(data) => Some(self.call(data, change_stamp)),
+            Ok(..) => Some(self()),
             Err(..) => None,
         }
     }
@@ -43,9 +43,9 @@ impl<F, T, Return> WnfCallbackMaybeInvalid<T, (T,), Return> for F
 where
     F: FnMut(T) -> Return,
 {
-    fn call_on_result(&mut self, result: Result<T, WnfReadError>, change_stamp: WnfChangeStamp) -> Option<Return> {
+    fn call_on_result(&mut self, result: Result<T, WnfReadError>, _: WnfChangeStamp) -> Option<Return> {
         match result {
-            Ok(data) => Some(self.call(data, change_stamp)),
+            Ok(data) => Some(self(data)),
             Err(..) => None,
         }
     }
@@ -66,7 +66,7 @@ where
 {
     fn call_on_result(&mut self, result: Result<T, WnfReadError>, change_stamp: WnfChangeStamp) -> Option<Return> {
         match result {
-            Ok(data) => Some(self.call(data, change_stamp)),
+            Ok(data) => Some(self(data, change_stamp)),
             Err(..) => None,
         }
     }

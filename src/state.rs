@@ -13,6 +13,31 @@ where
     pub(crate) raw: RawWnfState<T>,
 }
 
+impl<T> OwnedWnfState<T>
+where
+    T: ?Sized,
+{
+    pub fn state_name(&self) -> WnfStateName {
+        self.raw.state_name()
+    }
+
+    pub fn leak(self) -> BorrowedWnfState<'static, T> {
+        BorrowedWnfState::from_raw(self.into_raw())
+    }
+
+    pub fn cast<U>(self) -> OwnedWnfState<U> {
+        OwnedWnfState::from_raw(self.into_raw().cast())
+    }
+
+    pub(crate) fn from_raw(raw: RawWnfState<T>) -> Self {
+        Self { raw }
+    }
+
+    pub(crate) fn into_raw(self) -> RawWnfState<T> {
+        ManuallyDrop::new(self).raw
+    }
+}
+
 impl<T> PartialEq<Self> for OwnedWnfState<T>
 where
     T: ?Sized,
@@ -47,35 +72,6 @@ where
     }
 }
 
-impl<T> OwnedWnfState<T>
-where
-    T: ?Sized,
-{
-    pub fn state_name(&self) -> WnfStateName {
-        self.raw.state_name()
-    }
-
-    pub fn borrow(&self) -> BorrowedWnfState<T> {
-        BorrowedWnfState::from_raw(self.raw)
-    }
-
-    pub fn leak(self) -> BorrowedWnfState<'static, T> {
-        BorrowedWnfState::from_raw(self.into_raw())
-    }
-
-    pub fn cast<U>(self) -> OwnedWnfState<U> {
-        OwnedWnfState::from_raw(self.into_raw().cast())
-    }
-
-    pub(crate) fn from_raw(raw: RawWnfState<T>) -> Self {
-        Self { raw }
-    }
-
-    pub(crate) fn into_raw(self) -> RawWnfState<T> {
-        ManuallyDrop::new(self).raw
-    }
-}
-
 impl<T> Drop for OwnedWnfState<T>
 where
     T: ?Sized,
@@ -91,6 +87,43 @@ where
 {
     pub(crate) raw: RawWnfState<T>,
     _marker: PhantomData<&'a ()>,
+}
+
+impl<'a, T> BorrowedWnfState<'a, T>
+where
+    T: ?Sized,
+{
+    pub fn state_name(&self) -> WnfStateName {
+        self.raw.state_name()
+    }
+
+    pub fn into_owned(self) -> OwnedWnfState<T> {
+        OwnedWnfState::from_raw(self.into_raw())
+    }
+
+    pub fn cast<U>(self) -> BorrowedWnfState<'a, U> {
+        BorrowedWnfState::from_raw(self.into_raw().cast())
+    }
+
+    pub(crate) fn from_raw(raw: RawWnfState<T>) -> Self {
+        Self {
+            raw,
+            _marker: PhantomData,
+        }
+    }
+
+    pub(crate) fn into_raw(self) -> RawWnfState<T> {
+        self.raw
+    }
+}
+
+impl<T> BorrowedWnfState<'static, T>
+where
+    T: ?Sized,
+{
+    pub fn from_state_name(state_name: WnfStateName) -> Self {
+        Self::from_raw(RawWnfState::from_state_name(state_name))
+    }
 }
 
 impl<T> Copy for BorrowedWnfState<'_, T> where T: ?Sized {}
@@ -138,40 +171,19 @@ where
     }
 }
 
-impl<'a, T> BorrowedWnfState<'a, T>
-where
-    T: ?Sized,
-{
-    pub fn state_name(&self) -> WnfStateName {
-        self.raw.state_name()
-    }
+pub trait BorrowAsWnfState<T> {
+    fn borrow_as_wnf_state(&self) -> BorrowedWnfState<T>;
+}
 
-    pub fn into_owned(self) -> OwnedWnfState<T> {
-        OwnedWnfState::from_raw(self.into_raw())
-    }
-
-    pub fn cast<U>(self) -> BorrowedWnfState<'a, U> {
-        BorrowedWnfState::from_raw(self.into_raw().cast())
-    }
-
-    pub(crate) fn from_raw(raw: RawWnfState<T>) -> Self {
-        Self {
-            raw,
-            _marker: PhantomData,
-        }
-    }
-
-    pub(crate) fn into_raw(self) -> RawWnfState<T> {
-        self.raw
+impl<T> BorrowAsWnfState<T> for OwnedWnfState<T> {
+    fn borrow_as_wnf_state(&self) -> BorrowedWnfState<T> {
+        BorrowedWnfState::from_raw(self.raw)
     }
 }
 
-impl<T> BorrowedWnfState<'static, T>
-where
-    T: ?Sized,
-{
-    pub fn from_state_name(state_name: WnfStateName) -> Self {
-        Self::from_raw(RawWnfState::from_state_name(state_name))
+impl<T> BorrowAsWnfState<T> for BorrowedWnfState<'_, T> {
+    fn borrow_as_wnf_state(&self) -> BorrowedWnfState<T> {
+        *self
     }
 }
 
@@ -181,6 +193,26 @@ where
 {
     pub(crate) state_name: WnfStateName,
     _marker: PhantomData<fn(T) -> T>,
+}
+
+impl<T> RawWnfState<T>
+where
+    T: ?Sized,
+{
+    pub(crate) fn from_state_name(state_name: WnfStateName) -> Self {
+        Self {
+            state_name,
+            _marker: PhantomData,
+        }
+    }
+
+    pub(crate) fn state_name(self) -> WnfStateName {
+        self.state_name
+    }
+
+    pub(crate) fn cast<U>(self) -> RawWnfState<U> {
+        RawWnfState::from_state_name(self.state_name)
+    }
 }
 
 impl<T> Copy for RawWnfState<T> where T: ?Sized {}
@@ -225,25 +257,5 @@ where
         f.debug_struct("RawWnfState")
             .field("state_name", &self.state_name)
             .finish()
-    }
-}
-
-impl<T> RawWnfState<T>
-where
-    T: ?Sized,
-{
-    pub(crate) fn from_state_name(state_name: WnfStateName) -> Self {
-        Self {
-            state_name,
-            _marker: PhantomData,
-        }
-    }
-
-    pub(crate) fn state_name(self) -> WnfStateName {
-        self.state_name
-    }
-
-    pub(crate) fn cast<U>(self) -> RawWnfState<U> {
-        RawWnfState::from_state_name(self.state_name)
     }
 }
