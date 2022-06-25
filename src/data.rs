@@ -2,6 +2,15 @@ use std::fmt;
 use std::fmt::{Display, Formatter};
 
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+pub struct WnfOpaqueData(());
+
+impl WnfOpaqueData {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct WnfChangeStamp(u32);
 
 impl WnfChangeStamp {

@@ -6,6 +6,7 @@ use std::{alloc, mem, ptr};
 use thiserror::Error;
 
 use crate::bytes::CheckedBitPattern;
+use crate::data::WnfOpaqueData;
 
 pub trait WnfRead: Sized {
     unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Result<Self, WnfReadError>;
@@ -23,6 +24,36 @@ pub trait WnfReadBoxed {
     where
         E: From<WnfReadError>,
         F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>;
+}
+
+impl WnfRead for WnfOpaqueData {
+    unsafe fn from_buffer(_: *const c_void, _: usize) -> Result<Self, WnfReadError> {
+        Ok(Self::new())
+    }
+
+    unsafe fn from_reader<E, F, Meta>(mut reader: F) -> Result<(Self, Meta), E>
+    where
+        E: From<WnfReadError>,
+        F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>,
+    {
+        let (_, meta) = reader(ptr::null_mut(), 0)?;
+        Ok((Self::new(), meta))
+    }
+}
+
+impl WnfReadBoxed for WnfOpaqueData {
+    unsafe fn from_buffer_boxed(_: *const c_void, _: usize) -> Result<Box<Self>, WnfReadError> {
+        Ok(Box::new(Self::new()))
+    }
+
+    unsafe fn from_reader_boxed<E, F, Meta>(mut reader: F) -> Result<(Box<Self>, Meta), E>
+    where
+        E: From<WnfReadError>,
+        F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>,
+    {
+        let (_, meta) = reader(ptr::null_mut(), 0)?;
+        Ok((Box::new(Self::new()), meta))
+    }
 }
 
 impl<T> WnfRead for T
