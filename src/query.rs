@@ -9,7 +9,7 @@ use crate::data::{WnfChangeStamp, WnfStampedData};
 use crate::ntdll::NTDLL_TARGET;
 use crate::read::{WnfRead, WnfReadBoxed, WnfReadError};
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
-use crate::{ntdll_sys, WnfStateName};
+use crate::{ntdll_sys, WnfOpaqueData, WnfStateName};
 
 impl<T> OwnedWnfState<T>
 where
@@ -37,6 +37,12 @@ where
     }
 }
 
+impl<T> OwnedWnfState<T> {
+    pub fn change_stamp(&self) -> Result<WnfChangeStamp, WnfQueryError> {
+        self.raw.change_stamp()
+    }
+}
+
 impl<T> BorrowedWnfState<'_, T>
 where
     T: WnfRead,
@@ -60,6 +66,12 @@ where
 
     pub fn query_boxed(&self) -> Result<WnfStampedData<Box<T>>, WnfQueryError> {
         self.raw.query_boxed()
+    }
+}
+
+impl<T> BorrowedWnfState<'_, T> {
+    pub fn change_stamp(&self) -> Result<WnfChangeStamp, WnfQueryError> {
+        self.raw.change_stamp()
     }
 }
 
@@ -88,6 +100,12 @@ where
     pub fn query_boxed(&self) -> Result<WnfStampedData<Box<T>>, WnfQueryError> {
         let data = unsafe { T::from_reader_boxed(|buffer, buffer_size| query(self.state_name, buffer, buffer_size)) }?;
         Ok(data.into())
+    }
+}
+
+impl<T> RawWnfState<T> {
+    pub fn change_stamp(&self) -> Result<WnfChangeStamp, WnfQueryError> {
+        Ok(self.cast::<WnfOpaqueData>().query()?.change_stamp())
     }
 }
 

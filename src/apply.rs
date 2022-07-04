@@ -174,12 +174,12 @@ pub struct WnfTransformError<E>(#[from] pub E);
 
 #[derive(Debug, Error, PartialEq)]
 pub enum WnfApplyError<E = Infallible> {
-    #[error("failed to apply transformation to WNF state data: failed to query data: {0}")]
+    #[error("failed to apply transformation to WNF state data: {0}")]
     Query(#[from] WnfQueryError),
 
     #[error("failed to apply transformation to WNF state data: failed to transform data: {0}")]
     Transform(#[from] WnfTransformError<E>),
 
-    #[error("failed to apply transformation to WNF state data: failed to update data: {0}")]
+    #[error("failed to apply transformation to WNF state data: {0}")]
     Update(#[from] WnfUpdateError),
 }

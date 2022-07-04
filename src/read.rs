@@ -8,7 +8,7 @@ use thiserror::Error;
 use crate::bytes::CheckedBitPattern;
 use crate::data::WnfOpaqueData;
 
-pub trait WnfRead: Sized {
+pub trait WnfRead: Copy + Send + Sized + 'static {
     unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Result<Self, WnfReadError>;
 
     unsafe fn from_reader<E, F, Meta>(reader: F) -> Result<(Self, Meta), E>
@@ -17,7 +17,7 @@ pub trait WnfRead: Sized {
         F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>;
 }
 
-pub trait WnfReadBoxed {
+pub trait WnfReadBoxed: Send + 'static {
     unsafe fn from_buffer_boxed(ptr: *const c_void, size: usize) -> Result<Box<Self>, WnfReadError>;
 
     unsafe fn from_reader_boxed<E, F, Meta>(reader: F) -> Result<(Box<Self>, Meta), E>

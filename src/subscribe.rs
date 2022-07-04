@@ -27,7 +27,7 @@ where
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        F: FnMut(WnfDataAccessor<T>, WnfChangeStamp) + Send + ?Sized + 'static,
+        F: FnMut(&WnfDataAccessor<T>, WnfChangeStamp) + Send + ?Sized + 'static,
     {
         self.raw.subscribe(after_change_stamp, listener)
     }
@@ -43,7 +43,7 @@ where
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        F: FnMut(WnfDataAccessor<T>, WnfChangeStamp) + Send + ?Sized + 'static,
+        F: FnMut(&WnfDataAccessor<T>, WnfChangeStamp) + Send + ?Sized + 'static,
     {
         self.raw.subscribe(after_change_stamp, listener)
     }
@@ -59,7 +59,7 @@ where
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        F: FnMut(WnfDataAccessor<T>, WnfChangeStamp) + Send + ?Sized + 'static,
+        F: FnMut(&WnfDataAccessor<T>, WnfChangeStamp) + Send + ?Sized + 'static,
     {
         extern "system" fn callback<F, T>(
             state_name: u64,
@@ -70,7 +70,7 @@ where
             buffer_size: u32,
         ) -> NTSTATUS
         where
-            F: FnMut(WnfDataAccessor<T>, WnfChangeStamp) + Send + ?Sized + 'static,
+            F: FnMut(&WnfDataAccessor<T>, WnfChangeStamp) + Send + ?Sized + 'static,
             T: ?Sized,
         {
             let _ = panic::catch_unwind(|| {
@@ -87,7 +87,7 @@ where
                 let accessor = unsafe { WnfDataAccessor::new(buffer, buffer_size as usize) };
 
                 context.with_listener(|listener| {
-                    listener(accessor, change_stamp.into());
+                    listener(&accessor, change_stamp.into());
                 });
             });
 
@@ -145,6 +145,7 @@ where
     _marker: PhantomData<fn() -> T>,
 }
 
+// TODO implement cast method?
 impl<T> WnfDataAccessor<T>
 where
     T: ?Sized,

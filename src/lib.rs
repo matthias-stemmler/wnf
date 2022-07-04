@@ -34,6 +34,7 @@ mod state;
 mod state_name;
 mod subscribe;
 mod update;
+mod wait_blocking;
 
 // TODO wait: sync + async, with predicate (receiving value + change stamp directly, no accessor, no result, failing if invalid, returning last value)
 // TODO   and without predicate (ignoring whether valid/invalid, returning nothing), boxed + unboxed, no `try_` version
@@ -44,3 +45,5 @@ mod update;
 // TODO consts for well-known states?
 // TODO ZST tests
 // TODO check which types are Send/Sync
+// TODO different subscribe variants with change_stamp 0/current/custom
+// TODO consolidate errors
