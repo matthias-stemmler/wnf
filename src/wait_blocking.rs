@@ -78,7 +78,7 @@ impl<T> RawWnfState<T> {
 
         let subscription = self.subscribe(
             change_stamp,
-            Box::new(move |_: &WnfDataAccessor<_>, _| {
+            Box::new(move |_: WnfDataAccessor<_>, _| {
                 let (mutex, condvar) = &*pair2;
                 *mutex.lock().unwrap() = true;
                 condvar.notify_one();
@@ -113,7 +113,7 @@ where
 
         let subscription = self.subscribe(
             change_stamp,
-            Box::new(move |accessor: &WnfDataAccessor<_>, _| {
+            Box::new(move |accessor: WnfDataAccessor<_>, _| {
                 let (mutex, condvar) = &*pair2;
                 *mutex.lock().unwrap() = Some(accessor.get());
                 condvar.notify_one();
@@ -153,7 +153,7 @@ where
 
         let subscription = self.subscribe(
             change_stamp,
-            Box::new(move |accessor: &WnfDataAccessor<_>, _| {
+            Box::new(move |accessor: WnfDataAccessor<_>, _| {
                 let (mutex, condvar) = &*pair2;
                 *mutex.lock().unwrap() = Some(accessor.get_boxed());
                 condvar.notify_one();

@@ -27,7 +27,7 @@ where
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        F: FnMut(&WnfDataAccessor<T>, WnfChangeStamp) + Send + ?Sized + 'static,
+        F: FnMut(WnfDataAccessor<T>, WnfChangeStamp) + Send + ?Sized + 'static,
     {
         self.raw.subscribe(after_change_stamp, listener)
     }
@@ -43,7 +43,7 @@ where
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        F: FnMut(&WnfDataAccessor<T>, WnfChangeStamp) + Send + ?Sized + 'static,
+        F: FnMut(WnfDataAccessor<T>, WnfChangeStamp) + Send + ?Sized + 'static,
     {
         self.raw.subscribe(after_change_stamp, listener)
     }
@@ -59,7 +59,7 @@ where
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        F: FnMut(&WnfDataAccessor<T>, WnfChangeStamp) + Send + ?Sized + 'static,
+        F: FnMut(WnfDataAccessor<T>, WnfChangeStamp) + Send + ?Sized + 'static,
     {
         extern "system" fn callback<F, T>(
             state_name: u64,
@@ -70,7 +70,7 @@ where
             buffer_size: u32,
         ) -> NTSTATUS
         where
-            F: FnMut(&WnfDataAccessor<T>, WnfChangeStamp) + Send + ?Sized + 'static,
+            F: FnMut(WnfDataAccessor<T>, WnfChangeStamp) + Send + ?Sized + 'static,
             T: ?Sized,
         {
             let _ = panic::catch_unwind(|| {
@@ -84,10 +84,10 @@ where
                 let _enter = span.enter();
 
                 let context: &WnfSubscriptionContext<F> = unsafe { &*context.cast() };
-                let accessor = unsafe { WnfDataAccessor::new(buffer, buffer_size as usize) };
+                let scope = unsafe { WnfDataScope::new(buffer, buffer_size as usize) };
 
                 context.with_listener(|listener| {
-                    listener(&accessor, change_stamp.into());
+                    listener(scope.accessor(), change_stamp.into());
                 });
             });
 
@@ -136,7 +136,16 @@ where
 }
 
 #[derive(Debug)]
-pub struct WnfDataAccessor<T>
+pub struct WnfDataAccessor<'a, T>
+where
+    T: ?Sized,
+{
+    scope: WnfDataScope<T>,
+    _marker: PhantomData<&'a ()>,
+}
+
+#[derive(Debug)]
+struct WnfDataScope<T>
 where
     T: ?Sized,
 {
@@ -145,8 +154,18 @@ where
     _marker: PhantomData<fn() -> T>,
 }
 
-// TODO implement cast method?
-impl<T> WnfDataAccessor<T>
+impl<T> Copy for WnfDataScope<T> where T: ?Sized {}
+
+impl<T> Clone for WnfDataScope<T>
+where
+    T: ?Sized,
+{
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<T> WnfDataScope<T>
 where
     T: ?Sized,
 {
@@ -157,23 +176,47 @@ where
             _marker: PhantomData,
         }
     }
+
+    fn accessor(&self) -> WnfDataAccessor<T> {
+        WnfDataAccessor {
+            scope: *self,
+            _marker: PhantomData,
+        }
+    }
+
+    fn cast<U>(self) -> WnfDataScope<U> {
+        WnfDataScope {
+            buffer: self.buffer,
+            buffer_size: self.buffer_size,
+            _marker: PhantomData,
+        }
+    }
 }
 
-impl<T> WnfDataAccessor<T>
+impl<'a, T> WnfDataAccessor<'a, T> {
+    pub fn cast<U>(self) -> WnfDataAccessor<'a, U> {
+        WnfDataAccessor {
+            scope: self.scope.cast(),
+            _marker: PhantomData,
+        }
+    }
+}
+
+impl<T> WnfDataAccessor<'_, T>
 where
     T: WnfRead,
 {
     pub fn get(&self) -> Result<T, WnfReadError> {
-        unsafe { T::from_buffer(self.buffer, self.buffer_size) }
+        unsafe { T::from_buffer(self.scope.buffer, self.scope.buffer_size) }
     }
 }
 
-impl<T> WnfDataAccessor<T>
+impl<T> WnfDataAccessor<'_, T>
 where
     T: WnfReadBoxed + ?Sized,
 {
     pub fn get_boxed(&self) -> Result<Box<T>, WnfReadError> {
-        unsafe { T::from_buffer_boxed(self.buffer, self.buffer_size) }
+        unsafe { T::from_buffer_boxed(self.scope.buffer, self.scope.buffer_size) }
     }
 }
 
