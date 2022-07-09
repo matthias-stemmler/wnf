@@ -103,31 +103,15 @@ where
         D: Borrow<T>,
         F: FnMut(T, WnfChangeStamp) -> D,
     {
-        let result = loop {
-            let (data, change_stamp) = self.query()?.into_data_change_stamp();
-            let result = transform(data, change_stamp);
-            if self.update(result.borrow(), change_stamp)? {
-                break result;
-            }
-        };
-
-        Ok(result)
+        self.try_apply(|data, change_stamp| Ok(transform(data, change_stamp)))
     }
 
-    pub fn try_apply<D, E, F>(&self, mut transform: F) -> Result<D, WnfApplyError<E>>
+    pub fn try_apply<D, E, F>(&self, transform: F) -> Result<D, WnfApplyError<E>>
     where
         D: Borrow<T>,
         F: FnMut(T, WnfChangeStamp) -> Result<D, E>,
     {
-        let result = loop {
-            let (data, change_stamp) = self.query()?.into_data_change_stamp();
-            let result = transform(data, change_stamp).map_err(WnfTransformError::from)?;
-            if self.update(result.borrow(), change_stamp)? {
-                break result;
-            }
-        };
-
-        Ok(result)
+        self.try_apply_as(transform)
     }
 }
 
@@ -140,24 +124,30 @@ where
         D: Borrow<T>,
         F: FnMut(Box<T>, WnfChangeStamp) -> D,
     {
-        let result = loop {
-            let (data, change_stamp) = self.query_boxed()?.into_data_change_stamp();
-            let result = transform(data, change_stamp);
-            if self.update(result.borrow(), change_stamp)? {
-                break result;
-            }
-        };
-
-        Ok(result)
+        self.try_apply_boxed(|data, change_stamp| Ok(transform(data, change_stamp)))
     }
 
-    pub fn try_apply_boxed<D, E, F>(&self, mut transform: F) -> Result<D, WnfApplyError<E>>
+    pub fn try_apply_boxed<D, E, F>(&self, transform: F) -> Result<D, WnfApplyError<E>>
     where
         D: Borrow<T>,
         F: FnMut(Box<T>, WnfChangeStamp) -> Result<D, E>,
     {
+        self.try_apply_as(transform)
+    }
+}
+
+impl<T> RawWnfState<T>
+where
+    T: ?Sized,
+{
+    fn try_apply_as<ReadInto, WriteFrom, E, F>(&self, mut transform: F) -> Result<WriteFrom, WnfApplyError<E>>
+    where
+        WriteFrom: Borrow<T>,
+        T: WnfRead<ReadInto> + NoUninit,
+        F: FnMut(ReadInto, WnfChangeStamp) -> Result<WriteFrom, E>,
+    {
         let result = loop {
-            let (data, change_stamp) = self.query_boxed()?.into_data_change_stamp();
+            let (data, change_stamp) = self.query_as()?.into_data_change_stamp();
             let result = transform(data, change_stamp).map_err(WnfTransformError::from)?;
             if self.update(result.borrow(), change_stamp)? {
                 break result;
