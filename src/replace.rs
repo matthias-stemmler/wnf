@@ -60,7 +60,7 @@ where
         D: Borrow<T>,
     {
         let mut old_value = None;
-        self.apply(|value, _| {
+        self.apply(|value| {
             old_value = Some(value);
             new_value.borrow()
         })?;
@@ -77,7 +77,7 @@ where
         D: Borrow<T>,
     {
         let mut old_value = None;
-        self.apply_boxed(|value, _| {
+        self.apply_boxed(|value| {
             old_value = Some(value);
             new_value.borrow()
         })?;

@@ -31,7 +31,7 @@ fn main() {
     for i in 0..2 {
         thread::sleep(Duration::from_secs(1));
         state
-            .apply_boxed(|data, _| {
+            .apply_boxed(|data| {
                 let mut vec = data.into_vec();
                 vec.push(i);
                 vec.into_boxed_slice()

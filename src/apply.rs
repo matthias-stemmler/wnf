@@ -8,7 +8,6 @@ use crate::query::WnfQueryError;
 use crate::read::WnfRead;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::update::WnfUpdateError;
-use crate::WnfChangeStamp;
 
 impl<T> OwnedWnfState<T>
 where
@@ -17,7 +16,7 @@ where
     pub fn apply<D, F>(&self, transform: F) -> Result<D, WnfApplyError>
     where
         D: Borrow<T>,
-        F: FnMut(T, WnfChangeStamp) -> D,
+        F: FnMut(T) -> D,
     {
         self.raw.apply(transform)
     }
@@ -25,7 +24,7 @@ where
     pub fn try_apply<D, E, F>(&self, transform: F) -> Result<D, WnfApplyError<E>>
     where
         D: Borrow<T>,
-        F: FnMut(T, WnfChangeStamp) -> Result<D, E>,
+        F: FnMut(T) -> Result<D, E>,
     {
         self.raw.try_apply(transform)
     }
@@ -38,7 +37,7 @@ where
     pub fn apply_boxed<D, F>(&self, transform: F) -> Result<D, WnfApplyError>
     where
         D: Borrow<T>,
-        F: FnMut(Box<T>, WnfChangeStamp) -> D,
+        F: FnMut(Box<T>) -> D,
     {
         self.raw.apply_boxed(transform)
     }
@@ -46,7 +45,7 @@ where
     pub fn try_apply_boxed<D, E, F>(&self, transform: F) -> Result<D, WnfApplyError<E>>
     where
         D: Borrow<T>,
-        F: FnMut(Box<T>, WnfChangeStamp) -> Result<D, E>,
+        F: FnMut(Box<T>) -> Result<D, E>,
     {
         self.raw.try_apply_boxed(transform)
     }
@@ -59,7 +58,7 @@ where
     pub fn apply<D, F>(&self, transform: F) -> Result<D, WnfApplyError>
     where
         D: Borrow<T>,
-        F: FnMut(T, WnfChangeStamp) -> D,
+        F: FnMut(T) -> D,
     {
         self.raw.apply(transform)
     }
@@ -67,7 +66,7 @@ where
     pub fn try_apply<D, E, F>(&self, transform: F) -> Result<D, WnfApplyError<E>>
     where
         D: Borrow<T>,
-        F: FnMut(T, WnfChangeStamp) -> Result<D, E>,
+        F: FnMut(T) -> Result<D, E>,
     {
         self.raw.try_apply(transform)
     }
@@ -80,7 +79,7 @@ where
     pub fn apply_boxed<D, F>(&self, transform: F) -> Result<D, WnfApplyError>
     where
         D: Borrow<T>,
-        F: FnMut(Box<T>, WnfChangeStamp) -> D,
+        F: FnMut(Box<T>) -> D,
     {
         self.raw.apply_boxed(transform)
     }
@@ -88,7 +87,7 @@ where
     pub fn try_apply_boxed<D, E, F>(&self, transform: F) -> Result<D, WnfApplyError<E>>
     where
         D: Borrow<T>,
-        F: FnMut(Box<T>, WnfChangeStamp) -> Result<D, E>,
+        F: FnMut(Box<T>) -> Result<D, E>,
     {
         self.raw.try_apply_boxed(transform)
     }
@@ -101,15 +100,15 @@ where
     pub fn apply<D, F>(&self, mut transform: F) -> Result<D, WnfApplyError>
     where
         D: Borrow<T>,
-        F: FnMut(T, WnfChangeStamp) -> D,
+        F: FnMut(T) -> D,
     {
-        self.try_apply(|data, change_stamp| Ok(transform(data, change_stamp)))
+        self.try_apply(|data| Ok(transform(data)))
     }
 
     pub fn try_apply<D, E, F>(&self, transform: F) -> Result<D, WnfApplyError<E>>
     where
         D: Borrow<T>,
-        F: FnMut(T, WnfChangeStamp) -> Result<D, E>,
+        F: FnMut(T) -> Result<D, E>,
     {
         self.try_apply_as(transform)
     }
@@ -122,15 +121,15 @@ where
     pub fn apply_boxed<D, F>(&self, mut transform: F) -> Result<D, WnfApplyError>
     where
         D: Borrow<T>,
-        F: FnMut(Box<T>, WnfChangeStamp) -> D,
+        F: FnMut(Box<T>) -> D,
     {
-        self.try_apply_boxed(|data, change_stamp| Ok(transform(data, change_stamp)))
+        self.try_apply_boxed(|data| Ok(transform(data)))
     }
 
     pub fn try_apply_boxed<D, E, F>(&self, transform: F) -> Result<D, WnfApplyError<E>>
     where
         D: Borrow<T>,
-        F: FnMut(Box<T>, WnfChangeStamp) -> Result<D, E>,
+        F: FnMut(Box<T>) -> Result<D, E>,
     {
         self.try_apply_as(transform)
     }
@@ -144,11 +143,11 @@ where
     where
         WriteFrom: Borrow<T>,
         T: WnfRead<ReadInto> + NoUninit,
-        F: FnMut(ReadInto, WnfChangeStamp) -> Result<WriteFrom, E>,
+        F: FnMut(ReadInto) -> Result<WriteFrom, E>,
     {
         let result = loop {
             let (data, change_stamp) = self.query_as()?.into_data_change_stamp();
-            let result = transform(data, change_stamp).map_err(WnfTransformError::from)?;
+            let result = transform(data).map_err(WnfTransformError::from)?;
             if self.update(result.borrow(), change_stamp)? {
                 break result;
             }
