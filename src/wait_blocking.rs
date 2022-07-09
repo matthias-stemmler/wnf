@@ -3,6 +3,7 @@ use std::sync::{Arc, Condvar, Mutex};
 
 use thiserror::Error;
 
+use crate::predicate::{Predicate, PredicateStage};
 use crate::state::RawWnfState;
 use crate::{
     BorrowedWnfState, OwnedWnfState, WnfDataAccessor, WnfOpaqueData, WnfQueryError, WnfRead, WnfReadError,
@@ -80,7 +81,7 @@ where
     T: ?Sized,
 {
     pub fn wait_blocking(&self) -> Result<(), WnfWaitError> {
-        let _: WnfOpaqueData = self.cast().wait_until_blocking_internal(ChangedPredicate)?;
+        let _: WnfOpaqueData = self.cast().wait_until_blocking_internal(PredicateStage::Changed)?;
         Ok(())
     }
 }
@@ -148,37 +149,6 @@ where
         subscription.unsubscribe().map_err(|(err, _)| err)?;
 
         Ok(guard.take().unwrap()?)
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-enum PredicateStage {
-    Initial,
-    Changed,
-}
-
-trait Predicate<T>
-where
-    T: ?Sized,
-{
-    fn check(&mut self, data: &T, stage: PredicateStage) -> bool;
-}
-
-impl<F, T> Predicate<T> for F
-where
-    F: FnMut(&T) -> bool,
-    T: ?Sized,
-{
-    fn check(&mut self, data: &T, _: PredicateStage) -> bool {
-        self(data)
-    }
-}
-
-struct ChangedPredicate;
-
-impl<T> Predicate<T> for ChangedPredicate {
-    fn check(&mut self, _: &T, stage: PredicateStage) -> bool {
-        matches!(stage, PredicateStage::Changed)
     }
 }
 

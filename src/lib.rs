@@ -26,6 +26,7 @@ mod info;
 mod manage;
 mod ntdll;
 mod ntdll_sys;
+mod predicate;
 mod query;
 mod read;
 mod replace;
@@ -46,3 +47,4 @@ mod wait_blocking;
 // TODO check which types are Send/Sync
 // TODO different subscribe variants with change_stamp 0/current/custom
 // TODO consolidate errors
+// TODO trait impls: all for external types, only needed (+Debug) for internal
