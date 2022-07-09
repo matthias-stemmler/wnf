@@ -97,12 +97,12 @@ impl<T> RawWnfState<T>
 where
     T: WnfRead<T> + NoUninit,
 {
-    pub fn apply<D, F>(&self, mut transform: F) -> Result<D, WnfApplyError>
+    pub fn apply<D, F>(&self, transform: F) -> Result<D, WnfApplyError>
     where
         D: Borrow<T>,
         F: FnMut(T) -> D,
     {
-        self.try_apply(|data| Ok(transform(data)))
+        self.apply_as(transform)
     }
 
     pub fn try_apply<D, E, F>(&self, transform: F) -> Result<D, WnfApplyError<E>>
@@ -118,12 +118,12 @@ impl<T> RawWnfState<T>
 where
     T: WnfRead<Box<T>> + NoUninit + ?Sized,
 {
-    pub fn apply_boxed<D, F>(&self, mut transform: F) -> Result<D, WnfApplyError>
+    pub fn apply_boxed<D, F>(&self, transform: F) -> Result<D, WnfApplyError>
     where
         D: Borrow<T>,
         F: FnMut(Box<T>) -> D,
     {
-        self.try_apply_boxed(|data| Ok(transform(data)))
+        self.apply_as(transform)
     }
 
     pub fn try_apply_boxed<D, E, F>(&self, transform: F) -> Result<D, WnfApplyError<E>>
@@ -139,6 +139,15 @@ impl<T> RawWnfState<T>
 where
     T: ?Sized,
 {
+    pub(crate) fn apply_as<ReadInto, WriteFrom, F>(&self, mut transform: F) -> Result<WriteFrom, WnfApplyError>
+    where
+        WriteFrom: Borrow<T>,
+        T: WnfRead<ReadInto> + NoUninit,
+        F: FnMut(ReadInto) -> WriteFrom,
+    {
+        self.try_apply_as(|data| Ok(transform(data)))
+    }
+
     fn try_apply_as<ReadInto, WriteFrom, E, F>(&self, mut transform: F) -> Result<WriteFrom, WnfApplyError<E>>
     where
         WriteFrom: Borrow<T>,

@@ -59,12 +59,7 @@ where
     where
         D: Borrow<T>,
     {
-        let mut old_value = None;
-        self.apply(|value| {
-            old_value = Some(value);
-            new_value.borrow()
-        })?;
-        Ok(old_value.unwrap())
+        self.replace_as(new_value)
     }
 }
 
@@ -76,8 +71,21 @@ where
     where
         D: Borrow<T>,
     {
+        self.replace_as(new_value)
+    }
+}
+
+impl<T> RawWnfState<T>
+where
+    T: ?Sized,
+{
+    fn replace_as<ReadInto, WriteFrom>(&self, new_value: WriteFrom) -> Result<ReadInto, WnfApplyError>
+    where
+        WriteFrom: Borrow<T>,
+        T: WnfRead<ReadInto> + NoUninit,
+    {
         let mut old_value = None;
-        self.apply_boxed(|value| {
+        self.apply_as(|value| {
             old_value = Some(value);
             new_value.borrow()
         })?;
