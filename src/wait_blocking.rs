@@ -9,7 +9,10 @@ use crate::{
     WnfSubscribeError, WnfUnsubscribeError,
 };
 
-impl<T> OwnedWnfState<T> {
+impl<T> OwnedWnfState<T>
+where
+    T: ?Sized,
+{
     pub fn wait_blocking(&self) -> Result<(), WnfWaitError> {
         self.raw.wait_blocking()
     }
@@ -39,7 +42,10 @@ where
     }
 }
 
-impl<T> BorrowedWnfState<'_, T> {
+impl<T> BorrowedWnfState<'_, T>
+where
+    T: ?Sized,
+{
     pub fn wait_blocking(&self) -> Result<(), WnfWaitError> {
         self.raw.wait_blocking()
     }
@@ -69,7 +75,10 @@ where
     }
 }
 
-impl<T> RawWnfState<T> {
+impl<T> RawWnfState<T>
+where
+    T: ?Sized,
+{
     pub fn wait_blocking(&self) -> Result<(), WnfWaitError> {
         let _: WnfOpaqueData = self.cast().wait_until_blocking_internal(ChangedPredicate)?;
         Ok(())

@@ -17,7 +17,10 @@ pub(crate) enum WnfNameInfoClass {
     IsQuiescent = 2,
 }
 
-impl<T> OwnedWnfState<T> {
+impl<T> OwnedWnfState<T>
+where
+    T: ?Sized,
+{
     pub fn exists(&self) -> Result<bool, WnfInfoError> {
         self.raw.exists()
     }
@@ -31,7 +34,10 @@ impl<T> OwnedWnfState<T> {
     }
 }
 
-impl<T> BorrowedWnfState<'_, T> {
+impl<T> BorrowedWnfState<'_, T>
+where
+    T: ?Sized,
+{
     pub fn exists(&self) -> Result<bool, WnfInfoError> {
         self.raw.exists()
     }
@@ -45,7 +51,10 @@ impl<T> BorrowedWnfState<'_, T> {
     }
 }
 
-impl<T> RawWnfState<T> {
+impl<T> RawWnfState<T>
+where
+    T: ?Sized,
+{
     pub fn exists(&self) -> Result<bool, WnfInfoError> {
         self.info_internal(WnfNameInfoClass::StateNameExist)
     }
