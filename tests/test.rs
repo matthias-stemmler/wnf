@@ -311,7 +311,7 @@ fn subscribe() {
             state
                 .subscribe(
                     WnfChangeStamp::initial(),
-                    Box::new(move |accessor: &WnfDataAccessor<_>, change_stamp| {
+                    Box::new(move |accessor: WnfDataAccessor<_>, change_stamp| {
                         tx.send((accessor.get().unwrap(), change_stamp)).unwrap();
                     }),
                 )
@@ -355,7 +355,7 @@ fn subscribe_boxed() {
             state
                 .subscribe(
                     WnfChangeStamp::initial(),
-                    Box::new(move |accessor: &WnfDataAccessor<_>, change_stamp| {
+                    Box::new(move |accessor: WnfDataAccessor<_>, change_stamp| {
                         tx.send((accessor.get_boxed().unwrap(), change_stamp)).unwrap();
                     }),
                 )
@@ -399,7 +399,7 @@ fn subscribe_slice() {
             state
                 .subscribe(
                     WnfChangeStamp::initial(),
-                    Box::new(move |accessor: &WnfDataAccessor<_>, change_stamp| {
+                    Box::new(move |accessor: WnfDataAccessor<_>, change_stamp| {
                         tx.send((accessor.get_boxed().unwrap(), change_stamp)).unwrap();
                     }),
                 )
@@ -463,7 +463,7 @@ fn subscribers_present() {
     assert!(!state.subscribers_present().unwrap());
 
     let subscription = state
-        .subscribe(WnfChangeStamp::initial(), Box::new(|_: &WnfDataAccessor<_>, _| {}))
+        .subscribe(WnfChangeStamp::initial(), Box::new(|_: WnfDataAccessor<_>, _| {}))
         .unwrap();
     assert!(state.subscribers_present().unwrap());
 
@@ -479,7 +479,7 @@ fn is_quiescent() {
     let subscription = state
         .subscribe(
             WnfChangeStamp::initial(),
-            Box::new(move |_: &WnfDataAccessor<_>, _| {
+            Box::new(move |_: WnfDataAccessor<_>, _| {
                 let _ = rx.recv();
             }),
         )

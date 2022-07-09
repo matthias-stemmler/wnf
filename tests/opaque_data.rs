@@ -32,7 +32,7 @@ fn subscribe() {
 
     let _subscription = state.subscribe(
         WnfChangeStamp::initial(),
-        Box::new(move |_: &WnfDataAccessor<_>, change_stamp| {
+        Box::new(move |_: WnfDataAccessor<_>, change_stamp| {
             tx.send(change_stamp).unwrap();
         }),
     );

@@ -23,7 +23,7 @@ fn main() {
     let subscription = state
         .subscribe(
             WnfChangeStamp::initial(),
-            Box::new(move |accessor: &WnfDataAccessor<_>, change_stamp| {
+            Box::new(move |accessor: WnfDataAccessor<_>, change_stamp| {
                 let data = accessor.get().expect("Data is invalid");
                 info!(data, ?change_stamp);
                 tx.send(data).expect("Failed to send data to mpsc channel");
