@@ -121,7 +121,7 @@ where
 
         let subscription = self.subscribe(
             change_stamp,
-            Box::new(move |accessor: WnfDataAccessor<_>, _| {
+            Box::new(move |accessor: WnfDataAccessor<_>| {
                 let (mutex, condvar) = &*pair2;
                 *mutex.lock().unwrap() = Some(accessor.get_as());
                 condvar.notify_one();

@@ -311,8 +311,8 @@ fn subscribe() {
             state
                 .subscribe(
                     WnfChangeStamp::initial(),
-                    Box::new(move |accessor: WnfDataAccessor<_>, change_stamp| {
-                        tx.send((accessor.get().unwrap(), change_stamp)).unwrap();
+                    Box::new(move |accessor: WnfDataAccessor<_>| {
+                        tx.send(accessor.query().unwrap()).unwrap();
                     }),
                 )
                 .unwrap(),
@@ -325,7 +325,11 @@ fn subscribe() {
         state.set(i).unwrap();
 
         for _ in 0..NUM_SUBSCRIPTIONS {
-            let (data, change_stamp) = rx.recv_timeout(Duration::from_secs(1)).unwrap();
+            let (data, change_stamp) = rx
+                .recv_timeout(Duration::from_secs(1))
+                .unwrap()
+                .into_data_change_stamp();
+
             assert_eq!(data, i);
             assert_eq!(change_stamp, WnfChangeStamp::from(i + 1));
         }
@@ -355,8 +359,8 @@ fn subscribe_boxed() {
             state
                 .subscribe(
                     WnfChangeStamp::initial(),
-                    Box::new(move |accessor: WnfDataAccessor<_>, change_stamp| {
-                        tx.send((accessor.get_boxed().unwrap(), change_stamp)).unwrap();
+                    Box::new(move |accessor: WnfDataAccessor<_>| {
+                        tx.send(accessor.query_boxed().unwrap()).unwrap();
                     }),
                 )
                 .unwrap(),
@@ -369,7 +373,11 @@ fn subscribe_boxed() {
         state.set(i).unwrap();
 
         for _ in 0..NUM_SUBSCRIPTIONS {
-            let (data, change_stamp) = rx.recv_timeout(Duration::from_secs(1)).unwrap();
+            let (data, change_stamp) = rx
+                .recv_timeout(Duration::from_secs(1))
+                .unwrap()
+                .into_data_change_stamp();
+
             assert_eq!(*data, i);
             assert_eq!(change_stamp, WnfChangeStamp::from(i + 1));
         }
@@ -399,8 +407,8 @@ fn subscribe_slice() {
             state
                 .subscribe(
                     WnfChangeStamp::initial(),
-                    Box::new(move |accessor: WnfDataAccessor<_>, change_stamp| {
-                        tx.send((accessor.get_boxed().unwrap(), change_stamp)).unwrap();
+                    Box::new(move |accessor: WnfDataAccessor<_>| {
+                        tx.send(accessor.query_boxed().unwrap()).unwrap();
                     }),
                 )
                 .unwrap(),
@@ -413,7 +421,11 @@ fn subscribe_slice() {
         state.set([i, i]).unwrap();
 
         for _ in 0..NUM_SUBSCRIPTIONS {
-            let (data, change_stamp) = rx.recv_timeout(Duration::from_secs(1)).unwrap();
+            let (data, change_stamp) = rx
+                .recv_timeout(Duration::from_secs(1))
+                .unwrap()
+                .into_data_change_stamp();
+
             assert_eq!(*data, [i, i]);
             assert_eq!(change_stamp, WnfChangeStamp::from(i + 1));
         }
@@ -463,7 +475,7 @@ fn subscribers_present() {
     assert!(!state.subscribers_present().unwrap());
 
     let subscription = state
-        .subscribe(WnfChangeStamp::initial(), Box::new(|_: WnfDataAccessor<_>, _| {}))
+        .subscribe(WnfChangeStamp::initial(), Box::new(|_: WnfDataAccessor<_>| {}))
         .unwrap();
     assert!(state.subscribers_present().unwrap());
 
@@ -479,7 +491,7 @@ fn is_quiescent() {
     let subscription = state
         .subscribe(
             WnfChangeStamp::initial(),
-            Box::new(move |_: WnfDataAccessor<_>, _| {
+            Box::new(move |_: WnfDataAccessor<_>| {
                 let _ = rx.recv();
             }),
         )

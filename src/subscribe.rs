@@ -15,7 +15,7 @@ use crate::ntdll::NTDLL_TARGET;
 use crate::read::WnfRead;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::state_name::WnfStateName;
-use crate::{ntdll_sys, WnfReadError};
+use crate::{ntdll_sys, WnfReadError, WnfStampedData};
 
 impl<T> OwnedWnfState<T>
 where
@@ -27,7 +27,7 @@ where
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        F: FnMut(WnfDataAccessor<T>, WnfChangeStamp) + Send + ?Sized + 'static,
+        F: FnMut(WnfDataAccessor<T>) + Send + ?Sized + 'static,
     {
         self.raw.subscribe(after_change_stamp, listener)
     }
@@ -43,7 +43,7 @@ where
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        F: FnMut(WnfDataAccessor<T>, WnfChangeStamp) + Send + ?Sized + 'static,
+        F: FnMut(WnfDataAccessor<T>) + Send + ?Sized + 'static,
     {
         self.raw.subscribe(after_change_stamp, listener)
     }
@@ -59,7 +59,7 @@ where
         listener: Box<F>,
     ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
     where
-        F: FnMut(WnfDataAccessor<T>, WnfChangeStamp) + Send + ?Sized + 'static,
+        F: FnMut(WnfDataAccessor<T>) + Send + ?Sized + 'static,
     {
         extern "system" fn callback<F, T>(
             state_name: u64,
@@ -70,7 +70,7 @@ where
             buffer_size: u32,
         ) -> NTSTATUS
         where
-            F: FnMut(WnfDataAccessor<T>, WnfChangeStamp) + Send + ?Sized + 'static,
+            F: FnMut(WnfDataAccessor<T>) + Send + ?Sized + 'static,
             T: ?Sized,
         {
             let _ = panic::catch_unwind(|| {
@@ -84,10 +84,10 @@ where
                 let _enter = span.enter();
 
                 let context: &WnfSubscriptionContext<F> = unsafe { &*context.cast() };
-                let scope = unsafe { WnfDataScope::new(buffer, buffer_size as usize) };
+                let scope = unsafe { WnfDataScope::new(buffer, buffer_size as usize, change_stamp.into()) };
 
                 context.with_listener(|listener| {
-                    listener(scope.accessor(), change_stamp.into());
+                    listener(scope.accessor());
                 });
             });
 
@@ -151,6 +151,7 @@ where
 {
     buffer: *const c_void,
     buffer_size: usize,
+    change_stamp: WnfChangeStamp,
     _marker: PhantomData<fn() -> T>,
 }
 
@@ -169,10 +170,11 @@ impl<T> WnfDataScope<T>
 where
     T: ?Sized,
 {
-    unsafe fn new(buffer: *const c_void, buffer_size: usize) -> Self {
+    unsafe fn new(buffer: *const c_void, buffer_size: usize, change_stamp: WnfChangeStamp) -> Self {
         Self {
             buffer,
             buffer_size,
+            change_stamp,
             _marker: PhantomData,
         }
     }
@@ -188,6 +190,7 @@ where
         WnfDataScope {
             buffer: self.buffer,
             buffer_size: self.buffer_size,
+            change_stamp: self.change_stamp,
             _marker: PhantomData,
         }
     }
@@ -203,6 +206,10 @@ where
             _marker: PhantomData,
         }
     }
+
+    pub fn change_stamp(&self) -> WnfChangeStamp {
+        self.scope.change_stamp
+    }
 }
 
 impl<T> WnfDataAccessor<'_, T>
@@ -212,6 +219,10 @@ where
     pub fn get(&self) -> Result<T, WnfReadError> {
         self.get_as()
     }
+
+    pub fn query(&self) -> Result<WnfStampedData<T>, WnfReadError> {
+        self.query_as()
+    }
 }
 
 impl<T> WnfDataAccessor<'_, T>
@@ -220,6 +231,10 @@ where
 {
     pub fn get_boxed(&self) -> Result<Box<T>, WnfReadError> {
         self.get_as()
+    }
+
+    pub fn query_boxed(&self) -> Result<WnfStampedData<Box<T>>, WnfReadError> {
+        self.query_as()
     }
 }
 
@@ -232,6 +247,16 @@ where
         T: WnfRead<D>,
     {
         unsafe { T::from_buffer(self.scope.buffer, self.scope.buffer_size) }
+    }
+
+    pub(crate) fn query_as<D>(&self) -> Result<WnfStampedData<D>, WnfReadError>
+    where
+        T: WnfRead<D>,
+    {
+        Ok(WnfStampedData::from_data_change_stamp(
+            self.get_as()?,
+            self.scope.change_stamp,
+        ))
     }
 }
 

@@ -21,8 +21,8 @@ fn subscribe() {
 
     let _subscription = state.subscribe(
         WnfChangeStamp::initial(),
-        Box::new(move |_: WnfDataAccessor<_>, change_stamp| {
-            tx.send(change_stamp).unwrap();
+        Box::new(move |accessor: WnfDataAccessor<_>| {
+            tx.send(accessor.change_stamp()).unwrap();
         }),
     );
 
