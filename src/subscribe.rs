@@ -12,7 +12,7 @@ use windows::Win32::Foundation::{NTSTATUS, STATUS_SUCCESS};
 
 use crate::data::WnfChangeStamp;
 use crate::ntdll::NTDLL_TARGET;
-use crate::read::{WnfRead, WnfReadBoxed};
+use crate::read::WnfRead;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::state_name::WnfStateName;
 use crate::{ntdll_sys, WnfReadError};
@@ -193,7 +193,10 @@ where
     }
 }
 
-impl<'a, T> WnfDataAccessor<'a, T> {
+impl<'a, T> WnfDataAccessor<'a, T>
+where
+    T: ?Sized,
+{
     pub fn cast<U>(self) -> WnfDataAccessor<'a, U> {
         WnfDataAccessor {
             scope: self.scope.cast(),
@@ -204,19 +207,31 @@ impl<'a, T> WnfDataAccessor<'a, T> {
 
 impl<T> WnfDataAccessor<'_, T>
 where
-    T: WnfRead,
+    T: WnfRead<T>,
 {
     pub fn get(&self) -> Result<T, WnfReadError> {
-        unsafe { T::from_buffer(self.scope.buffer, self.scope.buffer_size) }
+        self.get_as()
     }
 }
 
 impl<T> WnfDataAccessor<'_, T>
 where
-    T: WnfReadBoxed + ?Sized,
+    T: WnfRead<Box<T>> + ?Sized,
 {
     pub fn get_boxed(&self) -> Result<Box<T>, WnfReadError> {
-        unsafe { T::from_buffer_boxed(self.scope.buffer, self.scope.buffer_size) }
+        self.get_as()
+    }
+}
+
+impl<T> WnfDataAccessor<'_, T>
+where
+    T: ?Sized,
+{
+    pub(crate) fn get_as<D>(&self) -> Result<D, WnfReadError>
+    where
+        T: WnfRead<D>,
+    {
+        unsafe { T::from_buffer(self.scope.buffer, self.scope.buffer_size) }
     }
 }
 

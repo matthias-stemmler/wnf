@@ -8,59 +8,42 @@ use thiserror::Error;
 use crate::bytes::CheckedBitPattern;
 use crate::data::WnfOpaqueData;
 
-pub trait WnfRead: Copy + Send + Sized + 'static {
-    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Result<Self, WnfReadError>;
+pub trait WnfRead<D>: Send + 'static {
+    /// # Safety
+    /// TODO
+    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Result<D, WnfReadError>;
 
-    unsafe fn from_reader<E, F, Meta>(reader: F) -> Result<(Self, Meta), E>
+    /// # Safety
+    /// TODO
+    unsafe fn from_reader<E, F, Meta>(reader: F) -> Result<(D, Meta), E>
     where
         E: From<WnfReadError>,
         F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>;
 }
 
-pub trait WnfReadBoxed: Send + 'static {
-    unsafe fn from_buffer_boxed(ptr: *const c_void, size: usize) -> Result<Box<Self>, WnfReadError>;
-
-    unsafe fn from_reader_boxed<E, F, Meta>(reader: F) -> Result<(Box<Self>, Meta), E>
-    where
-        E: From<WnfReadError>,
-        F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>;
-}
-
-impl WnfRead for WnfOpaqueData {
-    unsafe fn from_buffer(_: *const c_void, _: usize) -> Result<Self, WnfReadError> {
-        Ok(Self::new())
+impl<D> WnfRead<D> for WnfOpaqueData
+where
+    D: Default,
+{
+    unsafe fn from_buffer(_: *const c_void, _: usize) -> Result<D, WnfReadError> {
+        Ok(D::default())
     }
 
-    unsafe fn from_reader<E, F, Meta>(mut reader: F) -> Result<(Self, Meta), E>
+    unsafe fn from_reader<E, F, Meta>(mut reader: F) -> Result<(D, Meta), E>
     where
         E: From<WnfReadError>,
         F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>,
     {
         let (_, meta) = reader(ptr::null_mut(), 0)?;
-        Ok((Self::new(), meta))
+        Ok((D::default(), meta))
     }
 }
 
-impl WnfReadBoxed for WnfOpaqueData {
-    unsafe fn from_buffer_boxed(_: *const c_void, _: usize) -> Result<Box<Self>, WnfReadError> {
-        Ok(Box::new(Self::new()))
-    }
-
-    unsafe fn from_reader_boxed<E, F, Meta>(mut reader: F) -> Result<(Box<Self>, Meta), E>
-    where
-        E: From<WnfReadError>,
-        F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>,
-    {
-        let (_, meta) = reader(ptr::null_mut(), 0)?;
-        Ok((Box::new(Self::new()), meta))
-    }
-}
-
-impl<T> WnfRead for T
+impl<T> WnfRead<T> for T
 where
     T: CheckedBitPattern,
 {
-    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Result<Self, WnfReadError> {
+    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Result<T, WnfReadError> {
         if size != mem::size_of::<T::Bits>() {
             return Err(WnfReadError::WrongSize {
                 expected: mem::size_of::<T::Bits>(),
@@ -77,7 +60,7 @@ where
         }
     }
 
-    unsafe fn from_reader<E, F, Meta>(mut reader: F) -> Result<(Self, Meta), E>
+    unsafe fn from_reader<E, F, Meta>(mut reader: F) -> Result<(T, Meta), E>
     where
         E: From<WnfReadError>,
         F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>,
@@ -104,11 +87,11 @@ where
     }
 }
 
-impl<T> WnfReadBoxed for T
+impl<T> WnfRead<Box<T>> for T
 where
     T: CheckedBitPattern,
 {
-    unsafe fn from_buffer_boxed(ptr: *const c_void, size: usize) -> Result<Box<Self>, WnfReadError> {
+    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Result<Box<T>, WnfReadError> {
         if size != mem::size_of::<T::Bits>() {
             return Err(WnfReadError::WrongSize {
                 expected: mem::size_of::<T::Bits>(),
@@ -132,7 +115,7 @@ where
         }
     }
 
-    unsafe fn from_reader_boxed<E, F, Meta>(mut reader: F) -> Result<(Box<Self>, Meta), E>
+    unsafe fn from_reader<E, F, Meta>(mut reader: F) -> Result<(Box<T>, Meta), E>
     where
         E: From<WnfReadError>,
         F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>,
@@ -165,11 +148,11 @@ where
     }
 }
 
-impl<T> WnfReadBoxed for [T]
+impl<T> WnfRead<Box<[T]>> for [T]
 where
     T: CheckedBitPattern,
 {
-    unsafe fn from_buffer_boxed(ptr: *const c_void, size: usize) -> Result<Box<Self>, WnfReadError> {
+    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Result<Box<[T]>, WnfReadError> {
         if mem::size_of::<T>() == 0 {
             return if size == 0 {
                 Ok(Vec::new().into_boxed_slice())
@@ -201,7 +184,7 @@ where
         }
     }
 
-    unsafe fn from_reader_boxed<E, F, Meta>(mut reader: F) -> Result<(Box<Self>, Meta), E>
+    unsafe fn from_reader<E, F, Meta>(mut reader: F) -> Result<(Box<[T]>, Meta), E>
     where
         E: From<WnfReadError>,
         F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>,

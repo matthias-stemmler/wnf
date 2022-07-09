@@ -5,14 +5,14 @@ use thiserror::Error;
 
 use crate::bytes::NoUninit;
 use crate::query::WnfQueryError;
-use crate::read::{WnfRead, WnfReadBoxed};
+use crate::read::WnfRead;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::update::WnfUpdateError;
 use crate::WnfChangeStamp;
 
 impl<T> OwnedWnfState<T>
 where
-    T: WnfRead + NoUninit,
+    T: WnfRead<T> + NoUninit,
 {
     pub fn apply<D, F>(&self, transform: F) -> Result<D, WnfApplyError>
     where
@@ -33,7 +33,7 @@ where
 
 impl<T> OwnedWnfState<T>
 where
-    T: WnfReadBoxed + NoUninit + ?Sized,
+    T: WnfRead<Box<T>> + NoUninit + ?Sized,
 {
     pub fn apply_boxed<D, F>(&self, transform: F) -> Result<D, WnfApplyError>
     where
@@ -54,7 +54,7 @@ where
 
 impl<T> BorrowedWnfState<'_, T>
 where
-    T: WnfRead + NoUninit,
+    T: WnfRead<T> + NoUninit,
 {
     pub fn apply<D, F>(&self, transform: F) -> Result<D, WnfApplyError>
     where
@@ -75,7 +75,7 @@ where
 
 impl<T> BorrowedWnfState<'_, T>
 where
-    T: WnfReadBoxed + NoUninit + ?Sized,
+    T: WnfRead<Box<T>> + NoUninit + ?Sized,
 {
     pub fn apply_boxed<D, F>(&self, transform: F) -> Result<D, WnfApplyError>
     where
@@ -96,7 +96,7 @@ where
 
 impl<T> RawWnfState<T>
 where
-    T: WnfRead + NoUninit,
+    T: WnfRead<T> + NoUninit,
 {
     pub fn apply<D, F>(&self, mut transform: F) -> Result<D, WnfApplyError>
     where
@@ -133,7 +133,7 @@ where
 
 impl<T> RawWnfState<T>
 where
-    T: WnfReadBoxed + NoUninit + ?Sized,
+    T: WnfRead<Box<T>> + NoUninit + ?Sized,
 {
     pub fn apply_boxed<D, F>(&self, mut transform: F) -> Result<D, WnfApplyError>
     where

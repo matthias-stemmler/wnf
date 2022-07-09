@@ -3,11 +3,10 @@ use std::sync::{Arc, Condvar, Mutex};
 
 use thiserror::Error;
 
-use crate::read::WnfReadBoxed;
 use crate::state::RawWnfState;
 use crate::{
     BorrowedWnfState, OwnedWnfState, WnfDataAccessor, WnfOpaqueData, WnfQueryError, WnfRead, WnfReadError,
-    WnfStampedData, WnfSubscribeError, WnfUnsubscribeError,
+    WnfSubscribeError, WnfUnsubscribeError,
 };
 
 impl<T> OwnedWnfState<T> {
@@ -18,7 +17,7 @@ impl<T> OwnedWnfState<T> {
 
 impl<T> OwnedWnfState<T>
 where
-    T: WnfRead,
+    T: WnfRead<T>,
 {
     pub fn wait_until_blocking<F>(&self, predicate: F) -> Result<T, WnfWaitError>
     where
@@ -30,7 +29,7 @@ where
 
 impl<T> OwnedWnfState<T>
 where
-    T: WnfReadBoxed + ?Sized,
+    T: WnfRead<Box<T>> + ?Sized,
 {
     pub fn wait_until_boxed_blocking<F>(&self, predicate: F) -> Result<Box<T>, WnfWaitError>
     where
@@ -48,7 +47,7 @@ impl<T> BorrowedWnfState<'_, T> {
 
 impl<T> BorrowedWnfState<'_, T>
 where
-    T: WnfRead,
+    T: WnfRead<T>,
 {
     pub fn wait_until_blocking<F>(&self, predicate: F) -> Result<T, WnfWaitError>
     where
@@ -60,7 +59,7 @@ where
 
 impl<T> BorrowedWnfState<'_, T>
 where
-    T: WnfReadBoxed + ?Sized,
+    T: WnfRead<Box<T>> + ?Sized,
 {
     pub fn wait_until_boxed_blocking<F>(&self, predicate: F) -> Result<Box<T>, WnfWaitError>
     where
@@ -79,7 +78,7 @@ impl<T> RawWnfState<T> {
 
 impl<T> RawWnfState<T>
 where
-    T: WnfRead,
+    T: WnfRead<T>,
 {
     pub fn wait_until_blocking<F>(&self, predicate: F) -> Result<T, WnfWaitError>
     where
@@ -91,7 +90,7 @@ where
 
 impl<T> RawWnfState<T>
 where
-    T: WnfReadBoxed + ?Sized,
+    T: WnfRead<Box<T>> + ?Sized,
 {
     pub fn wait_until_boxed_blocking<F>(&self, predicate: F) -> Result<Box<T>, WnfWaitError>
     where
@@ -109,9 +108,9 @@ where
     where
         D: Borrow<T> + Send + 'static,
         F: Predicate<T>,
-        T: WnfReadAs<D>,
+        T: WnfRead<D>,
     {
-        let (data, change_stamp) = T::query_from_state(self)?.into_data_change_stamp();
+        let (data, change_stamp) = self.query_as()?.into_data_change_stamp();
 
         if predicate.check(data.borrow(), PredicateStage::Initial) {
             return Ok(data);
@@ -124,7 +123,7 @@ where
             change_stamp,
             Box::new(move |accessor: WnfDataAccessor<_>, _| {
                 let (mutex, condvar) = &*pair2;
-                *mutex.lock().unwrap() = Some(T::get_from_accessor(accessor));
+                *mutex.lock().unwrap() = Some(accessor.get_as());
                 condvar.notify_one();
             }),
         )?;
@@ -171,38 +170,6 @@ struct ChangedPredicate;
 impl<T> Predicate<T> for ChangedPredicate {
     fn check(&mut self, _: &T, stage: PredicateStage) -> bool {
         matches!(stage, PredicateStage::Changed)
-    }
-}
-
-trait WnfReadAs<D> {
-    fn query_from_state(state: &RawWnfState<Self>) -> Result<WnfStampedData<D>, WnfQueryError>;
-    fn get_from_accessor(accessor: WnfDataAccessor<Self>) -> Result<D, WnfReadError>;
-}
-
-// TODO Avoid this by using T: WnfRead<T>, T: WnfRead<Box<T>> everywhere?
-impl<T> WnfReadAs<T> for T
-where
-    T: WnfRead,
-{
-    fn query_from_state(state: &RawWnfState<T>) -> Result<WnfStampedData<T>, WnfQueryError> {
-        state.query()
-    }
-
-    fn get_from_accessor(accessor: WnfDataAccessor<T>) -> Result<T, WnfReadError> {
-        accessor.get()
-    }
-}
-
-impl<T> WnfReadAs<Box<T>> for T
-where
-    T: WnfReadBoxed + ?Sized,
-{
-    fn query_from_state(state: &RawWnfState<T>) -> Result<WnfStampedData<Box<T>>, WnfQueryError> {
-        state.query_boxed()
-    }
-
-    fn get_from_accessor(accessor: WnfDataAccessor<T>) -> Result<Box<T>, WnfReadError> {
-        accessor.get_boxed()
     }
 }
 

@@ -1,12 +1,11 @@
 use std::borrow::Borrow;
 
-use crate::read::WnfReadBoxed;
 use crate::state::RawWnfState;
 use crate::{BorrowedWnfState, NoUninit, OwnedWnfState, WnfApplyError, WnfRead};
 
 impl<T> OwnedWnfState<T>
 where
-    T: WnfRead + NoUninit,
+    T: WnfRead<T> + NoUninit,
 {
     pub fn replace<D>(&self, new_value: D) -> Result<T, WnfApplyError>
     where
@@ -18,7 +17,7 @@ where
 
 impl<T> OwnedWnfState<T>
 where
-    T: WnfReadBoxed + NoUninit + ?Sized,
+    T: WnfRead<Box<T>> + NoUninit + ?Sized,
 {
     pub fn replace_boxed<D>(&self, new_value: D) -> Result<Box<T>, WnfApplyError>
     where
@@ -30,7 +29,7 @@ where
 
 impl<T> BorrowedWnfState<'_, T>
 where
-    T: WnfRead + NoUninit,
+    T: WnfRead<T> + NoUninit,
 {
     pub fn replace<D>(&self, new_value: D) -> Result<T, WnfApplyError>
     where
@@ -42,7 +41,7 @@ where
 
 impl<T> BorrowedWnfState<'_, T>
 where
-    T: WnfReadBoxed + NoUninit + ?Sized,
+    T: WnfRead<Box<T>> + NoUninit + ?Sized,
 {
     pub fn replace_boxed<D>(&self, new_value: D) -> Result<Box<T>, WnfApplyError>
     where
@@ -54,7 +53,7 @@ where
 
 impl<T> RawWnfState<T>
 where
-    T: WnfRead + NoUninit,
+    T: WnfRead<T> + NoUninit,
 {
     pub fn replace<D>(&self, new_value: D) -> Result<T, WnfApplyError>
     where
@@ -71,7 +70,7 @@ where
 
 impl<T> RawWnfState<T>
 where
-    T: WnfReadBoxed + NoUninit + ?Sized,
+    T: WnfRead<Box<T>> + NoUninit + ?Sized,
 {
     pub fn replace_boxed<D>(&self, new_value: D) -> Result<Box<T>, WnfApplyError>
     where
