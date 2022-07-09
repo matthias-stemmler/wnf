@@ -171,7 +171,7 @@ where
     }
 }
 
-pub trait BorrowAsWnfState<T> {
+pub trait BorrowAsWnfState<T>: private::Sealed {
     fn borrow_as_wnf_state(&self) -> BorrowedWnfState<T>;
 }
 
@@ -258,4 +258,12 @@ where
             .field("state_name", &self.state_name)
             .finish()
     }
+}
+
+mod private {
+    use super::*;
+
+    pub trait Sealed {}
+    impl<T> Sealed for OwnedWnfState<T> {}
+    impl<T> Sealed for BorrowedWnfState<'_, T> {}
 }

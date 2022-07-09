@@ -8,7 +8,7 @@ use thiserror::Error;
 use crate::bytes::CheckedBitPattern;
 use crate::data::WnfOpaqueData;
 
-pub trait WnfRead<D>: Send + 'static {
+pub trait WnfRead<D>: private::Sealed + Send + 'static {
     /// # Safety
     /// TODO
     unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Result<D, WnfReadError>;
@@ -21,21 +21,18 @@ pub trait WnfRead<D>: Send + 'static {
         F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>;
 }
 
-impl<D> WnfRead<D> for WnfOpaqueData
-where
-    D: Default,
-{
-    unsafe fn from_buffer(_: *const c_void, _: usize) -> Result<D, WnfReadError> {
-        Ok(D::default())
+impl WnfRead<WnfOpaqueData> for WnfOpaqueData {
+    unsafe fn from_buffer(_: *const c_void, _: usize) -> Result<WnfOpaqueData, WnfReadError> {
+        Ok(WnfOpaqueData::new())
     }
 
-    unsafe fn from_reader<E, F, Meta>(mut reader: F) -> Result<(D, Meta), E>
+    unsafe fn from_reader<E, F, Meta>(mut reader: F) -> Result<(WnfOpaqueData, Meta), E>
     where
         E: From<WnfReadError>,
         F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>,
     {
         let (_, meta) = reader(ptr::null_mut(), 0)?;
-        Ok((D::default(), meta))
+        Ok((WnfOpaqueData::new(), meta))
     }
 }
 
@@ -234,6 +231,16 @@ where
             Err(E::from(WnfReadError::InvalidBitPattern))
         }
     }
+}
+
+mod private {
+    use super::*;
+
+    pub trait Sealed {}
+
+    impl Sealed for WnfOpaqueData {}
+    impl<T> Sealed for T where T: CheckedBitPattern {}
+    impl<T> Sealed for [T] where T: CheckedBitPattern {}
 }
 
 #[derive(Debug, Error, PartialEq)]

@@ -14,17 +14,6 @@ fn query() {
 }
 
 #[test]
-fn query_boxed() {
-    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
-    state.set(42).unwrap();
-
-    let state: OwnedWnfState<WnfOpaqueData> = state.cast();
-
-    let change_stamp = state.query_boxed().unwrap().change_stamp();
-    assert_eq!(change_stamp, 1.into());
-}
-
-#[test]
 fn subscribe() {
     let state = OwnedWnfState::<WnfOpaqueData>::create_temporary().unwrap();
 
