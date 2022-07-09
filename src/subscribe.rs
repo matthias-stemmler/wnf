@@ -25,7 +25,7 @@ where
         &self,
         after_change_stamp: WnfChangeStamp,
         listener: Box<F>,
-    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
+    ) -> Result<WnfSubscription<F>, WnfSubscribeError>
     where
         F: FnMut(WnfDataAccessor<T>) + Send + ?Sized + 'static,
     {
@@ -41,7 +41,7 @@ where
         &self,
         after_change_stamp: WnfChangeStamp,
         listener: Box<F>,
-    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
+    ) -> Result<WnfSubscription<F>, WnfSubscribeError>
     where
         F: FnMut(WnfDataAccessor<T>) + Send + ?Sized + 'static,
     {
@@ -57,7 +57,7 @@ where
         &self,
         after_change_stamp: WnfChangeStamp,
         listener: Box<F>,
-    ) -> Result<WnfSubscriptionHandle<F>, WnfSubscribeError>
+    ) -> Result<WnfSubscription<F>, WnfSubscribeError>
     where
         F: FnMut(WnfDataAccessor<T>) + Send + ?Sized + 'static,
     {
@@ -120,7 +120,7 @@ where
                 "RtlSubscribeWnfStateChangeNotification",
             );
 
-            Ok(WnfSubscriptionHandle::new(context, subscription))
+            Ok(WnfSubscription::new(context, subscription))
         } else {
             debug!(
                 target: NTDLL_TARGET,
@@ -260,32 +260,33 @@ where
     }
 }
 
-pub struct WnfSubscriptionHandle<'a, F>
+#[must_use]
+pub struct WnfSubscription<'a, F>
 where
     F: ?Sized,
 {
-    inner: Option<WnfSubscriptionHandleInner<F>>,
+    inner: Option<WnfSubscriptionInner<F>>,
     _marker: PhantomData<&'a ()>,
 }
 
-impl<F> Debug for WnfSubscriptionHandle<'_, F>
+impl<F> Debug for WnfSubscription<'_, F>
 where
     F: ?Sized,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("WnfSubscriptionHandle")
+        f.debug_struct("WnfSubscription")
             .field("subscription", &self.inner.as_ref().map(|inner| inner.subscription))
             .finish()
     }
 }
 
-impl<F> WnfSubscriptionHandle<'_, F>
+impl<F> WnfSubscription<'_, F>
 where
     F: ?Sized,
 {
     pub(crate) fn new(context: Box<WnfSubscriptionContext<F>>, subscription: u64) -> Self {
         Self {
-            inner: Some(WnfSubscriptionHandleInner {
+            inner: Some(WnfSubscriptionInner {
                 context: ManuallyDrop::new(context),
                 subscription,
             }),
@@ -294,7 +295,7 @@ where
     }
 }
 
-pub(crate) struct WnfSubscriptionHandleInner<F>
+pub(crate) struct WnfSubscriptionInner<F>
 where
     F: ?Sized,
 {
@@ -302,12 +303,12 @@ where
     subscription: u64,
 }
 
-impl<F> Debug for WnfSubscriptionHandleInner<F>
+impl<F> Debug for WnfSubscriptionInner<F>
 where
     F: ?Sized,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("WnfSubscriptionHandleInner")
+        f.debug_struct("WnfSubscriptionInner")
             .field("subscription", &self.subscription)
             .finish()
     }
@@ -352,7 +353,7 @@ where
     }
 }
 
-impl<F> WnfSubscriptionHandle<'_, F>
+impl<F> WnfSubscription<'_, F>
 where
     F: ?Sized,
 {
@@ -389,7 +390,7 @@ where
     }
 }
 
-impl<F> Drop for WnfSubscriptionHandle<'_, F>
+impl<F> Drop for WnfSubscription<'_, F>
 where
     F: ?Sized,
 {

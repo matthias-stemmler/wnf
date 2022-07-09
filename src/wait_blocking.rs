@@ -126,12 +126,12 @@ where
         }
 
         let pair = Arc::new((Mutex::new(Some(Ok(data))), Condvar::new()));
-        let pair2 = Arc::clone(&pair);
+        let pair_for_subscription = Arc::clone(&pair);
 
         let subscription = self.subscribe(
             change_stamp,
             Box::new(move |accessor: WnfDataAccessor<_>| {
-                let (mutex, condvar) = &*pair2;
+                let (mutex, condvar) = &*pair_for_subscription;
                 *mutex.lock().unwrap() = Some(accessor.get_as());
                 condvar.notify_one();
             }),

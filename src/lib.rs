@@ -36,8 +36,7 @@ mod subscribe;
 mod update;
 mod wait_blocking;
 
-// TODO wait: sync + async, with predicate (receiving value + change stamp directly, no accessor, no result, failing if invalid, returning last value)
-// TODO   and without predicate (ignoring whether valid/invalid, returning nothing), boxed + unboxed, no `try_` version
+// TODO async wait
 
 // TODO check Debug impls
 // TODO builder pattern for creation, including max size and type_id
