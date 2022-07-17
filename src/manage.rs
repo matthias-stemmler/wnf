@@ -1,12 +1,10 @@
-use std::ptr;
+use std::{io, ptr};
 
-use thiserror::Error;
 use tracing::debug;
-use windows::Win32::Foundation::NTSTATUS;
 
 use crate::ntdll::NTDLL_TARGET;
 use crate::ntdll_sys;
-use crate::security::{SecurityCreateError, SecurityDescriptor};
+use crate::security::SecurityDescriptor;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::state_name::{WnfDataScope, WnfStateName, WnfStateNameLifetime};
 
@@ -14,11 +12,11 @@ impl<T> OwnedWnfState<T>
 where
     T: ?Sized,
 {
-    pub fn create_temporary() -> Result<Self, WnfCreateError> {
+    pub fn create_temporary() -> io::Result<Self> {
         RawWnfState::create_temporary().map(Self::from_raw)
     }
 
-    pub fn delete(self) -> Result<(), WnfDeleteError> {
+    pub fn delete(self) -> io::Result<()> {
         self.into_raw().delete()
     }
 }
@@ -27,7 +25,7 @@ impl<T> BorrowedWnfState<'_, T>
 where
     T: ?Sized,
 {
-    pub fn delete(self) -> Result<(), WnfDeleteError> {
+    pub fn delete(self) -> io::Result<()> {
         self.into_raw().delete()
     }
 }
@@ -36,7 +34,7 @@ impl<T> RawWnfState<T>
 where
     T: ?Sized,
 {
-    pub(crate) fn create_temporary() -> Result<Self, WnfCreateError> {
+    pub(crate) fn create_temporary() -> io::Result<Self> {
         let mut opaque_value = 0;
 
         // TODO Can we drop this or is it "borrowed" by the created WNF state?
@@ -85,11 +83,11 @@ where
                 "ZwCreateWnfStateName",
             );
 
-            Err(result.into())
+            Err(io::Error::from_raw_os_error(result.0))
         }
     }
 
-    pub(crate) fn delete(self) -> Result<(), WnfDeleteError> {
+    pub(crate) fn delete(self) -> io::Result<()> {
         let result = unsafe { ntdll_sys::ZwDeleteWnfStateName(&self.state_name.opaque_value()) };
 
         debug!(
@@ -101,34 +99,5 @@ where
 
         result.ok()?;
         Ok(())
-    }
-}
-
-#[derive(Debug, Error, PartialEq)]
-pub enum WnfCreateError {
-    #[error("failed to create WNF state name: security error {0}")]
-    Security(#[from] SecurityCreateError),
-
-    #[error("failed to create WNF state name: Windows error code {:#010x}", .0.code().0)]
-    Windows(#[from] windows::core::Error),
-}
-
-impl From<NTSTATUS> for WnfCreateError {
-    fn from(result: NTSTATUS) -> Self {
-        let err: windows::core::Error = result.into();
-        err.into()
-    }
-}
-
-#[derive(Debug, Error, PartialEq)]
-pub enum WnfDeleteError {
-    #[error("failed to delete WNF state name: Windows error code {:#010x}", .0.code().0)]
-    Windows(#[from] windows::core::Error),
-}
-
-impl From<NTSTATUS> for WnfDeleteError {
-    fn from(result: NTSTATUS) -> Self {
-        let err: windows::core::Error = result.into();
-        err.into()
     }
 }

@@ -3,9 +3,8 @@ use std::fmt::{Debug, Formatter};
 use std::marker::PhantomData;
 use std::mem::ManuallyDrop;
 use std::sync::Mutex;
-use std::{fmt, mem, panic, ptr};
+use std::{fmt, io, mem, panic, ptr};
 
-use thiserror::Error;
 use tracing::{debug, trace_span};
 use windows::core::GUID;
 use windows::Win32::Foundation::{NTSTATUS, STATUS_SUCCESS};
@@ -15,7 +14,7 @@ use crate::ntdll::NTDLL_TARGET;
 use crate::read::WnfRead;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::state_name::WnfStateName;
-use crate::{ntdll_sys, WnfReadError, WnfStampedData};
+use crate::{ntdll_sys, WnfStampedData};
 
 pub trait WnfStateListener<T>: Send + 'static
 where
@@ -38,11 +37,7 @@ impl<T> OwnedWnfState<T>
 where
     T: ?Sized,
 {
-    pub fn subscribe<F>(
-        &self,
-        after_change_stamp: WnfChangeStamp,
-        listener: F,
-    ) -> Result<WnfSubscription<F>, WnfSubscribeError>
+    pub fn subscribe<F>(&self, after_change_stamp: WnfChangeStamp, listener: F) -> io::Result<WnfSubscription<F>>
     where
         F: WnfStateListener<T>,
     {
@@ -54,11 +49,7 @@ impl<'a, T> BorrowedWnfState<'a, T>
 where
     T: ?Sized,
 {
-    pub fn subscribe<F>(
-        &self,
-        after_change_stamp: WnfChangeStamp,
-        listener: F,
-    ) -> Result<WnfSubscription<'a, F>, WnfSubscribeError>
+    pub fn subscribe<F>(&self, after_change_stamp: WnfChangeStamp, listener: F) -> io::Result<WnfSubscription<'a, F>>
     where
         F: WnfStateListener<T>,
     {
@@ -76,7 +67,7 @@ where
         &self,
         after_change_stamp: WnfChangeStamp,
         listener: F,
-    ) -> Result<WnfSubscription<'a, F>, WnfSubscribeError>
+    ) -> io::Result<WnfSubscription<'a, F>>
     where
         F: WnfStateListener<T>,
     {
@@ -149,7 +140,7 @@ where
                 "RtlSubscribeWnfStateChangeNotification",
             );
 
-            Err(result.into())
+            Err(io::Error::from_raw_os_error(result.0))
         }
     }
 }
@@ -235,11 +226,11 @@ impl<T> WnfDataAccessor<'_, T>
 where
     T: WnfRead<T>,
 {
-    pub fn get(&self) -> Result<T, WnfReadError> {
+    pub fn get(&self) -> io::Result<T> {
         self.get_as()
     }
 
-    pub fn query(&self) -> Result<WnfStampedData<T>, WnfReadError> {
+    pub fn query(&self) -> io::Result<WnfStampedData<T>> {
         self.query_as()
     }
 }
@@ -248,11 +239,11 @@ impl<T> WnfDataAccessor<'_, T>
 where
     T: WnfRead<Box<T>> + ?Sized,
 {
-    pub fn get_boxed(&self) -> Result<Box<T>, WnfReadError> {
+    pub fn get_boxed(&self) -> io::Result<Box<T>> {
         self.get_as()
     }
 
-    pub fn query_boxed(&self) -> Result<WnfStampedData<Box<T>>, WnfReadError> {
+    pub fn query_boxed(&self) -> io::Result<WnfStampedData<Box<T>>> {
         self.query_as()
     }
 }
@@ -261,14 +252,14 @@ impl<T> WnfDataAccessor<'_, T>
 where
     T: ?Sized,
 {
-    pub(crate) fn get_as<D>(&self) -> Result<D, WnfReadError>
+    pub(crate) fn get_as<D>(&self) -> io::Result<D>
     where
         T: WnfRead<D>,
     {
         unsafe { T::from_buffer(self.scope.buffer, self.scope.buffer_size) }
     }
 
-    pub(crate) fn query_as<D>(&self) -> Result<WnfStampedData<D>, WnfReadError>
+    pub(crate) fn query_as<D>(&self) -> io::Result<WnfStampedData<D>>
     where
         T: WnfRead<D>,
     {
@@ -354,12 +345,11 @@ impl<F> WnfSubscription<'_, F> {
         mem::forget(self);
     }
 
-    // TODO wrap error with custom Debug implementation
-    pub fn unsubscribe(mut self) -> Result<(), (WnfUnsubscribeError, Self)> {
-        self.try_unsubscribe().map_err(|err| (err, self))
+    pub fn unsubscribe(mut self) -> io::Result<()> {
+        self.try_unsubscribe()
     }
 
-    fn try_unsubscribe(&mut self) -> Result<(), WnfUnsubscribeError> {
+    fn try_unsubscribe(&mut self) -> io::Result<()> {
         if let Some(inner) = self.inner.take() {
             let result = unsafe { ntdll_sys::RtlUnsubscribeWnfStateChangeNotification(inner.subscription) };
 
@@ -373,7 +363,7 @@ impl<F> WnfSubscription<'_, F> {
             if result.is_ok() {
                 ManuallyDrop::into_inner(inner.context);
             } else {
-                self.inner = Some(inner);
+                inner.context.reset();
             }
 
             result.ok()?;
@@ -385,36 +375,6 @@ impl<F> WnfSubscription<'_, F> {
 
 impl<F> Drop for WnfSubscription<'_, F> {
     fn drop(&mut self) {
-        if self.try_unsubscribe().is_err() {
-            if let Some(inner) = self.inner.take() {
-                inner.context.reset();
-            }
-        }
-    }
-}
-
-#[derive(Debug, Error, PartialEq)]
-pub enum WnfSubscribeError {
-    #[error("failed to subscribe to WNF state change: Windows error code {:#010x}", .0.code().0)]
-    Windows(#[from] windows::core::Error),
-}
-
-impl From<NTSTATUS> for WnfSubscribeError {
-    fn from(result: NTSTATUS) -> Self {
-        let err: windows::core::Error = result.into();
-        err.into()
-    }
-}
-
-#[derive(Debug, Error, PartialEq)]
-pub enum WnfUnsubscribeError {
-    #[error("failed to unsubscribe from WNF state change: Windows error code {:#010x}", .0.code().0)]
-    Windows(#[from] windows::core::Error),
-}
-
-impl From<NTSTATUS> for WnfUnsubscribeError {
-    fn from(result: NTSTATUS) -> Self {
-        let err: windows::core::Error = result.into();
-        err.into()
+        let _ = self.try_unsubscribe();
     }
 }

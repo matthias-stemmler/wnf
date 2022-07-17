@@ -1,9 +1,7 @@
 use std::ffi::c_void;
-use std::{mem, ptr};
+use std::{io, mem, ptr};
 
-use thiserror::Error;
 use tracing::debug;
-use windows::Win32::Foundation::NTSTATUS;
 
 use crate::ntdll::NTDLL_TARGET;
 use crate::ntdll_sys;
@@ -21,15 +19,15 @@ impl<T> OwnedWnfState<T>
 where
     T: ?Sized,
 {
-    pub fn exists(&self) -> Result<bool, WnfInfoError> {
+    pub fn exists(&self) -> io::Result<bool> {
         self.raw.exists()
     }
 
-    pub fn subscribers_present(&self) -> Result<bool, WnfInfoError> {
+    pub fn subscribers_present(&self) -> io::Result<bool> {
         self.raw.subscribers_present()
     }
 
-    pub fn is_quiescent(&self) -> Result<bool, WnfInfoError> {
+    pub fn is_quiescent(&self) -> io::Result<bool> {
         self.raw.is_quiescent()
     }
 }
@@ -38,15 +36,15 @@ impl<T> BorrowedWnfState<'_, T>
 where
     T: ?Sized,
 {
-    pub fn exists(&self) -> Result<bool, WnfInfoError> {
+    pub fn exists(&self) -> io::Result<bool> {
         self.raw.exists()
     }
 
-    pub fn subscribers_present(&self) -> Result<bool, WnfInfoError> {
+    pub fn subscribers_present(&self) -> io::Result<bool> {
         self.raw.subscribers_present()
     }
 
-    pub fn is_quiescent(&self) -> Result<bool, WnfInfoError> {
+    pub fn is_quiescent(&self) -> io::Result<bool> {
         self.raw.is_quiescent()
     }
 }
@@ -55,19 +53,19 @@ impl<T> RawWnfState<T>
 where
     T: ?Sized,
 {
-    pub fn exists(&self) -> Result<bool, WnfInfoError> {
+    pub fn exists(&self) -> io::Result<bool> {
         self.info_internal(WnfNameInfoClass::StateNameExist)
     }
 
-    pub fn subscribers_present(&self) -> Result<bool, WnfInfoError> {
+    pub fn subscribers_present(&self) -> io::Result<bool> {
         self.info_internal(WnfNameInfoClass::SubscribersPresent)
     }
 
-    pub fn is_quiescent(&self) -> Result<bool, WnfInfoError> {
+    pub fn is_quiescent(&self) -> io::Result<bool> {
         self.info_internal(WnfNameInfoClass::IsQuiescent)
     }
 
-    fn info_internal(&self, name_info_class: WnfNameInfoClass) -> Result<bool, WnfInfoError> {
+    fn info_internal(&self, name_info_class: WnfNameInfoClass) -> io::Result<bool> {
         let mut buffer = u32::MAX;
         let name_info_class = name_info_class as u32;
 
@@ -105,20 +103,7 @@ where
                  "ZwQueryWnfStateNameInformation",
             );
 
-            Err(result.into())
+            Err(io::Error::from_raw_os_error(result.0))
         }
-    }
-}
-
-#[derive(Debug, Error, PartialEq)]
-pub enum WnfInfoError {
-    #[error("failed to query WNF state information: Windows error code {:#010x}", .0.code().0)]
-    Windows(#[from] windows::core::Error),
-}
-
-impl From<NTSTATUS> for WnfInfoError {
-    fn from(result: NTSTATUS) -> Self {
-        let err: windows::core::Error = result.into();
-        err.into()
     }
 }

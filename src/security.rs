@@ -1,7 +1,5 @@
-use std::{alloc, alloc::Layout, ffi::c_void, mem};
+use std::{alloc, alloc::Layout, ffi::c_void, io, mem};
 
-use thiserror::Error;
-use windows::Win32::Foundation::NTSTATUS;
 use windows::Win32::{
     Foundation::PSID,
     Security::{
@@ -23,7 +21,7 @@ impl SecurityDescriptor {
         &self.raw_security_descriptor as *const SECURITY_DESCRIPTOR as *const c_void
     }
 
-    pub(crate) fn create_everyone_generic_all() -> Result<Self, SecurityCreateError> {
+    pub(crate) fn create_everyone_generic_all() -> io::Result<Self> {
         let mut sid = SID::default();
         let psid = PSID(&mut sid as *mut SID as *mut c_void);
         let mut sid_size = mem::size_of::<SID>() as u32;
@@ -60,18 +58,5 @@ impl SecurityDescriptor {
 impl Drop for SecurityDescriptor {
     fn drop(&mut self) {
         unsafe { alloc::dealloc(self.acl_buffer, self.acl_layout) };
-    }
-}
-
-#[derive(Debug, Error, PartialEq)]
-pub enum SecurityCreateError {
-    #[error("failed to create security descriptor: Windows error code {:#010x}", .0.code().0)]
-    Windows(#[from] windows::core::Error),
-}
-
-impl From<NTSTATUS> for SecurityCreateError {
-    fn from(result: NTSTATUS) -> Self {
-        let err: windows::core::Error = result.into();
-        err.into()
     }
 }

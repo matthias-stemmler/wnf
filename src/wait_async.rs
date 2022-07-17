@@ -1,18 +1,14 @@
 use std::borrow::Borrow;
 use std::future::Future;
+use std::io;
 use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll, Waker};
 
-use thiserror::Error;
-
 use crate::predicate::{ChangedPredicate, Predicate, PredicateStage};
 use crate::state::RawWnfState;
 use crate::subscribe::WnfSubscription;
-use crate::{
-    BorrowedWnfState, OwnedWnfState, WnfDataAccessor, WnfOpaqueData, WnfQueryError, WnfRead, WnfReadError,
-    WnfStateListener, WnfSubscribeError, WnfUnsubscribeError,
-};
+use crate::{BorrowedWnfState, OwnedWnfState, WnfDataAccessor, WnfOpaqueData, WnfRead, WnfStateListener};
 
 impl<T> OwnedWnfState<T>
 where
@@ -131,7 +127,7 @@ impl WnfWait<'_> {
 }
 
 impl Future for WnfWait<'_> {
-    type Output = Result<(), WnfWaitAsyncError>;
+    type Output = io::Result<()>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         Pin::new(&mut self.get_mut().inner).poll(cx).map_ok(|_| ())
@@ -157,7 +153,7 @@ where
     F: FnMut(&T) -> bool,
     T: WnfRead<T>,
 {
-    type Output = Result<T, WnfWaitAsyncError>;
+    type Output = io::Result<T>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         Pin::new(&mut self.get_mut().inner).poll(cx)
@@ -189,7 +185,7 @@ where
     F: FnMut(&T) -> bool,
     T: WnfRead<Box<T>> + ?Sized,
 {
-    type Output = Result<Box<T>, WnfWaitAsyncError>;
+    type Output = io::Result<Box<T>>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         Pin::new(&mut self.get_mut().inner).poll(cx)
@@ -225,7 +221,7 @@ where
 
 #[derive(Debug)]
 struct SharedState<D> {
-    result: Option<Result<D, WnfReadError>>,
+    result: Option<io::Result<D>>,
     waker: Waker,
 }
 
@@ -252,7 +248,7 @@ where
     F: Predicate<T>,
     T: WnfRead<D> + ?Sized,
 {
-    type Output = Result<D, WnfWaitAsyncError>;
+    type Output = io::Result<D>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         self.future_state = Some(
@@ -290,7 +286,7 @@ where
                         }
 
                         result => {
-                            subscription.unsubscribe().map_err(|(err, _)| err)?;
+                            subscription.unsubscribe()?;
                             return Poll::Ready(Ok(result?));
                         }
                     }
@@ -331,20 +327,4 @@ where
         *result = Some(accessor.get_as());
         waker.wake_by_ref();
     }
-}
-
-// TODO re-use WnfWaitError?
-#[derive(Debug, Error, PartialEq)]
-pub enum WnfWaitAsyncError {
-    #[error("failed to wait for WNF state update: {0}")]
-    Query(#[from] WnfQueryError),
-
-    #[error("failed to wait for WNF state update: {0}")]
-    Read(#[from] WnfReadError),
-
-    #[error("failed to wait for WNF state update: {0}")]
-    Subscribe(#[from] WnfSubscribeError),
-
-    #[error("failed to wait for WNF state update: {0}")]
-    Unsubscribe(#[from] WnfUnsubscribeError),
 }

@@ -6,18 +6,12 @@
 #[macro_use]
 extern crate num_derive;
 
-pub use apply::{WnfApplyError, WnfTransformError};
 pub use bytes::NoUninit;
 pub use data::{WnfChangeStamp, WnfOpaqueData, WnfStampedData};
-pub use info::WnfInfoError;
-pub use manage::{WnfCreateError, WnfDeleteError};
-pub use query::WnfQueryError;
-pub use read::{WnfRead, WnfReadError};
-pub use security::SecurityCreateError;
+pub use read::WnfRead;
 pub use state::{BorrowAsWnfState, BorrowedWnfState, OwnedWnfState};
 pub use state_name::{WnfDataScope, WnfStateName, WnfStateNameDescriptor, WnfStateNameLifetime};
-pub use subscribe::{WnfDataAccessor, WnfStateListener, WnfSubscribeError, WnfUnsubscribeError};
-pub use update::WnfUpdateError;
+pub use subscribe::{WnfDataAccessor, WnfStateListener};
 
 mod apply;
 mod bytes;
@@ -45,6 +39,6 @@ mod wait_blocking;
 // TODO ZST tests
 // TODO check which types are Send/Sync
 // TODO different subscribe variants with change_stamp 0/current/custom
-// TODO consolidate errors
 // TODO trait impls: all for external types, only needed (+Debug) for internal
 // TODO naming: remove `Wnf` prefixes?
+// TODO tests for error messages

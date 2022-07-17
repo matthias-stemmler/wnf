@@ -1,8 +1,7 @@
 use std::borrow::Borrow;
 use std::ffi::c_void;
-use std::{mem, ptr};
+use std::{io, mem, ptr};
 
-use thiserror::Error;
 use tracing::debug;
 use windows::Win32::Foundation::{NTSTATUS, STATUS_UNSUCCESSFUL};
 
@@ -16,14 +15,14 @@ impl<T> OwnedWnfState<T>
 where
     T: NoUninit + ?Sized,
 {
-    pub fn set<D>(&self, data: D) -> Result<(), WnfUpdateError>
+    pub fn set<D>(&self, data: D) -> io::Result<()>
     where
         D: Borrow<T>,
     {
         self.raw.set(data)
     }
 
-    pub fn update<D>(&self, data: D, expected_change_stamp: WnfChangeStamp) -> Result<bool, WnfUpdateError>
+    pub fn update<D>(&self, data: D, expected_change_stamp: WnfChangeStamp) -> io::Result<bool>
     where
         D: Borrow<T>,
     {
@@ -35,14 +34,14 @@ impl<T> BorrowedWnfState<'_, T>
 where
     T: NoUninit + ?Sized,
 {
-    pub fn set<D>(&self, data: D) -> Result<(), WnfUpdateError>
+    pub fn set<D>(&self, data: D) -> io::Result<()>
     where
         D: Borrow<T>,
     {
         self.raw.set(data)
     }
 
-    pub fn update<D>(&self, data: D, expected_change_stamp: WnfChangeStamp) -> Result<bool, WnfUpdateError>
+    pub fn update<D>(&self, data: D, expected_change_stamp: WnfChangeStamp) -> io::Result<bool>
     where
         D: Borrow<T>,
     {
@@ -54,7 +53,7 @@ impl<T> RawWnfState<T>
 where
     T: NoUninit + ?Sized,
 {
-    pub fn set<D>(&self, data: D) -> Result<(), WnfUpdateError>
+    pub fn set<D>(&self, data: D) -> io::Result<()>
     where
         D: Borrow<T>,
     {
@@ -69,7 +68,7 @@ where
         Ok(())
     }
 
-    pub fn update<D>(&self, data: D, expected_change_stamp: WnfChangeStamp) -> Result<bool, WnfUpdateError>
+    pub fn update<D>(&self, data: D, expected_change_stamp: WnfChangeStamp) -> io::Result<bool>
     where
         D: Borrow<T>,
     {
@@ -122,17 +121,4 @@ pub fn update(
     );
 
     result
-}
-
-#[derive(Debug, Error, PartialEq)]
-pub enum WnfUpdateError {
-    #[error("failed to update WNF state data: Windows error code {:#010x}", .0.code().0)]
-    Windows(#[from] windows::core::Error),
-}
-
-impl From<NTSTATUS> for WnfUpdateError {
-    fn from(result: NTSTATUS) -> Self {
-        let err: windows::core::Error = result.into();
-        err.into()
-    }
 }

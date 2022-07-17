@@ -1,7 +1,8 @@
 use std::alloc::Layout;
 use std::ffi::c_void;
+use std::io::ErrorKind;
 use std::mem::MaybeUninit;
-use std::{alloc, mem, ptr};
+use std::{alloc, io, mem, ptr};
 
 use thiserror::Error;
 
@@ -11,25 +12,23 @@ use crate::data::WnfOpaqueData;
 pub trait WnfRead<D>: private::Sealed + Send + 'static {
     /// # Safety
     /// TODO
-    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Result<D, WnfReadError>;
+    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> io::Result<D>;
 
     /// # Safety
     /// TODO
-    unsafe fn from_reader<E, F, Meta>(reader: F) -> Result<(D, Meta), E>
+    unsafe fn from_reader<F, Meta>(reader: F) -> io::Result<(D, Meta)>
     where
-        E: From<WnfReadError>,
-        F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>;
+        F: FnMut(*mut c_void, usize) -> io::Result<(usize, Meta)>;
 }
 
 impl WnfRead<WnfOpaqueData> for WnfOpaqueData {
-    unsafe fn from_buffer(_: *const c_void, _: usize) -> Result<WnfOpaqueData, WnfReadError> {
+    unsafe fn from_buffer(_: *const c_void, _: usize) -> io::Result<WnfOpaqueData> {
         Ok(WnfOpaqueData::new())
     }
 
-    unsafe fn from_reader<E, F, Meta>(mut reader: F) -> Result<(WnfOpaqueData, Meta), E>
+    unsafe fn from_reader<F, Meta>(mut reader: F) -> io::Result<(WnfOpaqueData, Meta)>
     where
-        E: From<WnfReadError>,
-        F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>,
+        F: FnMut(*mut c_void, usize) -> io::Result<(usize, Meta)>,
     {
         let (_, meta) = reader(ptr::null_mut(), 0)?;
         Ok((WnfOpaqueData::new(), meta))
@@ -40,12 +39,15 @@ impl<T> WnfRead<T> for T
 where
     T: CheckedBitPattern,
 {
-    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Result<T, WnfReadError> {
+    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> io::Result<T> {
         if size != mem::size_of::<T::Bits>() {
-            return Err(WnfReadError::WrongSize {
-                expected: mem::size_of::<T::Bits>(),
-                actual: size,
-            });
+            return Err(io::Error::new(
+                ErrorKind::InvalidData,
+                WnfReadError::WrongSize {
+                    expected: mem::size_of::<T::Bits>(),
+                    actual: size,
+                },
+            ));
         }
 
         let bits: T::Bits = ptr::read_unaligned(ptr.cast());
@@ -53,24 +55,26 @@ where
         if T::is_valid_bit_pattern(&bits) {
             Ok(*(&bits as *const T::Bits as *const T))
         } else {
-            Err(WnfReadError::InvalidBitPattern)
+            Err(io::Error::new(ErrorKind::InvalidData, WnfReadError::InvalidBitPattern))
         }
     }
 
-    unsafe fn from_reader<E, F, Meta>(mut reader: F) -> Result<(T, Meta), E>
+    unsafe fn from_reader<F, Meta>(mut reader: F) -> io::Result<(T, Meta)>
     where
-        E: From<WnfReadError>,
-        F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>,
+        F: FnMut(*mut c_void, usize) -> io::Result<(usize, Meta)>,
     {
         let mut bits = MaybeUninit::<T::Bits>::uninit();
 
         let (size, meta) = reader(bits.as_mut_ptr().cast(), mem::size_of::<T::Bits>())?;
 
         if size != mem::size_of::<T::Bits>() {
-            return Err(E::from(WnfReadError::WrongSize {
-                expected: mem::size_of::<T::Bits>(),
-                actual: size,
-            }));
+            return Err(io::Error::new(
+                ErrorKind::InvalidData,
+                WnfReadError::WrongSize {
+                    expected: mem::size_of::<T::Bits>(),
+                    actual: size,
+                },
+            ));
         }
 
         let bits = bits.assume_init();
@@ -79,7 +83,7 @@ where
             let data = *(&bits as *const T::Bits as *const T);
             Ok((data, meta))
         } else {
-            Err(E::from(WnfReadError::InvalidBitPattern))
+            Err(io::Error::new(ErrorKind::InvalidData, WnfReadError::InvalidBitPattern))
         }
     }
 }
@@ -88,12 +92,15 @@ impl<T> WnfRead<Box<T>> for T
 where
     T: CheckedBitPattern,
 {
-    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Result<Box<T>, WnfReadError> {
+    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> io::Result<Box<T>> {
         if size != mem::size_of::<T::Bits>() {
-            return Err(WnfReadError::WrongSize {
-                expected: mem::size_of::<T::Bits>(),
-                actual: size,
-            });
+            return Err(io::Error::new(
+                ErrorKind::InvalidData,
+                WnfReadError::WrongSize {
+                    expected: mem::size_of::<T::Bits>(),
+                    actual: size,
+                },
+            ));
         }
 
         let bits = if mem::size_of::<T::Bits>() == 0 {
@@ -108,14 +115,13 @@ where
         if T::is_valid_bit_pattern(&bits) {
             Ok(Box::from_raw(Box::into_raw(bits) as *mut T))
         } else {
-            Err(WnfReadError::InvalidBitPattern)
+            Err(io::Error::new(ErrorKind::InvalidData, WnfReadError::InvalidBitPattern))
         }
     }
 
-    unsafe fn from_reader<E, F, Meta>(mut reader: F) -> Result<(Box<T>, Meta), E>
+    unsafe fn from_reader<F, Meta>(mut reader: F) -> io::Result<(Box<T>, Meta)>
     where
-        E: From<WnfReadError>,
-        F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>,
+        F: FnMut(*mut c_void, usize) -> io::Result<(usize, Meta)>,
     {
         let mut bits = if mem::size_of::<T::Bits>() == 0 {
             Box::new(mem::zeroed())
@@ -128,10 +134,13 @@ where
         let (size, meta) = reader(bits.as_mut_ptr().cast(), mem::size_of::<T::Bits>())?;
 
         if size != mem::size_of::<T::Bits>() {
-            return Err(E::from(WnfReadError::WrongSize {
-                expected: mem::size_of::<T::Bits>(),
-                actual: size,
-            }));
+            return Err(io::Error::new(
+                ErrorKind::InvalidData,
+                WnfReadError::WrongSize {
+                    expected: mem::size_of::<T::Bits>(),
+                    actual: size,
+                },
+            ));
         }
 
         let bits = Box::from_raw(Box::into_raw(bits) as *mut T::Bits);
@@ -140,7 +149,7 @@ where
             let data = Box::from_raw(Box::into_raw(bits) as *mut T);
             Ok((data, meta))
         } else {
-            Err(E::from(WnfReadError::InvalidBitPattern))
+            Err(io::Error::new(ErrorKind::InvalidData, WnfReadError::InvalidBitPattern))
         }
     }
 }
@@ -149,23 +158,29 @@ impl<T> WnfRead<Box<[T]>> for [T]
 where
     T: CheckedBitPattern,
 {
-    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> Result<Box<[T]>, WnfReadError> {
+    unsafe fn from_buffer(ptr: *const c_void, size: usize) -> io::Result<Box<[T]>> {
         if mem::size_of::<T>() == 0 {
             return if size == 0 {
                 Ok(Vec::new().into_boxed_slice())
             } else {
-                Err(WnfReadError::WrongSize {
-                    expected: 0,
-                    actual: size,
-                })
+                Err(io::Error::new(
+                    ErrorKind::InvalidData,
+                    WnfReadError::WrongSize {
+                        expected: 0,
+                        actual: size,
+                    },
+                ))
             };
         }
 
         if size % mem::size_of::<T>() != 0 {
-            return Err(WnfReadError::WrongSizeMultiple {
-                expected_modulus: mem::size_of::<T>(),
-                actual: size,
-            });
+            return Err(io::Error::new(
+                ErrorKind::InvalidData,
+                WnfReadError::WrongSizeMultiple {
+                    expected_modulus: mem::size_of::<T>(),
+                    actual: size,
+                },
+            ));
         }
 
         let len = size / mem::size_of::<T>();
@@ -177,14 +192,13 @@ where
             let data = buffer.into_boxed_slice();
             Ok(Box::from_raw(Box::into_raw(data) as *mut [T]))
         } else {
-            Err(WnfReadError::InvalidBitPattern)
+            Err(io::Error::new(ErrorKind::InvalidData, WnfReadError::InvalidBitPattern))
         }
     }
 
-    unsafe fn from_reader<E, F, Meta>(mut reader: F) -> Result<(Box<[T]>, Meta), E>
+    unsafe fn from_reader<F, Meta>(mut reader: F) -> io::Result<(Box<[T]>, Meta)>
     where
-        E: From<WnfReadError>,
-        F: FnMut(*mut c_void, usize) -> Result<(usize, Meta), E>,
+        F: FnMut(*mut c_void, usize) -> io::Result<(usize, Meta)>,
     {
         let mut buffer: Vec<T::Bits> = Vec::new();
 
@@ -199,17 +213,23 @@ where
             }
 
             if mem::size_of::<T::Bits>() == 0 {
-                return Err(E::from(WnfReadError::WrongSize {
-                    expected: 0,
-                    actual: size,
-                }));
+                return Err(io::Error::new(
+                    ErrorKind::InvalidData,
+                    WnfReadError::WrongSize {
+                        expected: 0,
+                        actual: size,
+                    },
+                ));
             }
 
             if size % mem::size_of::<T::Bits>() != 0 {
-                return Err(E::from(WnfReadError::WrongSizeMultiple {
-                    expected_modulus: mem::size_of::<T::Bits>(),
-                    actual: size,
-                }));
+                return Err(io::Error::new(
+                    ErrorKind::InvalidData,
+                    WnfReadError::WrongSizeMultiple {
+                        expected_modulus: mem::size_of::<T::Bits>(),
+                        actual: size,
+                    },
+                ));
             }
 
             let len = size / mem::size_of::<T::Bits>();
@@ -228,7 +248,7 @@ where
             let data = Box::from_raw(Box::into_raw(data) as *mut [T]);
             Ok((data, meta))
         } else {
-            Err(E::from(WnfReadError::InvalidBitPattern))
+            Err(io::Error::new(ErrorKind::InvalidData, WnfReadError::InvalidBitPattern))
         }
     }
 }
@@ -243,7 +263,7 @@ mod private {
     impl<T> Sealed for [T] where T: CheckedBitPattern {}
 }
 
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error)]
 pub enum WnfReadError {
     #[error("failed to read WNF state data: data has wrong size (expected {expected}, got {actual})")]
     WrongSize { expected: usize, actual: usize },

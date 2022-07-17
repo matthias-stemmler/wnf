@@ -1,20 +1,16 @@
 use std::borrow::Borrow;
+use std::io;
 use std::sync::{Arc, Condvar, Mutex};
-
-use thiserror::Error;
 
 use crate::predicate::{ChangedPredicate, Predicate, PredicateStage};
 use crate::state::RawWnfState;
-use crate::{
-    BorrowedWnfState, OwnedWnfState, WnfDataAccessor, WnfOpaqueData, WnfQueryError, WnfRead, WnfReadError,
-    WnfSubscribeError, WnfUnsubscribeError,
-};
+use crate::{BorrowedWnfState, OwnedWnfState, WnfDataAccessor, WnfOpaqueData, WnfRead};
 
 impl<T> OwnedWnfState<T>
 where
     T: ?Sized,
 {
-    pub fn wait_blocking(&self) -> Result<(), WnfWaitError> {
+    pub fn wait_blocking(&self) -> io::Result<()> {
         self.raw.wait_blocking()
     }
 }
@@ -23,7 +19,7 @@ impl<T> OwnedWnfState<T>
 where
     T: WnfRead<T>,
 {
-    pub fn wait_until_blocking<F>(&self, predicate: F) -> Result<T, WnfWaitError>
+    pub fn wait_until_blocking<F>(&self, predicate: F) -> io::Result<T>
     where
         F: FnMut(&T) -> bool,
     {
@@ -35,7 +31,7 @@ impl<T> OwnedWnfState<T>
 where
     T: WnfRead<Box<T>> + ?Sized,
 {
-    pub fn wait_until_boxed_blocking<F>(&self, predicate: F) -> Result<Box<T>, WnfWaitError>
+    pub fn wait_until_boxed_blocking<F>(&self, predicate: F) -> io::Result<Box<T>>
     where
         F: FnMut(&T) -> bool,
     {
@@ -47,7 +43,7 @@ impl<T> BorrowedWnfState<'_, T>
 where
     T: ?Sized,
 {
-    pub fn wait_blocking(&self) -> Result<(), WnfWaitError> {
+    pub fn wait_blocking(&self) -> io::Result<()> {
         self.raw.wait_blocking()
     }
 }
@@ -56,7 +52,7 @@ impl<T> BorrowedWnfState<'_, T>
 where
     T: WnfRead<T>,
 {
-    pub fn wait_until_blocking<F>(&self, predicate: F) -> Result<T, WnfWaitError>
+    pub fn wait_until_blocking<F>(&self, predicate: F) -> io::Result<T>
     where
         F: FnMut(&T) -> bool,
     {
@@ -68,7 +64,7 @@ impl<T> BorrowedWnfState<'_, T>
 where
     T: WnfRead<Box<T>> + ?Sized,
 {
-    pub fn wait_until_boxed_blocking<F>(&self, predicate: F) -> Result<Box<T>, WnfWaitError>
+    pub fn wait_until_boxed_blocking<F>(&self, predicate: F) -> io::Result<Box<T>>
     where
         F: FnMut(&T) -> bool,
     {
@@ -80,7 +76,7 @@ impl<T> RawWnfState<T>
 where
     T: ?Sized,
 {
-    pub fn wait_blocking(&self) -> Result<(), WnfWaitError> {
+    pub fn wait_blocking(&self) -> io::Result<()> {
         let _: WnfOpaqueData = self.cast().wait_until_blocking_internal(ChangedPredicate)?;
         Ok(())
     }
@@ -90,7 +86,7 @@ impl<T> RawWnfState<T>
 where
     T: WnfRead<T>,
 {
-    pub fn wait_until_blocking<F>(&self, predicate: F) -> Result<T, WnfWaitError>
+    pub fn wait_until_blocking<F>(&self, predicate: F) -> io::Result<T>
     where
         F: FnMut(&T) -> bool,
     {
@@ -102,7 +98,7 @@ impl<T> RawWnfState<T>
 where
     T: WnfRead<Box<T>> + ?Sized,
 {
-    pub fn wait_until_boxed_blocking<F>(&self, predicate: F) -> Result<Box<T>, WnfWaitError>
+    pub fn wait_until_boxed_blocking<F>(&self, predicate: F) -> io::Result<Box<T>>
     where
         F: FnMut(&T) -> bool,
     {
@@ -114,7 +110,7 @@ impl<T> RawWnfState<T>
 where
     T: ?Sized,
 {
-    fn wait_until_blocking_internal<D, F>(&self, mut predicate: F) -> Result<D, WnfWaitError>
+    fn wait_until_blocking_internal<D, F>(&self, mut predicate: F) -> io::Result<D>
     where
         D: Borrow<T> + Send + 'static,
         F: Predicate<T>,
@@ -143,23 +139,8 @@ where
             )
             .unwrap();
 
-        subscription.unsubscribe().map_err(|(err, _)| err)?;
+        subscription.unsubscribe()?;
 
-        Ok(guard.take().unwrap()?)
+        guard.take().unwrap()
     }
-}
-
-#[derive(Debug, Error, PartialEq)]
-pub enum WnfWaitError {
-    #[error("failed to wait for WNF state update: {0}")]
-    Query(#[from] WnfQueryError),
-
-    #[error("failed to wait for WNF state update: {0}")]
-    Read(#[from] WnfReadError),
-
-    #[error("failed to wait for WNF state update: {0}")]
-    Subscribe(#[from] WnfSubscribeError),
-
-    #[error("failed to wait for WNF state update: {0}")]
-    Unsubscribe(#[from] WnfUnsubscribeError),
 }

@@ -1,3 +1,6 @@
+use std::error::Error;
+use std::fmt;
+use std::fmt::{Debug, Display, Formatter};
 use wnf::{OwnedWnfState, WnfChangeStamp, WnfDataAccessor};
 
 #[test]
@@ -82,3 +85,11 @@ fn data_type_can_be_inferred_from_subscribe_call() {
 
 #[derive(Debug, Eq, Hash, PartialEq)]
 struct TestError;
+
+impl Display for TestError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Debug::fmt(self, f)
+    }
+}
+
+impl Error for TestError {}

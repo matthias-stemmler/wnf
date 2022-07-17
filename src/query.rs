@@ -1,13 +1,12 @@
 use std::ffi::c_void;
-use std::ptr;
+use std::{io, ptr};
 
-use thiserror::Error;
 use tracing::debug;
-use windows::Win32::Foundation::{NTSTATUS, STATUS_BUFFER_TOO_SMALL};
+use windows::Win32::Foundation::STATUS_BUFFER_TOO_SMALL;
 
 use crate::data::{WnfChangeStamp, WnfStampedData};
 use crate::ntdll::NTDLL_TARGET;
-use crate::read::{WnfRead, WnfReadError};
+use crate::read::WnfRead;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::{ntdll_sys, WnfOpaqueData, WnfStateName};
 
@@ -15,11 +14,11 @@ impl<T> OwnedWnfState<T>
 where
     T: WnfRead<T>,
 {
-    pub fn get(&self) -> Result<T, WnfQueryError> {
+    pub fn get(&self) -> io::Result<T> {
         self.raw.get()
     }
 
-    pub fn query(&self) -> Result<WnfStampedData<T>, WnfQueryError> {
+    pub fn query(&self) -> io::Result<WnfStampedData<T>> {
         self.raw.query()
     }
 }
@@ -28,11 +27,11 @@ impl<T> OwnedWnfState<T>
 where
     T: WnfRead<Box<T>> + ?Sized,
 {
-    pub fn get_boxed(&self) -> Result<Box<T>, WnfQueryError> {
+    pub fn get_boxed(&self) -> io::Result<Box<T>> {
         self.raw.get_boxed()
     }
 
-    pub fn query_boxed(&self) -> Result<WnfStampedData<Box<T>>, WnfQueryError> {
+    pub fn query_boxed(&self) -> io::Result<WnfStampedData<Box<T>>> {
         self.raw.query_boxed()
     }
 }
@@ -41,7 +40,7 @@ impl<T> OwnedWnfState<T>
 where
     T: ?Sized,
 {
-    pub fn change_stamp(&self) -> Result<WnfChangeStamp, WnfQueryError> {
+    pub fn change_stamp(&self) -> io::Result<WnfChangeStamp> {
         self.raw.change_stamp()
     }
 }
@@ -50,11 +49,11 @@ impl<T> BorrowedWnfState<'_, T>
 where
     T: WnfRead<T>,
 {
-    pub fn get(&self) -> Result<T, WnfQueryError> {
+    pub fn get(&self) -> io::Result<T> {
         self.raw.get()
     }
 
-    pub fn query(&self) -> Result<WnfStampedData<T>, WnfQueryError> {
+    pub fn query(&self) -> io::Result<WnfStampedData<T>> {
         self.raw.query()
     }
 }
@@ -63,11 +62,11 @@ impl<T> BorrowedWnfState<'_, T>
 where
     T: WnfRead<Box<T>> + ?Sized,
 {
-    pub fn get_boxed(&self) -> Result<Box<T>, WnfQueryError> {
+    pub fn get_boxed(&self) -> io::Result<Box<T>> {
         self.raw.get_boxed()
     }
 
-    pub fn query_boxed(&self) -> Result<WnfStampedData<Box<T>>, WnfQueryError> {
+    pub fn query_boxed(&self) -> io::Result<WnfStampedData<Box<T>>> {
         self.raw.query_boxed()
     }
 }
@@ -76,7 +75,7 @@ impl<T> BorrowedWnfState<'_, T>
 where
     T: ?Sized,
 {
-    pub fn change_stamp(&self) -> Result<WnfChangeStamp, WnfQueryError> {
+    pub fn change_stamp(&self) -> io::Result<WnfChangeStamp> {
         self.raw.change_stamp()
     }
 }
@@ -85,11 +84,11 @@ impl<T> RawWnfState<T>
 where
     T: WnfRead<T>,
 {
-    pub fn get(&self) -> Result<T, WnfQueryError> {
+    pub fn get(&self) -> io::Result<T> {
         self.query().map(WnfStampedData::into_data)
     }
 
-    pub fn query(&self) -> Result<WnfStampedData<T>, WnfQueryError> {
+    pub fn query(&self) -> io::Result<WnfStampedData<T>> {
         self.query_as()
     }
 }
@@ -98,11 +97,11 @@ impl<T> RawWnfState<T>
 where
     T: WnfRead<Box<T>> + ?Sized,
 {
-    pub fn get_boxed(&self) -> Result<Box<T>, WnfQueryError> {
+    pub fn get_boxed(&self) -> io::Result<Box<T>> {
         self.query_boxed().map(WnfStampedData::into_data)
     }
 
-    pub fn query_boxed(&self) -> Result<WnfStampedData<Box<T>>, WnfQueryError> {
+    pub fn query_boxed(&self) -> io::Result<WnfStampedData<Box<T>>> {
         self.query_as()
     }
 }
@@ -111,11 +110,11 @@ impl<T> RawWnfState<T>
 where
     T: ?Sized,
 {
-    pub fn change_stamp(&self) -> Result<WnfChangeStamp, WnfQueryError> {
+    pub fn change_stamp(&self) -> io::Result<WnfChangeStamp> {
         Ok(self.cast::<WnfOpaqueData>().query()?.change_stamp())
     }
 
-    pub(crate) fn query_as<D>(&self) -> Result<WnfStampedData<D>, WnfQueryError>
+    pub(crate) fn query_as<D>(&self) -> io::Result<WnfStampedData<D>>
     where
         T: WnfRead<D>,
     {
@@ -128,7 +127,7 @@ unsafe fn query(
     state_name: WnfStateName,
     buffer: *mut c_void,
     buffer_size: usize,
-) -> Result<(usize, WnfChangeStamp), WnfQueryError> {
+) -> io::Result<(usize, WnfChangeStamp)> {
     let mut change_stamp = WnfChangeStamp::default();
     let mut size = buffer_size as u32;
 
@@ -149,7 +148,7 @@ unsafe fn query(
              "ZwQueryWnfStateData",
         );
 
-        Err(result.into())
+        Err(io::Error::from_raw_os_error(result.0))
     } else {
         debug!(
             target: NTDLL_TARGET,
@@ -161,21 +160,5 @@ unsafe fn query(
         );
 
         Ok((size as usize, change_stamp))
-    }
-}
-
-#[derive(Debug, Error, PartialEq)]
-pub enum WnfQueryError {
-    #[error("failed to query WNF state data: {0}")]
-    Read(#[from] WnfReadError),
-
-    #[error("failed to query WNF state data: Windows error code {:#010x}", .0.code().0)]
-    Windows(#[from] windows::core::Error),
-}
-
-impl From<NTSTATUS> for WnfQueryError {
-    fn from(result: NTSTATUS) -> Self {
-        let err: windows::core::Error = result.into();
-        err.into()
     }
 }

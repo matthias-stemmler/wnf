@@ -1,11 +1,14 @@
+use std::error::Error;
+use std::fmt::{Debug, Display, Formatter};
+use std::io::ErrorKind;
 use std::sync::mpsc::RecvTimeoutError;
 use std::sync::{mpsc, Arc};
-use std::thread;
 use std::time::Duration;
+use std::{fmt, thread};
 
 use wnf::{
-    BorrowAsWnfState, BorrowedWnfState, OwnedWnfState, WnfApplyError, WnfChangeStamp, WnfDataAccessor, WnfDataScope,
-    WnfStateNameDescriptor, WnfStateNameLifetime, WnfTransformError,
+    BorrowAsWnfState, BorrowedWnfState, OwnedWnfState, WnfChangeStamp, WnfDataAccessor, WnfDataScope,
+    WnfStateNameDescriptor, WnfStateNameLifetime,
 };
 
 #[test]
@@ -198,7 +201,7 @@ fn try_apply_by_value_err() {
     state.set(0).unwrap();
     let result = state.try_apply(|_| Err::<u32, _>(TestError));
 
-    assert_eq!(result, Err(WnfApplyError::Transform(WnfTransformError(TestError))));
+    assert!(matches!(result, Err(err) if err.kind() == ErrorKind::Other));
 }
 
 #[test]
@@ -219,7 +222,7 @@ fn try_apply_boxed_err() {
     state.set(0).unwrap();
     let result = state.try_apply_boxed(|_| Err::<u32, _>(TestError));
 
-    assert_eq!(result, Err(WnfApplyError::Transform(WnfTransformError(TestError))));
+    assert!(matches!(result, Err(err) if err.kind() == ErrorKind::Other));
 }
 
 #[test]
@@ -242,7 +245,7 @@ fn try_apply_slice_err() {
     state.set([0]).unwrap();
     let result = state.try_apply_boxed(|_| Err::<Vec<_>, _>(TestError));
 
-    assert_eq!(result, Err(WnfApplyError::Transform(WnfTransformError(TestError))));
+    assert!(matches!(result, Err(err) if err.kind() == ErrorKind::Other));
 }
 
 #[test]
@@ -333,7 +336,7 @@ fn subscribe() {
     }
 
     for subscription in subscriptions {
-        subscription.unsubscribe().map_err(|(err, _)| err).unwrap();
+        subscription.unsubscribe().unwrap();
     }
 
     assert_eq!(
@@ -378,7 +381,7 @@ fn subscribe_boxed() {
     }
 
     for subscription in subscriptions {
-        subscription.unsubscribe().map_err(|(err, _)| err).unwrap();
+        subscription.unsubscribe().unwrap();
     }
 
     assert_eq!(
@@ -423,7 +426,7 @@ fn subscribe_slice() {
     }
 
     for subscription in subscriptions {
-        subscription.unsubscribe().map_err(|(err, _)| err).unwrap();
+        subscription.unsubscribe().unwrap();
     }
 
     assert_eq!(
@@ -470,7 +473,7 @@ fn subscribers_present() {
         .unwrap();
     assert!(state.subscribers_present().unwrap());
 
-    subscription.unsubscribe().map_err(|(err, _)| err).unwrap();
+    subscription.unsubscribe().unwrap();
     assert!(!state.subscribers_present().unwrap());
 }
 
@@ -491,10 +494,18 @@ fn is_quiescent() {
     assert!(!state.is_quiescent().unwrap());
 
     tx.send(()).unwrap();
-    subscription.unsubscribe().map_err(|(err, _)| err).unwrap();
+    subscription.unsubscribe().unwrap();
 
     assert!(state.is_quiescent().unwrap());
 }
 
 #[derive(Debug, Eq, Hash, PartialEq)]
 struct TestError;
+
+impl Display for TestError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Debug::fmt(self, f)
+    }
+}
+
+impl Error for TestError {}
