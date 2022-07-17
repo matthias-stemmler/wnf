@@ -17,6 +17,23 @@ use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::state_name::WnfStateName;
 use crate::{ntdll_sys, WnfReadError, WnfStampedData};
 
+pub trait WnfStateListener<T>: Send + 'static
+where
+    T: ?Sized,
+{
+    fn call(&mut self, accessor: WnfDataAccessor<T>);
+}
+
+impl<F, T> WnfStateListener<T> for F
+where
+    F: FnMut(WnfDataAccessor<T>) + Send + 'static,
+    T: ?Sized,
+{
+    fn call(&mut self, accessor: WnfDataAccessor<T>) {
+        self(accessor)
+    }
+}
+
 impl<T> OwnedWnfState<T>
 where
     T: ?Sized,
@@ -27,7 +44,7 @@ where
         listener: F,
     ) -> Result<WnfSubscription<F>, WnfSubscribeError>
     where
-        F: FnMut(WnfDataAccessor<T>) + Send + 'static,
+        F: WnfStateListener<T>,
     {
         self.raw.subscribe(after_change_stamp, listener)
     }
@@ -43,7 +60,7 @@ where
         listener: F,
     ) -> Result<WnfSubscription<'a, F>, WnfSubscribeError>
     where
-        F: FnMut(WnfDataAccessor<T>) + Send + 'static,
+        F: WnfStateListener<T>,
     {
         self.raw.subscribe(after_change_stamp, listener)
     }
@@ -61,7 +78,7 @@ where
         listener: F,
     ) -> Result<WnfSubscription<'a, F>, WnfSubscribeError>
     where
-        F: FnMut(WnfDataAccessor<T>) + Send + 'static,
+        F: WnfStateListener<T>,
     {
         extern "system" fn callback<F, T>(
             state_name: u64,
@@ -72,7 +89,7 @@ where
             buffer_size: u32,
         ) -> NTSTATUS
         where
-            F: FnMut(WnfDataAccessor<T>) + Send + 'static,
+            F: WnfStateListener<T>,
             T: ?Sized,
         {
             let _ = panic::catch_unwind(|| {
@@ -89,7 +106,7 @@ where
                 let scope = unsafe { WnfDataScope::new(buffer, buffer_size as usize, change_stamp.into()) };
 
                 context.with_listener(|listener| {
-                    listener(scope.accessor());
+                    listener.call(scope.accessor());
                 });
             });
 

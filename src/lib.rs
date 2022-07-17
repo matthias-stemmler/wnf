@@ -16,7 +16,7 @@ pub use read::{WnfRead, WnfReadError};
 pub use security::SecurityCreateError;
 pub use state::{BorrowAsWnfState, BorrowedWnfState, OwnedWnfState};
 pub use state_name::{WnfDataScope, WnfStateName, WnfStateNameDescriptor, WnfStateNameLifetime};
-pub use subscribe::{WnfDataAccessor, WnfSubscribeError, WnfUnsubscribeError};
+pub use subscribe::{WnfDataAccessor, WnfStateListener, WnfSubscribeError, WnfUnsubscribeError};
 pub use update::WnfUpdateError;
 
 mod apply;

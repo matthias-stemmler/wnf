@@ -11,7 +11,7 @@ use crate::state::RawWnfState;
 use crate::subscribe::WnfSubscription;
 use crate::{
     BorrowedWnfState, OwnedWnfState, WnfDataAccessor, WnfOpaqueData, WnfQueryError, WnfRead, WnfReadError,
-    WnfSubscribeError, WnfUnsubscribeError,
+    WnfStateListener, WnfSubscribeError, WnfUnsubscribeError,
 };
 
 impl<T> OwnedWnfState<T>
@@ -219,7 +219,7 @@ where
     Waiting {
         predicate: F,
         shared_state: Arc<Mutex<SharedState<D>>>,
-        subscription: WnfSubscription<'a, Box<dyn FnMut(WnfDataAccessor<T>) + Send>>, // TODO avoid dynamic dispatch
+        subscription: WnfSubscription<'a, WaitListener<D>>,
     },
 }
 
@@ -265,16 +265,7 @@ where
                     }
 
                     let shared_state = Arc::new(Mutex::new(SharedState::from_waker(cx.waker().clone())));
-                    let shared_state_for_subscription = Arc::clone(&shared_state);
-
-                    let subscription = state.subscribe(
-                        change_stamp,
-                        Box::new(move |accessor: WnfDataAccessor<_>| {
-                            let SharedState { result, ref waker } = &mut *shared_state_for_subscription.lock().unwrap();
-                            *result = Some(accessor.get_as());
-                            waker.wake_by_ref();
-                        }) as Box<dyn FnMut(WnfDataAccessor<_>) + Send>,
-                    )?;
+                    let subscription = state.subscribe(change_stamp, WaitListener::new(Arc::clone(&shared_state)))?;
 
                     FutureState::Waiting {
                         predicate,
@@ -316,6 +307,29 @@ where
         );
 
         Poll::Pending
+    }
+}
+
+#[derive(Debug)]
+struct WaitListener<D> {
+    shared_state: Arc<Mutex<SharedState<D>>>,
+}
+
+impl<D> WaitListener<D> {
+    fn new(shared_state: Arc<Mutex<SharedState<D>>>) -> Self {
+        Self { shared_state }
+    }
+}
+
+impl<T, D> WnfStateListener<T> for WaitListener<D>
+where
+    D: Send + 'static,
+    T: WnfRead<D> + ?Sized,
+{
+    fn call(&mut self, accessor: WnfDataAccessor<T>) {
+        let SharedState { result, ref waker } = &mut *self.shared_state.lock().unwrap();
+        *result = Some(accessor.get_as());
+        waker.wake_by_ref();
     }
 }
 

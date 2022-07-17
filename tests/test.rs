@@ -4,7 +4,7 @@ use std::thread;
 use std::time::Duration;
 
 use wnf::{
-    BorrowAsWnfState, BorrowedWnfState, OwnedWnfState, WnfApplyError, WnfChangeStamp, WnfDataScope,
+    BorrowAsWnfState, BorrowedWnfState, OwnedWnfState, WnfApplyError, WnfChangeStamp, WnfDataAccessor, WnfDataScope,
     WnfStateNameDescriptor, WnfStateNameLifetime, WnfTransformError,
 };
 
@@ -309,7 +309,7 @@ fn subscribe() {
         let tx = tx.clone();
         subscriptions.push(
             state
-                .subscribe(WnfChangeStamp::initial(), move |accessor| {
+                .subscribe(WnfChangeStamp::initial(), move |accessor: WnfDataAccessor<_>| {
                     tx.send(accessor.query().unwrap()).unwrap();
                 })
                 .unwrap(),
@@ -354,7 +354,7 @@ fn subscribe_boxed() {
         let tx = tx.clone();
         subscriptions.push(
             state
-                .subscribe(WnfChangeStamp::initial(), move |accessor| {
+                .subscribe(WnfChangeStamp::initial(), move |accessor: WnfDataAccessor<_>| {
                     tx.send(accessor.query_boxed().unwrap()).unwrap();
                 })
                 .unwrap(),
@@ -399,7 +399,7 @@ fn subscribe_slice() {
         let tx = tx.clone();
         subscriptions.push(
             state
-                .subscribe(WnfChangeStamp::initial(), move |accessor| {
+                .subscribe(WnfChangeStamp::initial(), move |accessor: WnfDataAccessor<_>| {
                     tx.send(accessor.query_boxed().unwrap()).unwrap();
                 })
                 .unwrap(),
@@ -465,7 +465,9 @@ fn subscribers_present() {
     let state = OwnedWnfState::<()>::create_temporary().unwrap();
     assert!(!state.subscribers_present().unwrap());
 
-    let subscription = state.subscribe(WnfChangeStamp::initial(), |_| {}).unwrap();
+    let subscription = state
+        .subscribe(WnfChangeStamp::initial(), |_: WnfDataAccessor<_>| {})
+        .unwrap();
     assert!(state.subscribers_present().unwrap());
 
     subscription.unsubscribe().map_err(|(err, _)| err).unwrap();
@@ -478,7 +480,7 @@ fn is_quiescent() {
     let (tx, rx) = mpsc::channel();
 
     let subscription = state
-        .subscribe(WnfChangeStamp::initial(), move |_| {
+        .subscribe(WnfChangeStamp::initial(), move |_: WnfDataAccessor<_>| {
             let _ = rx.recv();
         })
         .unwrap();
