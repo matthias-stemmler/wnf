@@ -76,7 +76,7 @@ fn data_type_can_be_inferred_from_replace_boxed_call() {
 fn data_type_can_be_inferred_from_subscribe_call() {
     let state = OwnedWnfState::create_temporary().unwrap();
     let _ = state
-        .subscribe(WnfChangeStamp::initial(), Box::new(|_: WnfDataAccessor<()>| {}))
+        .subscribe(WnfChangeStamp::initial(), |_: WnfDataAccessor<()>| {})
         .unwrap();
 }
 

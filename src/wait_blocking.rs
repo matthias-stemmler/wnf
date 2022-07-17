@@ -6,8 +6,8 @@ use thiserror::Error;
 use crate::predicate::{ChangedPredicate, Predicate, PredicateStage};
 use crate::state::RawWnfState;
 use crate::{
-    BorrowedWnfState, OwnedWnfState, WnfDataAccessor, WnfOpaqueData, WnfQueryError, WnfRead, WnfReadError,
-    WnfSubscribeError, WnfUnsubscribeError,
+    BorrowedWnfState, OwnedWnfState, WnfOpaqueData, WnfQueryError, WnfRead, WnfReadError, WnfSubscribeError,
+    WnfUnsubscribeError,
 };
 
 impl<T> OwnedWnfState<T>
@@ -129,14 +129,11 @@ where
         let pair = Arc::new((Mutex::new(Some(Ok(data))), Condvar::new()));
         let pair_for_subscription = Arc::clone(&pair);
 
-        let subscription = self.subscribe(
-            change_stamp,
-            Box::new(move |accessor: WnfDataAccessor<_>| {
-                let (mutex, condvar) = &*pair_for_subscription;
-                *mutex.lock().unwrap() = Some(accessor.get_as());
-                condvar.notify_one();
-            }),
-        )?;
+        let subscription = self.subscribe(change_stamp, move |accessor| {
+            let (mutex, condvar) = &*pair_for_subscription;
+            *mutex.lock().unwrap() = Some(accessor.get_as());
+            condvar.notify_one();
+        })?;
 
         let (mutex, condvar) = &*pair;
         let mut guard = condvar

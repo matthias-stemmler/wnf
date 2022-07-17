@@ -24,10 +24,10 @@ where
     pub fn subscribe<F>(
         &self,
         after_change_stamp: WnfChangeStamp,
-        listener: Box<F>,
+        listener: F,
     ) -> Result<WnfSubscription<F>, WnfSubscribeError>
     where
-        F: FnMut(WnfDataAccessor<T>) + Send + ?Sized + 'static,
+        F: FnMut(WnfDataAccessor<T>) + Send + 'static,
     {
         self.raw.subscribe(after_change_stamp, listener)
     }
@@ -40,10 +40,10 @@ where
     pub fn subscribe<F>(
         &self,
         after_change_stamp: WnfChangeStamp,
-        listener: Box<F>,
+        listener: F,
     ) -> Result<WnfSubscription<'a, F>, WnfSubscribeError>
     where
-        F: FnMut(WnfDataAccessor<T>) + Send + ?Sized + 'static,
+        F: FnMut(WnfDataAccessor<T>) + Send + 'static,
     {
         self.raw.subscribe(after_change_stamp, listener)
     }
@@ -53,13 +53,15 @@ impl<T> RawWnfState<T>
 where
     T: ?Sized,
 {
+    // Note: if unsubscribe fails, will leak data the size of `Option<F>`
+    // if that's too much, box the listener
     pub fn subscribe<'a, F>(
         &self,
         after_change_stamp: WnfChangeStamp,
-        listener: Box<F>,
+        listener: F,
     ) -> Result<WnfSubscription<'a, F>, WnfSubscribeError>
     where
-        F: FnMut(WnfDataAccessor<T>) + Send + ?Sized + 'static,
+        F: FnMut(WnfDataAccessor<T>) + Send + 'static,
     {
         extern "system" fn callback<F, T>(
             state_name: u64,
@@ -70,7 +72,7 @@ where
             buffer_size: u32,
         ) -> NTSTATUS
         where
-            F: FnMut(WnfDataAccessor<T>) + Send + ?Sized + 'static,
+            F: FnMut(WnfDataAccessor<T>) + Send + 'static,
             T: ?Sized,
         {
             let _ = panic::catch_unwind(|| {
@@ -261,18 +263,12 @@ where
 }
 
 #[must_use]
-pub struct WnfSubscription<'a, F>
-where
-    F: ?Sized,
-{
+pub struct WnfSubscription<'a, F> {
     inner: Option<WnfSubscriptionInner<F>>,
     _marker: PhantomData<&'a ()>,
 }
 
-impl<F> Debug for WnfSubscription<'_, F>
-where
-    F: ?Sized,
-{
+impl<F> Debug for WnfSubscription<'_, F> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("WnfSubscription")
             .field("subscription", &self.inner.as_ref().map(|inner| inner.subscription))
@@ -280,10 +276,7 @@ where
     }
 }
 
-impl<F> WnfSubscription<'_, F>
-where
-    F: ?Sized,
-{
+impl<F> WnfSubscription<'_, F> {
     pub(crate) fn new(context: Box<WnfSubscriptionContext<F>>, subscription: u64) -> Self {
         Self {
             inner: Some(WnfSubscriptionInner {
@@ -295,18 +288,12 @@ where
     }
 }
 
-pub(crate) struct WnfSubscriptionInner<F>
-where
-    F: ?Sized,
-{
+pub(crate) struct WnfSubscriptionInner<F> {
     context: ManuallyDrop<Box<WnfSubscriptionContext<F>>>,
     subscription: u64,
 }
 
-impl<F> Debug for WnfSubscriptionInner<F>
-where
-    F: ?Sized,
-{
+impl<F> Debug for WnfSubscriptionInner<F> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("WnfSubscriptionInner")
             .field("subscription", &self.subscription)
@@ -314,24 +301,16 @@ where
     }
 }
 
-pub(crate) struct WnfSubscriptionContext<F>(Mutex<Option<Box<F>>>)
-where
-    F: ?Sized;
+pub(crate) struct WnfSubscriptionContext<F>(Mutex<Option<F>>);
 
-impl<F> Debug for WnfSubscriptionContext<F>
-where
-    F: ?Sized,
-{
+impl<F> Debug for WnfSubscriptionContext<F> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_tuple("WnfSubscriptionContext").field(&"..").finish()
     }
 }
 
-impl<F> WnfSubscriptionContext<F>
-where
-    F: ?Sized,
-{
-    pub(crate) fn new(listener: Box<F>) -> Self {
+impl<F> WnfSubscriptionContext<F> {
+    pub(crate) fn new(listener: F) -> Self {
         Self(Mutex::new(Some(listener)))
     }
 
@@ -353,10 +332,7 @@ where
     }
 }
 
-impl<F> WnfSubscription<'_, F>
-where
-    F: ?Sized,
-{
+impl<F> WnfSubscription<'_, F> {
     pub fn forget(self) {
         mem::forget(self);
     }
@@ -390,10 +366,7 @@ where
     }
 }
 
-impl<F> Drop for WnfSubscription<'_, F>
-where
-    F: ?Sized,
-{
+impl<F> Drop for WnfSubscription<'_, F> {
     fn drop(&mut self) {
         if self.try_unsubscribe().is_err() {
             if let Some(inner) = self.inner.take() {

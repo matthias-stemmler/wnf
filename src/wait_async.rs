@@ -219,7 +219,7 @@ where
     Waiting {
         predicate: F,
         shared_state: Arc<Mutex<SharedState<D>>>,
-        subscription: WnfSubscription<'a, dyn FnMut(WnfDataAccessor<T>) + Send>, // TODO avoid dynamic dispatch
+        subscription: WnfSubscription<'a, Box<dyn FnMut(WnfDataAccessor<T>) + Send>>, // TODO avoid dynamic dispatch
     },
 }
 
