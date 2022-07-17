@@ -35,9 +35,8 @@ mod state;
 mod state_name;
 mod subscribe;
 mod update;
+mod wait_async;
 mod wait_blocking;
-
-// TODO async wait
 
 // TODO check Debug impls
 // TODO builder pattern for creation, including max size and type_id
@@ -48,3 +47,4 @@ mod wait_blocking;
 // TODO different subscribe variants with change_stamp 0/current/custom
 // TODO consolidate errors
 // TODO trait impls: all for external types, only needed (+Debug) for internal
+// TODO naming: remove `Wnf` prefixes?

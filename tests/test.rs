@@ -458,7 +458,7 @@ fn not_exists() {
             lifetime: WnfStateNameLifetime::Temporary,
             data_scope: WnfDataScope::Machine,
             is_permanent: false,
-            unique_id: 1 << 53 - 1,
+            unique_id: (1 << 53) - 1,
         }
         .try_into()
         .unwrap(),

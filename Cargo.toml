@@ -8,14 +8,8 @@ num-derive = "0.3.3"
 num-traits = "0.2.15"
 thiserror = "1.0.31"
 tracing = { version = "0.1.34", features = ["log"] }
-
-[dependencies.windows]
-version = "0.36.1"
-features = [
-    "Win32_Foundation",
-    "Win32_Security",
-    "Win32_System_SystemServices"
-]
+windows = { version = "0.36.1", features = ["Win32_Foundation", "Win32_Security", "Win32_System_SystemServices"] }
 
 [dev-dependencies]
+tokio = { version = "1.20.0", features = ["macros", "rt-multi-thread", "time"] }
 tracing-subscriber = { version = "0.3.11", features = ["fmt"] }

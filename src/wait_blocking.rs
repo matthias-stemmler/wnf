@@ -3,7 +3,7 @@ use std::sync::{Arc, Condvar, Mutex};
 
 use thiserror::Error;
 
-use crate::predicate::{Predicate, PredicateStage};
+use crate::predicate::{ChangedPredicate, Predicate, PredicateStage};
 use crate::state::RawWnfState;
 use crate::{
     BorrowedWnfState, OwnedWnfState, WnfDataAccessor, WnfOpaqueData, WnfQueryError, WnfRead, WnfReadError,
@@ -81,7 +81,7 @@ where
     T: ?Sized,
 {
     pub fn wait_blocking(&self) -> Result<(), WnfWaitError> {
-        let _: WnfOpaqueData = self.cast().wait_until_blocking_internal(PredicateStage::Changed)?;
+        let _: WnfOpaqueData = self.cast().wait_until_blocking_internal(ChangedPredicate)?;
         Ok(())
     }
 }

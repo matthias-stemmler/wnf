@@ -33,7 +33,7 @@ where
     }
 }
 
-impl<T> BorrowedWnfState<'_, T>
+impl<'a, T> BorrowedWnfState<'a, T>
 where
     T: ?Sized,
 {
@@ -41,7 +41,7 @@ where
         &self,
         after_change_stamp: WnfChangeStamp,
         listener: Box<F>,
-    ) -> Result<WnfSubscription<F>, WnfSubscribeError>
+    ) -> Result<WnfSubscription<'a, F>, WnfSubscribeError>
     where
         F: FnMut(WnfDataAccessor<T>) + Send + ?Sized + 'static,
     {
@@ -53,11 +53,11 @@ impl<T> RawWnfState<T>
 where
     T: ?Sized,
 {
-    pub fn subscribe<F>(
+    pub fn subscribe<'a, F>(
         &self,
         after_change_stamp: WnfChangeStamp,
         listener: Box<F>,
-    ) -> Result<WnfSubscription<F>, WnfSubscribeError>
+    ) -> Result<WnfSubscription<'a, F>, WnfSubscribeError>
     where
         F: FnMut(WnfDataAccessor<T>) + Send + ?Sized + 'static,
     {

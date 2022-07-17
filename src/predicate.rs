@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub(crate) enum PredicateStage {
     Initial,
     Changed,
@@ -21,8 +21,11 @@ where
     }
 }
 
-impl<T> Predicate<T> for PredicateStage {
+#[derive(Debug)]
+pub(crate) struct ChangedPredicate;
+
+impl<T> Predicate<T> for ChangedPredicate {
     fn check(&mut self, _: &T, stage: PredicateStage) -> bool {
-        *self == stage
+        matches!(stage, PredicateStage::Changed)
     }
 }
