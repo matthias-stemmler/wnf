@@ -6,7 +6,7 @@
 #[macro_use]
 extern crate num_derive;
 
-pub use bytes::NoUninit;
+pub use bytes::*;
 pub use data::{WnfChangeStamp, WnfOpaqueData, WnfStampedData};
 pub use read::WnfRead;
 pub use state::{BorrowAsWnfState, BorrowedWnfState, OwnedWnfState};
@@ -42,3 +42,6 @@ mod wait_blocking;
 // TODO trait impls: all for external types, only needed (+Debug) for internal
 // TODO naming: remove `Wnf` prefixes?
 // TODO tests for error messages
+// TODO minimal dependency versions
+// TODO rename BorrowAsWnfState -> AsWnfState (as in AsFd, AsHandle)
+// TODO scoped subscriptions (without 'static)
