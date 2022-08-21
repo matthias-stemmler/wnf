@@ -171,27 +171,27 @@ where
     }
 }
 
-pub trait BorrowAsWnfState<T>: private::Sealed
+pub trait AsWnfState<T>
 where
     T: ?Sized,
 {
-    fn borrow_as_wnf_state(&self) -> BorrowedWnfState<T>;
+    fn as_wnf_state(&self) -> BorrowedWnfState<T>;
 }
 
-impl<T> BorrowAsWnfState<T> for OwnedWnfState<T>
+impl<T> AsWnfState<T> for OwnedWnfState<T>
 where
     T: ?Sized,
 {
-    fn borrow_as_wnf_state(&self) -> BorrowedWnfState<T> {
+    fn as_wnf_state(&self) -> BorrowedWnfState<T> {
         BorrowedWnfState::from_raw(self.raw)
     }
 }
 
-impl<T> BorrowAsWnfState<T> for BorrowedWnfState<'_, T>
+impl<T> AsWnfState<T> for BorrowedWnfState<'_, T>
 where
     T: ?Sized,
 {
-    fn borrow_as_wnf_state(&self) -> BorrowedWnfState<T> {
+    fn as_wnf_state(&self) -> BorrowedWnfState<T> {
         *self
     }
 }
@@ -267,12 +267,4 @@ where
             .field("state_name", &self.state_name)
             .finish()
     }
-}
-
-mod private {
-    use super::*;
-
-    pub trait Sealed {}
-    impl<T> Sealed for OwnedWnfState<T> where T: ?Sized {}
-    impl<T> Sealed for BorrowedWnfState<'_, T> where T: ?Sized {}
 }

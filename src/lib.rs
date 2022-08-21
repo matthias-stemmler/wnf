@@ -9,7 +9,7 @@ extern crate num_derive;
 pub use bytes::*;
 pub use data::{WnfChangeStamp, WnfOpaqueData, WnfStampedData};
 pub use read::WnfRead;
-pub use state::{BorrowAsWnfState, BorrowedWnfState, OwnedWnfState};
+pub use state::{AsWnfState, BorrowedWnfState, OwnedWnfState};
 pub use state_name::{WnfDataScope, WnfStateName, WnfStateNameDescriptor, WnfStateNameLifetime};
 pub use subscribe::{WnfDataAccessor, WnfStateListener};
 
@@ -43,5 +43,5 @@ mod wait_blocking;
 // TODO naming: remove `Wnf` prefixes?
 // TODO tests for error messages
 // TODO minimal dependency versions
-// TODO rename BorrowAsWnfState -> AsWnfState (as in AsFd, AsHandle)
 // TODO scoped subscriptions (without 'static)
+// TODO compatibility layer to external crates for security descriptors (windows-permissions, windows, winapi)

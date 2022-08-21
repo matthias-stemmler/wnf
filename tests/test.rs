@@ -7,8 +7,8 @@ use std::time::Duration;
 use std::{fmt, thread};
 
 use wnf::{
-    BorrowAsWnfState, BorrowedWnfState, OwnedWnfState, WnfChangeStamp, WnfDataAccessor, WnfDataScope,
-    WnfStateNameDescriptor, WnfStateNameLifetime,
+    AsWnfState, BorrowedWnfState, OwnedWnfState, WnfChangeStamp, WnfDataAccessor, WnfDataScope, WnfStateNameDescriptor,
+    WnfStateNameLifetime,
 };
 
 #[test]
@@ -128,7 +128,7 @@ macro_rules! apply_tests {
 
                     handles.push(thread::spawn(move || {
                         for _ in 0..NUM_ITERATIONS {
-                            let $state = state.borrow_as_wnf_state();
+                            let $state = state.as_wnf_state();
                             $apply.unwrap();
                         }
                     }));

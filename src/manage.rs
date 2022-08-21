@@ -37,7 +37,6 @@ where
     pub(crate) fn create_temporary() -> io::Result<Self> {
         let mut opaque_value = 0;
 
-        // TODO Can we drop this or is it "borrowed" by the created WNF state?
         let security_descriptor = SecurityDescriptor::create_everyone_generic_all()?;
 
         let name_lifetime = WnfStateNameLifetime::Temporary as u32;
