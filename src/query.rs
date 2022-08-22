@@ -49,11 +49,11 @@ impl<T> BorrowedWnfState<'_, T>
 where
     T: WnfRead<T>,
 {
-    pub fn get(&self) -> io::Result<T> {
+    pub fn get(self) -> io::Result<T> {
         self.raw.get()
     }
 
-    pub fn query(&self) -> io::Result<WnfStampedData<T>> {
+    pub fn query(self) -> io::Result<WnfStampedData<T>> {
         self.raw.query()
     }
 }
@@ -62,11 +62,11 @@ impl<T> BorrowedWnfState<'_, T>
 where
     T: WnfRead<Box<T>> + ?Sized,
 {
-    pub fn get_boxed(&self) -> io::Result<Box<T>> {
+    pub fn get_boxed(self) -> io::Result<Box<T>> {
         self.raw.get_boxed()
     }
 
-    pub fn query_boxed(&self) -> io::Result<WnfStampedData<Box<T>>> {
+    pub fn query_boxed(self) -> io::Result<WnfStampedData<Box<T>>> {
         self.raw.query_boxed()
     }
 }
@@ -75,7 +75,7 @@ impl<T> BorrowedWnfState<'_, T>
 where
     T: ?Sized,
 {
-    pub fn change_stamp(&self) -> io::Result<WnfChangeStamp> {
+    pub fn change_stamp(self) -> io::Result<WnfChangeStamp> {
         self.raw.change_stamp()
     }
 }
@@ -84,11 +84,11 @@ impl<T> RawWnfState<T>
 where
     T: WnfRead<T>,
 {
-    pub fn get(&self) -> io::Result<T> {
+    pub fn get(self) -> io::Result<T> {
         self.query().map(WnfStampedData::into_data)
     }
 
-    pub fn query(&self) -> io::Result<WnfStampedData<T>> {
+    pub fn query(self) -> io::Result<WnfStampedData<T>> {
         self.query_as()
     }
 }
@@ -97,11 +97,11 @@ impl<T> RawWnfState<T>
 where
     T: WnfRead<Box<T>> + ?Sized,
 {
-    pub fn get_boxed(&self) -> io::Result<Box<T>> {
+    pub fn get_boxed(self) -> io::Result<Box<T>> {
         self.query_boxed().map(WnfStampedData::into_data)
     }
 
-    pub fn query_boxed(&self) -> io::Result<WnfStampedData<Box<T>>> {
+    pub fn query_boxed(self) -> io::Result<WnfStampedData<Box<T>>> {
         self.query_as()
     }
 }
@@ -110,11 +110,11 @@ impl<T> RawWnfState<T>
 where
     T: ?Sized,
 {
-    pub fn change_stamp(&self) -> io::Result<WnfChangeStamp> {
+    pub fn change_stamp(self) -> io::Result<WnfChangeStamp> {
         Ok(self.cast::<WnfOpaqueData>().query()?.change_stamp())
     }
 
-    pub(crate) fn query_as<D>(&self) -> io::Result<WnfStampedData<D>>
+    pub(crate) fn query_as<D>(self) -> io::Result<WnfStampedData<D>>
     where
         T: WnfRead<D>,
     {

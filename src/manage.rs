@@ -26,7 +26,7 @@ where
     T: ?Sized,
 {
     pub fn delete(self) -> io::Result<()> {
-        self.into_raw().delete()
+        self.raw.delete()
     }
 }
 

@@ -36,15 +36,15 @@ impl<T> BorrowedWnfState<'_, T>
 where
     T: ?Sized,
 {
-    pub fn exists(&self) -> io::Result<bool> {
+    pub fn exists(self) -> io::Result<bool> {
         self.raw.exists()
     }
 
-    pub fn subscribers_present(&self) -> io::Result<bool> {
+    pub fn subscribers_present(self) -> io::Result<bool> {
         self.raw.subscribers_present()
     }
 
-    pub fn is_quiescent(&self) -> io::Result<bool> {
+    pub fn is_quiescent(self) -> io::Result<bool> {
         self.raw.is_quiescent()
     }
 }
@@ -53,19 +53,19 @@ impl<T> RawWnfState<T>
 where
     T: ?Sized,
 {
-    pub fn exists(&self) -> io::Result<bool> {
+    pub fn exists(self) -> io::Result<bool> {
         self.info_internal(WnfNameInfoClass::StateNameExist)
     }
 
-    pub fn subscribers_present(&self) -> io::Result<bool> {
+    pub fn subscribers_present(self) -> io::Result<bool> {
         self.info_internal(WnfNameInfoClass::SubscribersPresent)
     }
 
-    pub fn is_quiescent(&self) -> io::Result<bool> {
+    pub fn is_quiescent(self) -> io::Result<bool> {
         self.info_internal(WnfNameInfoClass::IsQuiescent)
     }
 
-    fn info_internal(&self, name_info_class: WnfNameInfoClass) -> io::Result<bool> {
+    fn info_internal(self, name_info_class: WnfNameInfoClass) -> io::Result<bool> {
         let mut buffer = u32::MAX;
         let name_info_class = name_info_class as u32;
 

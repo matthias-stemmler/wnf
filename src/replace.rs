@@ -32,7 +32,7 @@ impl<T> BorrowedWnfState<'_, T>
 where
     T: WnfRead<T> + NoUninit,
 {
-    pub fn replace<D>(&self, new_value: D) -> io::Result<T>
+    pub fn replace<D>(self, new_value: D) -> io::Result<T>
     where
         D: Borrow<T>,
     {
@@ -44,7 +44,7 @@ impl<T> BorrowedWnfState<'_, T>
 where
     T: WnfRead<Box<T>> + NoUninit + ?Sized,
 {
-    pub fn replace_boxed<D>(&self, new_value: D) -> io::Result<Box<T>>
+    pub fn replace_boxed<D>(self, new_value: D) -> io::Result<Box<T>>
     where
         D: Borrow<T>,
     {
@@ -56,7 +56,7 @@ impl<T> RawWnfState<T>
 where
     T: WnfRead<T> + NoUninit,
 {
-    pub fn replace<D>(&self, new_value: D) -> io::Result<T>
+    pub fn replace<D>(self, new_value: D) -> io::Result<T>
     where
         D: Borrow<T>,
     {
@@ -68,7 +68,7 @@ impl<T> RawWnfState<T>
 where
     T: WnfRead<Box<T>> + NoUninit + ?Sized,
 {
-    pub fn replace_boxed<D>(&self, new_value: D) -> io::Result<Box<T>>
+    pub fn replace_boxed<D>(self, new_value: D) -> io::Result<Box<T>>
     where
         D: Borrow<T>,
     {
@@ -80,7 +80,7 @@ impl<T> RawWnfState<T>
 where
     T: ?Sized,
 {
-    fn replace_as<ReadInto, WriteFrom>(&self, new_value: WriteFrom) -> io::Result<ReadInto>
+    fn replace_as<ReadInto, WriteFrom>(self, new_value: WriteFrom) -> io::Result<ReadInto>
     where
         WriteFrom: Borrow<T>,
         T: WnfRead<ReadInto> + NoUninit,

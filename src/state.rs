@@ -93,16 +93,16 @@ impl<'a, T> BorrowedWnfState<'a, T>
 where
     T: ?Sized,
 {
-    pub fn state_name(&self) -> WnfStateName {
+    pub fn state_name(self) -> WnfStateName {
         self.raw.state_name()
     }
 
-    pub fn into_owned(self) -> OwnedWnfState<T> {
-        OwnedWnfState::from_raw(self.into_raw())
+    pub fn to_owned(self) -> OwnedWnfState<T> {
+        OwnedWnfState::from_raw(self.raw)
     }
 
     pub fn cast<U>(self) -> BorrowedWnfState<'a, U> {
-        BorrowedWnfState::from_raw(self.into_raw().cast())
+        BorrowedWnfState::from_raw(self.raw.cast())
     }
 
     pub(crate) fn from_raw(raw: RawWnfState<T>) -> Self {
@@ -110,10 +110,6 @@ where
             raw,
             _marker: PhantomData,
         }
-    }
-
-    pub(crate) fn into_raw(self) -> RawWnfState<T> {
-        self.raw
     }
 }
 

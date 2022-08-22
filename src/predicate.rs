@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub(crate) enum PredicateStage {
     Initial,
     Changed,
@@ -21,7 +21,7 @@ where
     }
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub(crate) struct ChangedPredicate;
 
 impl<T> Predicate<T> for ChangedPredicate {

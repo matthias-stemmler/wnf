@@ -145,7 +145,6 @@ where
     }
 }
 
-#[derive(Debug)]
 pub struct WnfDataAccessor<'a, T>
 where
     T: ?Sized,
@@ -154,7 +153,26 @@ where
     _marker: PhantomData<&'a ()>,
 }
 
-#[derive(Debug)]
+impl<T> Copy for WnfDataAccessor<'_, T> where T: ?Sized {}
+
+impl<T> Clone for WnfDataAccessor<'_, T>
+where
+    T: ?Sized,
+{
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<T> Debug for WnfDataAccessor<'_, T>
+where
+    T: ?Sized,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("WnfDataAccessor").field("scope", &self.scope).finish()
+    }
+}
+
 struct WnfDataScope<T>
 where
     T: ?Sized,
@@ -173,6 +191,19 @@ where
 {
     fn clone(&self) -> Self {
         *self
+    }
+}
+
+impl<T> Debug for WnfDataScope<T>
+where
+    T: ?Sized,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("WnfDataScope")
+            .field("buffer", &self.buffer)
+            .field("buffer_size", &self.buffer_size)
+            .field("change_stamp", &self.change_stamp)
+            .finish()
     }
 }
 
@@ -217,7 +248,7 @@ where
         }
     }
 
-    pub fn change_stamp(&self) -> WnfChangeStamp {
+    pub fn change_stamp(self) -> WnfChangeStamp {
         self.scope.change_stamp
     }
 }
@@ -226,11 +257,11 @@ impl<T> WnfDataAccessor<'_, T>
 where
     T: WnfRead<T>,
 {
-    pub fn get(&self) -> io::Result<T> {
+    pub fn get(self) -> io::Result<T> {
         self.get_as()
     }
 
-    pub fn query(&self) -> io::Result<WnfStampedData<T>> {
+    pub fn query(self) -> io::Result<WnfStampedData<T>> {
         self.query_as()
     }
 }
@@ -239,11 +270,11 @@ impl<T> WnfDataAccessor<'_, T>
 where
     T: WnfRead<Box<T>> + ?Sized,
 {
-    pub fn get_boxed(&self) -> io::Result<Box<T>> {
+    pub fn get_boxed(self) -> io::Result<Box<T>> {
         self.get_as()
     }
 
-    pub fn query_boxed(&self) -> io::Result<WnfStampedData<Box<T>>> {
+    pub fn query_boxed(self) -> io::Result<WnfStampedData<Box<T>>> {
         self.query_as()
     }
 }
@@ -252,14 +283,14 @@ impl<T> WnfDataAccessor<'_, T>
 where
     T: ?Sized,
 {
-    pub(crate) fn get_as<D>(&self) -> io::Result<D>
+    pub(crate) fn get_as<D>(self) -> io::Result<D>
     where
         T: WnfRead<D>,
     {
         unsafe { T::from_buffer(self.scope.buffer, self.scope.buffer_size) }
     }
 
-    pub(crate) fn query_as<D>(&self) -> io::Result<WnfStampedData<D>>
+    pub(crate) fn query_as<D>(self) -> io::Result<WnfStampedData<D>>
     where
         T: WnfRead<D>,
     {

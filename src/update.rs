@@ -34,14 +34,14 @@ impl<T> BorrowedWnfState<'_, T>
 where
     T: NoUninit + ?Sized,
 {
-    pub fn set<D>(&self, data: D) -> io::Result<()>
+    pub fn set<D>(self, data: D) -> io::Result<()>
     where
         D: Borrow<T>,
     {
         self.raw.set(data)
     }
 
-    pub fn update<D>(&self, data: D, expected_change_stamp: WnfChangeStamp) -> io::Result<bool>
+    pub fn update<D>(self, data: D, expected_change_stamp: WnfChangeStamp) -> io::Result<bool>
     where
         D: Borrow<T>,
     {
@@ -53,7 +53,7 @@ impl<T> RawWnfState<T>
 where
     T: NoUninit + ?Sized,
 {
-    pub fn set<D>(&self, data: D) -> io::Result<()>
+    pub fn set<D>(self, data: D) -> io::Result<()>
     where
         D: Borrow<T>,
     {
@@ -68,7 +68,7 @@ where
         Ok(())
     }
 
-    pub fn update<D>(&self, data: D, expected_change_stamp: WnfChangeStamp) -> io::Result<bool>
+    pub fn update<D>(self, data: D, expected_change_stamp: WnfChangeStamp) -> io::Result<bool>
     where
         D: Borrow<T>,
     {
