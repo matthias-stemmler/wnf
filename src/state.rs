@@ -1,3 +1,4 @@
+use crate::GUID;
 use std::fmt;
 use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
@@ -5,6 +6,7 @@ use std::marker::PhantomData;
 use std::mem::ManuallyDrop;
 
 use crate::state_name::WnfStateName;
+use crate::type_id::TypeId;
 
 pub struct OwnedWnfState<T>
 where
@@ -118,7 +120,11 @@ where
     T: ?Sized,
 {
     pub fn from_state_name(state_name: WnfStateName) -> Self {
-        Self::from_raw(RawWnfState::from_state_name(state_name))
+        Self::from_state_name_and_type_id(state_name, GUID::zeroed())
+    }
+
+    pub fn from_state_name_and_type_id(state_name: WnfStateName, type_id: GUID) -> Self {
+        Self::from_raw(RawWnfState::from_state_name_and_type_id(state_name, type_id.into()))
     }
 }
 
@@ -197,6 +203,7 @@ where
     T: ?Sized,
 {
     pub(crate) state_name: WnfStateName,
+    pub(crate) type_id: TypeId,
     _marker: PhantomData<fn(T) -> T>,
 }
 
@@ -204,9 +211,10 @@ impl<T> RawWnfState<T>
 where
     T: ?Sized,
 {
-    pub(crate) fn from_state_name(state_name: WnfStateName) -> Self {
+    pub(crate) fn from_state_name_and_type_id(state_name: WnfStateName, type_id: TypeId) -> Self {
         Self {
             state_name,
+            type_id,
             _marker: PhantomData,
         }
     }
@@ -216,7 +224,7 @@ where
     }
 
     pub(crate) fn cast<U>(self) -> RawWnfState<U> {
-        RawWnfState::from_state_name(self.state_name)
+        RawWnfState::from_state_name_and_type_id(self.state_name, self.type_id)
     }
 }
 
@@ -261,6 +269,7 @@ where
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("RawWnfState")
             .field("state_name", &self.state_name)
+            .field("type_id", &self.type_id)
             .finish()
     }
 }

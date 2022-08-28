@@ -8,6 +8,7 @@ use crate::data::{WnfChangeStamp, WnfStampedData};
 use crate::ntdll::NTDLL_TARGET;
 use crate::read::WnfRead;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
+use crate::type_id::TypeId;
 use crate::{ntdll_sys, WnfOpaqueData, WnfStateName};
 
 impl<T> OwnedWnfState<T>
@@ -118,13 +119,15 @@ where
     where
         T: WnfRead<D>,
     {
-        let data = unsafe { T::from_reader(|buffer, buffer_size| query(self.state_name, buffer, buffer_size)) }?;
+        let data =
+            unsafe { T::from_reader(|buffer, buffer_size| query(self.state_name, self.type_id, buffer, buffer_size)) }?;
         Ok(data.into())
     }
 }
 
 unsafe fn query(
     state_name: WnfStateName,
+    type_id: TypeId,
     buffer: *mut c_void,
     buffer_size: usize,
 ) -> io::Result<(usize, WnfChangeStamp)> {
@@ -133,7 +136,7 @@ unsafe fn query(
 
     let result = ntdll_sys::ZwQueryWnfStateData(
         &state_name.opaque_value(),
-        ptr::null(),
+        type_id.as_ptr(),
         ptr::null(),
         change_stamp.as_mut_ptr(),
         buffer,
@@ -145,6 +148,7 @@ unsafe fn query(
              target: NTDLL_TARGET,
              ?result,
              input.state_name = %state_name,
+             input.type_id = %type_id,
              "ZwQueryWnfStateData",
         );
 
@@ -154,6 +158,7 @@ unsafe fn query(
             target: NTDLL_TARGET,
             ?result,
             input.state_name = %state_name,
+            input.type_id = %type_id,
             output.change_stamp = %change_stamp,
             output.buffer_size = size,
             "ZwQueryWnfStateData",

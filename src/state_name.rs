@@ -8,12 +8,24 @@ const STATE_NAME_XOR_KEY: u64 = 0x41C64E6DA3BC0074;
 #[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, PartialEq)]
 #[repr(u8)]
 pub enum WnfStateNameLifetime {
-    WellKnown = 0,
+    /// Provisioned with the system, lives forever
+    /// Persisted under HKLM\SYSTEM\CurrentControlSet\Control\Notifications
+    WellKnown = 0, // -> HKLM\SYSTEM\CurrentControlSet\Control\Notifications
+
+    /// Lives forever
+    /// Persisted under HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Notifications
     Permanent = 1,
-    Persistent = 2,
+
+    /// Lives until system reboot ("volatile")
+    /// Persisted under HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\VolatileNotifications
+    Persistent = 2, // system uptime (aka "volatile") -> HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\VolatileNotifications
+
+    /// Lives as long as the process that created it
+    /// Not persisted
     Temporary = 3,
 }
 
+// Note: everything >4 works, some implementations define PhysicalMachine = 5, Process never seems to work
 #[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, PartialEq)]
 #[repr(u8)]
 pub enum WnfDataScope {

@@ -3,7 +3,7 @@ use std::fmt::{Debug, Formatter};
 use std::marker::PhantomData;
 use std::mem::ManuallyDrop;
 use std::sync::Mutex;
-use std::{fmt, io, mem, panic, ptr};
+use std::{fmt, io, mem, panic};
 
 use tracing::{debug, trace_span};
 use windows::core::GUID;
@@ -94,10 +94,10 @@ where
                 let _enter = span.enter();
 
                 let context: &WnfSubscriptionContext<F> = unsafe { &*context.cast() };
-                let scope = unsafe { WnfDataScope::new(buffer, buffer_size as usize, change_stamp.into()) };
+                let data = unsafe { WnfScopedData::new(buffer, buffer_size as usize, change_stamp.into()) };
 
                 context.with_listener(|listener| {
-                    listener.call(scope.accessor());
+                    listener.call(data.accessor());
                 });
             });
 
@@ -114,7 +114,7 @@ where
                 after_change_stamp.into(),
                 callback::<F, T>,
                 &*context as *const _ as *mut c_void,
-                ptr::null(),
+                self.type_id.as_ptr(),
                 0,
                 0,
             )
@@ -126,6 +126,7 @@ where
                 ?result,
                 input.state_name = %self.state_name,
                 input.after_change_stamp = %after_change_stamp,
+                input.type_id = %self.type_id,
                 output.subscription = subscription,
                 "RtlSubscribeWnfStateChangeNotification",
             );
@@ -137,6 +138,7 @@ where
                 ?result,
                 input.state_name = %self.state_name,
                 input.after_change_stamp = %after_change_stamp,
+                input.type_id = %self.type_id,
                 "RtlSubscribeWnfStateChangeNotification",
             );
 
@@ -149,7 +151,7 @@ pub struct WnfDataAccessor<'a, T>
 where
     T: ?Sized,
 {
-    scope: WnfDataScope<T>,
+    data: WnfScopedData<T>,
     _marker: PhantomData<&'a ()>,
 }
 
@@ -169,11 +171,11 @@ where
     T: ?Sized,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("WnfDataAccessor").field("scope", &self.scope).finish()
+        f.debug_struct("WnfDataAccessor").field("data", &self.data).finish()
     }
 }
 
-struct WnfDataScope<T>
+struct WnfScopedData<T>
 where
     T: ?Sized,
 {
@@ -183,9 +185,9 @@ where
     _marker: PhantomData<fn() -> T>,
 }
 
-impl<T> Copy for WnfDataScope<T> where T: ?Sized {}
+impl<T> Copy for WnfScopedData<T> where T: ?Sized {}
 
-impl<T> Clone for WnfDataScope<T>
+impl<T> Clone for WnfScopedData<T>
 where
     T: ?Sized,
 {
@@ -194,7 +196,7 @@ where
     }
 }
 
-impl<T> Debug for WnfDataScope<T>
+impl<T> Debug for WnfScopedData<T>
 where
     T: ?Sized,
 {
@@ -207,7 +209,7 @@ where
     }
 }
 
-impl<T> WnfDataScope<T>
+impl<T> WnfScopedData<T>
 where
     T: ?Sized,
 {
@@ -222,13 +224,13 @@ where
 
     fn accessor(&self) -> WnfDataAccessor<T> {
         WnfDataAccessor {
-            scope: *self,
+            data: *self,
             _marker: PhantomData,
         }
     }
 
-    fn cast<U>(self) -> WnfDataScope<U> {
-        WnfDataScope {
+    fn cast<U>(self) -> WnfScopedData<U> {
+        WnfScopedData {
             buffer: self.buffer,
             buffer_size: self.buffer_size,
             change_stamp: self.change_stamp,
@@ -243,13 +245,13 @@ where
 {
     pub fn cast<U>(self) -> WnfDataAccessor<'a, U> {
         WnfDataAccessor {
-            scope: self.scope.cast(),
+            data: self.data.cast(),
             _marker: PhantomData,
         }
     }
 
     pub fn change_stamp(self) -> WnfChangeStamp {
-        self.scope.change_stamp
+        self.data.change_stamp
     }
 }
 
@@ -287,7 +289,7 @@ where
     where
         T: WnfRead<D>,
     {
-        unsafe { T::from_buffer(self.scope.buffer, self.scope.buffer_size) }
+        unsafe { T::from_buffer(self.data.buffer, self.data.buffer_size) }
     }
 
     pub(crate) fn query_as<D>(self) -> io::Result<WnfStampedData<D>>
@@ -296,7 +298,7 @@ where
     {
         Ok(WnfStampedData::from_data_change_stamp(
             self.get_as()?,
-            self.scope.change_stamp,
+            self.data.change_stamp,
         ))
     }
 }

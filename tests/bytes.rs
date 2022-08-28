@@ -4,7 +4,7 @@ mod bytemuck_v1_tests {
 
     #[test]
     fn derive_any_bit_pattern_from_bytemuck() {
-        #[derive(Copy, Clone)]
+        #[derive(Clone, Copy)]
         struct Test;
 
         // SAFETY: `Test` is zero-sized
@@ -18,7 +18,7 @@ mod bytemuck_v1_tests {
 
     #[test]
     fn derive_checked_bit_pattern_from_bytemuck() {
-        #[derive(Copy, Clone)]
+        #[derive(Clone, Copy)]
         struct Test;
 
         // SAFETY: `Test` is zero-sized
@@ -38,7 +38,7 @@ mod bytemuck_v1_tests {
 
     #[test]
     fn derive_no_uninit_from_bytemuck() {
-        #[derive(Copy, Clone)]
+        #[derive(Clone, Copy)]
         struct Test;
 
         // SAFETY: `Test` is zero-sized
@@ -59,7 +59,7 @@ mod zerocopy_tests {
 
     #[test]
     fn derive_any_bit_pattern_from_zerocopy() {
-        #[derive(Copy, Clone, zerocopy::FromBytes)]
+        #[derive(Clone, Copy, zerocopy::FromBytes)]
         struct Test;
 
         derive_from_zerocopy!(AnyBitPattern for Test);
@@ -69,7 +69,7 @@ mod zerocopy_tests {
 
     #[test]
     fn derive_no_uninit_from_zerocopy() {
-        #[derive(Copy, Clone, zerocopy::AsBytes)]
+        #[derive(Clone, Copy, zerocopy::AsBytes)]
         #[repr(C)]
         struct Test;
 

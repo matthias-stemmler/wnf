@@ -9,6 +9,7 @@ use crate::bytes::NoUninit;
 use crate::data::WnfChangeStamp;
 use crate::ntdll::NTDLL_TARGET;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
+use crate::type_id::TypeId;
 use crate::{ntdll_sys, WnfStateName};
 
 impl<T> OwnedWnfState<T>
@@ -60,6 +61,7 @@ where
         let data = data.borrow();
         update(
             self.state_name,
+            self.type_id,
             data as *const T as *const c_void,
             mem::size_of_val(data),
             None,
@@ -75,6 +77,7 @@ where
         let data = data.borrow();
         let result = update(
             self.state_name,
+            self.type_id,
             data as *const T as *const c_void,
             mem::size_of_val(data),
             Some(expected_change_stamp),
@@ -89,8 +92,9 @@ where
     }
 }
 
-pub fn update(
+fn update(
     state_name: WnfStateName,
+    type_id: TypeId,
     buffer: *const c_void,
     buffer_size: usize,
     expected_change_stamp: Option<WnfChangeStamp>,
@@ -103,7 +107,7 @@ pub fn update(
             &state_name.opaque_value(),
             buffer,
             buffer_size as u32,
-            ptr::null(),
+            type_id.as_ptr(),
             ptr::null(),
             matching_change_stamp,
             check_stamp,
@@ -115,6 +119,7 @@ pub fn update(
         ?result,
         input.state_name = %state_name,
         input.buffer_size = buffer_size,
+        input.type_id = %type_id,
         input.matching_change_stamp = matching_change_stamp,
         input.check_stamp = check_stamp,
         "ZwUpdateWnfStateData",
