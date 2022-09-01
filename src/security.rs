@@ -1,5 +1,13 @@
+use std::ffi::CString;
 use std::{alloc, alloc::Layout, ffi::c_void, io, mem};
 
+use windows::core::PCSTR;
+use windows::Win32::Foundation::{BOOL, HANDLE, LUID};
+use windows::Win32::Security::{
+    LookupPrivilegeValueA, PrivilegeCheck, LUID_AND_ATTRIBUTES, PRIVILEGE_SET, TOKEN_PRIVILEGES_ATTRIBUTES, TOKEN_QUERY,
+};
+use windows::Win32::System::SystemServices::{PRIVILEGE_SET_ALL_NECESSARY, SE_CREATE_PERMANENT_NAME};
+use windows::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
 use windows::Win32::{
     Foundation::PSID,
     Security::{
@@ -59,4 +67,37 @@ impl Drop for SecurityDescriptor {
     fn drop(&mut self) {
         unsafe { alloc::dealloc(self.acl_buffer, self.acl_layout) };
     }
+}
+
+pub fn can_create_permanent_shared_objects() -> io::Result<bool> {
+    let process_handle = unsafe { GetCurrentProcess() };
+
+    let mut token_handle = HANDLE::default();
+    let result = unsafe { OpenProcessToken(process_handle, TOKEN_QUERY, &mut token_handle) };
+    result.ok()?;
+
+    let mut privilege_luid = LUID::default();
+    let result = unsafe {
+        LookupPrivilegeValueA(
+            None,
+            PCSTR(CString::new(SE_CREATE_PERMANENT_NAME).unwrap().as_bytes().as_ptr()),
+            &mut privilege_luid,
+        )
+    };
+    result.ok()?;
+
+    let mut privilege_set = PRIVILEGE_SET {
+        PrivilegeCount: 1,
+        Control: PRIVILEGE_SET_ALL_NECESSARY,
+        Privilege: [LUID_AND_ATTRIBUTES {
+            Luid: privilege_luid,
+            Attributes: TOKEN_PRIVILEGES_ATTRIBUTES::default(),
+        }],
+    };
+
+    let mut privilege_enabled = BOOL::default();
+    let result = unsafe { PrivilegeCheck(token_handle, &mut privilege_set, &mut privilege_enabled.0) };
+    result.ok()?;
+
+    Ok(privilege_enabled.into())
 }

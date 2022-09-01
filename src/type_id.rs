@@ -60,9 +60,7 @@ impl From<windows::core::GUID> for GUID {
 #[cfg(feature = "winapi")]
 impl From<winapi::shared::guiddef::GUID> for GUID {
     fn from(guid: winapi::shared::guiddef::GUID) -> Self {
-        Self(windows::core::GUID::from_values(
-            guid.Data1, guid.Data2, guid.Data3, guid.Data4,
-        ))
+        Self::from_values(guid.Data1, guid.Data2, guid.Data3, guid.Data4)
     }
 }
 

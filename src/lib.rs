@@ -10,6 +10,7 @@ pub use bytes::*;
 pub use data::{WnfChangeStamp, WnfOpaqueData, WnfStampedData};
 pub use manage::{UnspecifiedLifetime, UnspecifiedScope, WnfCreatableStateLifetime, WnfStateCreation};
 pub use read::WnfRead;
+pub use security::can_create_permanent_shared_objects;
 pub use state::{AsWnfState, BorrowedWnfState, OwnedWnfState};
 pub use state_name::{WnfDataScope, WnfStateName, WnfStateNameDescriptor, WnfStateNameLifetime};
 pub use subscribe::{WnfDataAccessor, WnfStateListener};
