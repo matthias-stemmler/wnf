@@ -1,3 +1,6 @@
+[workspace]
+resolver = "2"
+
 [package]
 name = "wnf"
 version = "0.1.0"
@@ -26,9 +29,14 @@ features = [
     "Win32_Foundation",
     "Win32_Security",
     "Win32_System_SystemServices",
-    "Win32_System_Threading"
+    "Win32_System_Threading",
 ]
 
 [dev-dependencies]
+testutils = { path = "testutils"}
 tokio = { version = "1.20.0", features = ["macros", "rt-multi-thread", "time"] }
 tracing-subscriber = { version = "0.3.11", features = ["fmt"] }
+
+[[test]]
+name = "privileged"
+harness = false

@@ -1,10 +1,11 @@
-use std::ffi::CString;
+use std::ffi::OsStr;
+use std::os::windows::ffi::OsStrExt;
 use std::{alloc, alloc::Layout, ffi::c_void, io, mem};
 
-use windows::core::PCSTR;
+use windows::core::PCWSTR;
 use windows::Win32::Foundation::{BOOL, HANDLE, LUID};
 use windows::Win32::Security::{
-    LookupPrivilegeValueA, PrivilegeCheck, LUID_AND_ATTRIBUTES, PRIVILEGE_SET, TOKEN_PRIVILEGES_ATTRIBUTES, TOKEN_QUERY,
+    LookupPrivilegeValueW, PrivilegeCheck, LUID_AND_ATTRIBUTES, PRIVILEGE_SET, TOKEN_PRIVILEGES_ATTRIBUTES, TOKEN_QUERY,
 };
 use windows::Win32::System::SystemServices::{PRIVILEGE_SET_ALL_NECESSARY, SE_CREATE_PERMANENT_NAME};
 use windows::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
@@ -78,9 +79,15 @@ pub fn can_create_permanent_shared_objects() -> io::Result<bool> {
 
     let mut privilege_luid = LUID::default();
     let result = unsafe {
-        LookupPrivilegeValueA(
+        LookupPrivilegeValueW(
             None,
-            PCSTR(CString::new(SE_CREATE_PERMANENT_NAME).unwrap().as_bytes().as_ptr()),
+            PCWSTR::from_raw(
+                OsStr::new(SE_CREATE_PERMANENT_NAME)
+                    .encode_wide()
+                    .chain(Some(0))
+                    .collect::<Vec<_>>()
+                    .as_ptr(),
+            ),
             &mut privilege_luid,
         )
     };
