@@ -165,6 +165,18 @@ where
     }
 }
 
+impl<T> BorrowedWnfState<'static, T>
+where
+    T: ?Sized,
+{
+    pub fn create_temporary() -> io::Result<Self> {
+        WnfStateCreation::new()
+            .lifetime(WnfCreatableStateLifetime::Temporary)
+            .scope(WnfDataScope::Machine)
+            .create_static()
+    }
+}
+
 impl<T> BorrowedWnfState<'_, T>
 where
     T: ?Sized,

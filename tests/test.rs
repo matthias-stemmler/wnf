@@ -12,17 +12,6 @@ use wnf::{
 };
 
 #[test]
-fn create_temporary() {
-    let state = OwnedWnfState::<()>::create_temporary().unwrap();
-    let state_name_descriptor: WnfStateNameDescriptor = state.state_name().try_into().unwrap();
-
-    assert_eq!(state_name_descriptor.version, 1);
-    assert_eq!(state_name_descriptor.lifetime, WnfStateNameLifetime::Temporary);
-    assert_eq!(state_name_descriptor.data_scope, WnfDataScope::Machine);
-    assert!(!state_name_descriptor.is_permanent);
-}
-
-#[test]
 fn set_by_value() {
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 

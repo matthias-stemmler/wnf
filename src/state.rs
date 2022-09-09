@@ -123,8 +123,11 @@ where
         Self::from_state_name_and_type_id(state_name, GUID::zeroed())
     }
 
-    pub fn from_state_name_and_type_id(state_name: WnfStateName, type_id: GUID) -> Self {
-        Self::from_raw(RawWnfState::from_state_name_and_type_id(state_name, type_id.into()))
+    pub fn from_state_name_and_type_id(state_name: WnfStateName, type_id: impl Into<GUID>) -> Self {
+        Self::from_raw(RawWnfState::from_state_name_and_type_id(
+            state_name,
+            type_id.into().into(),
+        ))
     }
 }
 
