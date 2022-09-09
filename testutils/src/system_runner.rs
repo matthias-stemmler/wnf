@@ -86,7 +86,7 @@ impl SystemRunner {
                 stderr_file_path,
             } => {
                 if let Err(err) = self.reexecute_as_system(stdout_file_path) {
-                    let _ = fs::write(stderr_file_path, format!("{}\n", err.to_string()));
+                    let _ = fs::write(stderr_file_path, format!("{err}\n"));
                 }
             }
 
