@@ -120,7 +120,7 @@ where
     T: ?Sized,
 {
     pub fn from_state_name(state_name: WnfStateName) -> Self {
-        Self::from_state_name_and_type_id(state_name, GUID::zeroed())
+        Self::from_raw(RawWnfState::from_state_name_and_type_id(state_name, TypeId::none()))
     }
 
     pub fn from_state_name_and_type_id(state_name: WnfStateName, type_id: impl Into<GUID>) -> Self {
