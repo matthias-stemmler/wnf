@@ -3,9 +3,9 @@
 //! privilege
 //!
 //! Steps to achieve this:
-//! 1. Download PsExec from [PsTools](https://download.sysinternals.com/files/PSTools.zip)
-//! 2. Build the example using `cargo build --example manage`
-//! 3. Run a shell as Administrator, then run `psexec -s %cd%\target\debug\examples\manage.exe`
+//! 1. Build the example using `cargo build --example recipes_manage`
+//! 2. Run a shell as Administrator, then from the package root directory, run
+//!    `devutils\thirdparty\paexec -s %cd%\target\debug\examples\recipes_manage.exe`
 //!
 //! This runs the example under the `LocalSystem` account, which always has the required privilege implicitly
 

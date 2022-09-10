@@ -54,3 +54,5 @@ mod wait_blocking;
 // TODO real-life examples
 // TODO const fn
 // TODO use pub(crate) consistently
+// TODO use AsRef instead of Borrow?
+// TODO easier state borrowing from state name by accepting Into<WnfStateName>
