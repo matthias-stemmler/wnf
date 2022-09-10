@@ -70,6 +70,13 @@ impl<T> WnfStampedData<T> {
     pub fn change_stamp(&self) -> WnfChangeStamp {
         self.change_stamp
     }
+
+    pub fn map<U, F>(self, op: F) -> WnfStampedData<U>
+    where
+        F: FnOnce(T) -> U,
+    {
+        WnfStampedData::from_data_change_stamp(op(self.data), self.change_stamp)
+    }
 }
 
 impl<T> From<(T, WnfChangeStamp)> for WnfStampedData<T> {
