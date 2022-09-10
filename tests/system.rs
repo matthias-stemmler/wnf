@@ -3,7 +3,7 @@ use wnf::{
     WnfStateNameLifetime,
 };
 
-testutils::system_tests![
+devutils::system_tests![
     can_create_permanent_shared_objects_returns_true_when_run_as_system,
     create_state_with_persistent_lifetime,
     create_state_with_permanent_lifetime_and_non_persistent_data,

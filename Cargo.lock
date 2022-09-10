@@ -92,6 +92,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "devutils"
+version = "0.1.0"
+dependencies = [
+ "libtest-mimic",
+ "tempfile",
+ "windows",
+]
+
+[[package]]
 name = "fastrand"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -348,15 +357,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "testutils"
-version = "0.1.0"
-dependencies = [
- "libtest-mimic",
- "tempfile",
- "windows",
-]
-
-[[package]]
 name = "textwrap"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -592,9 +592,9 @@ name = "wnf"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
+ "devutils",
  "num-derive",
  "num-traits",
- "testutils",
  "thiserror",
  "tokio",
  "tracing",
