@@ -4,12 +4,12 @@ use std::{io, ptr};
 use tracing::debug;
 use windows::Win32::Foundation::STATUS_BUFFER_TOO_SMALL;
 
-use crate::data::{WnfChangeStamp, WnfStampedData};
-use crate::ntdll_sys::NTDLL_TARGET;
+use crate::data::{WnfChangeStamp, WnfOpaqueData, WnfStampedData};
+use crate::ntdll_sys::{self, NTDLL_TARGET};
 use crate::read::WnfRead;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
+use crate::state_name::WnfStateName;
 use crate::type_id::TypeId;
-use crate::{ntdll_sys, WnfOpaqueData, WnfStateName};
 
 impl<T> OwnedWnfState<T>
 where

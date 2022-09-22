@@ -1,8 +1,9 @@
 use std::borrow::Borrow;
 use std::io;
 
-use crate::state::RawWnfState;
-use crate::{BorrowedWnfState, NoUninit, OwnedWnfState, WnfRead};
+use crate::bytes::NoUninit;
+use crate::read::WnfRead;
+use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 
 impl<T> OwnedWnfState<T>
 where

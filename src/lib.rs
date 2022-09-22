@@ -47,10 +47,11 @@ mod wait_blocking;
 // TODO minimal dependency versions
 // TODO scoped subscriptions (without 'static)
 // TODO compatibility layer to external crates for security descriptors (windows-permissions, windows, winapi)
-// TODO crate-internal imports via module, not via crate::
 // TODO test on Windows 11
 // TODO document what's not supported (kernel mode? event aggregation? meta subscriptions?)
 // TODO impl CheckedBitPattern/NoUninit for FromPrimitive/ToPrimitive?
 // TODO create with security descriptor
 // TODO real-life examples
 // TODO const fn
+// TODO configure clippy
+// TODO CI

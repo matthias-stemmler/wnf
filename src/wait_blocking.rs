@@ -2,12 +2,11 @@ use std::borrow::Borrow;
 use std::io;
 use std::sync::{Arc, Condvar, Mutex};
 
+use crate::data::WnfOpaqueData;
 use crate::predicate::{ChangedPredicate, Predicate, PredicateStage};
-use crate::state::RawWnfState;
-use crate::{
-    BorrowedWnfState, OwnedWnfState, WnfDataAccessor, WnfOpaqueData, WnfRead, WnfSeenChangeStamp,
-    WnfStampedStateListener,
-};
+use crate::read::WnfRead;
+use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
+use crate::subscribe::{WnfDataAccessor, WnfSeenChangeStamp, WnfStampedStateListener};
 
 impl<T> OwnedWnfState<T>
 where

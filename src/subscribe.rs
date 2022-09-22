@@ -9,12 +9,11 @@ use tracing::{debug, trace_span};
 use windows::core::GUID;
 use windows::Win32::Foundation::{NTSTATUS, STATUS_SUCCESS};
 
-use crate::data::WnfChangeStamp;
-use crate::ntdll_sys::NTDLL_TARGET;
+use crate::data::{WnfChangeStamp, WnfStampedData};
+use crate::ntdll_sys::{self, NTDLL_TARGET};
 use crate::read::WnfRead;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::state_name::WnfStateName;
-use crate::{ntdll_sys, WnfStampedData};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum WnfSeenChangeStamp {

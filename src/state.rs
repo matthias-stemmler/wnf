@@ -1,4 +1,3 @@
-use crate::GUID;
 use std::fmt;
 use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
@@ -6,7 +5,7 @@ use std::marker::PhantomData;
 use std::mem::ManuallyDrop;
 
 use crate::state_name::WnfStateName;
-use crate::type_id::TypeId;
+use crate::type_id::{TypeId, GUID};
 
 pub struct OwnedWnfState<T>
 where

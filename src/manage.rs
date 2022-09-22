@@ -1,12 +1,12 @@
 use std::io;
+
 use tracing::debug;
 
-use crate::ntdll_sys::NTDLL_TARGET;
+use crate::ntdll_sys::{self, NTDLL_TARGET};
 use crate::security::SecurityDescriptor;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::state_name::{WnfDataScope, WnfStateName, WnfStateNameLifetime};
-use crate::type_id::TypeId;
-use crate::{ntdll_sys, GUID};
+use crate::type_id::{TypeId, GUID};
 
 const MAXIMUM_STATE_SIZE: usize = 0x1000; // 4 KB
 

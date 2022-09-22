@@ -5,13 +5,11 @@ use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll, Waker};
 
+use crate::data::{WnfChangeStamp, WnfOpaqueData};
 use crate::predicate::{ChangedPredicate, Predicate, PredicateStage};
-use crate::state::RawWnfState;
-use crate::subscribe::WnfSubscription;
-use crate::{
-    BorrowedWnfState, OwnedWnfState, WnfChangeStamp, WnfDataAccessor, WnfOpaqueData, WnfRead, WnfSeenChangeStamp,
-    WnfStateListener,
-};
+use crate::read::WnfRead;
+use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
+use crate::subscribe::{WnfDataAccessor, WnfSeenChangeStamp, WnfStateListener, WnfSubscription};
 
 impl<T> OwnedWnfState<T>
 where

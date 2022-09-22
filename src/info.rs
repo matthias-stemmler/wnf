@@ -3,8 +3,7 @@ use std::{io, mem, ptr};
 
 use tracing::debug;
 
-use crate::ntdll_sys;
-use crate::ntdll_sys::NTDLL_TARGET;
+use crate::ntdll_sys::{self, NTDLL_TARGET};
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]

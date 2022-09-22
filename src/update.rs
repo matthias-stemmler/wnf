@@ -7,10 +7,10 @@ use windows::Win32::Foundation::{NTSTATUS, STATUS_UNSUCCESSFUL};
 
 use crate::bytes::NoUninit;
 use crate::data::WnfChangeStamp;
-use crate::ntdll_sys::NTDLL_TARGET;
+use crate::ntdll_sys::{self, NTDLL_TARGET};
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
+use crate::state_name::WnfStateName;
 use crate::type_id::TypeId;
-use crate::{ntdll_sys, WnfStateName};
 
 impl<T> OwnedWnfState<T>
 where
