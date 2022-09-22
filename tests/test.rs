@@ -7,8 +7,8 @@ use std::time::Duration;
 use std::{fmt, thread};
 
 use wnf::{
-    AsWnfState, BorrowedWnfState, OwnedWnfState, WnfChangeStamp, WnfDataAccessor, WnfDataScope, WnfStateNameDescriptor,
-    WnfStateNameLifetime,
+    AsWnfState, BorrowedWnfState, OwnedWnfState, WnfChangeStamp, WnfDataAccessor, WnfDataScope, WnfStateName,
+    WnfStateNameDescriptor, WnfStateNameLifetime,
 };
 
 #[test]
@@ -436,14 +436,13 @@ fn exists() {
 #[test]
 fn not_exists() {
     let state = BorrowedWnfState::<()>::from_state_name(
-        WnfStateNameDescriptor {
+        WnfStateName::try_from(WnfStateNameDescriptor {
             version: 1,
             lifetime: WnfStateNameLifetime::Temporary,
             data_scope: WnfDataScope::Machine,
             is_permanent: false,
             unique_id: (1 << 53) - 1,
-        }
-        .try_into()
+        })
         .unwrap(),
     );
 

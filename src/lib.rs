@@ -54,4 +54,3 @@ mod wait_blocking;
 // TODO create with security descriptor
 // TODO real-life examples
 // TODO const fn
-// TODO easier state borrowing from state name by accepting Into<WnfStateName>

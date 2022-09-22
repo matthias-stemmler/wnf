@@ -1,6 +1,7 @@
-use num_traits::FromPrimitive;
 use std::fmt;
 use std::fmt::{Display, Formatter};
+
+use num_traits::FromPrimitive;
 use thiserror::Error;
 
 const STATE_NAME_XOR_KEY: u64 = 0x41C64E6DA3BC0074;
@@ -57,6 +58,12 @@ impl WnfStateName {
 
     pub const fn opaque_value(self) -> u64 {
         self.opaque_value
+    }
+}
+
+impl From<u64> for WnfStateName {
+    fn from(opaque_value: u64) -> Self {
+        Self::from_opaque_value(opaque_value)
     }
 }
 

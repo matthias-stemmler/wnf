@@ -1,13 +1,14 @@
 use tracing::info;
 use tracing_subscriber::filter::LevelFilter;
+
 use wnf::{BorrowedWnfState, WnfStateName, WnfStateNameDescriptor};
 
-const WNF_PO_ENERGY_SAVER_OVERRIDE: WnfStateName = WnfStateName::from_opaque_value(0x41c6013da3bc3075);
+const WNF_PO_ENERGY_SAVER_OVERRIDE: u64 = 0x41c6013da3bc3075;
 
 fn main() {
     tracing_subscriber::fmt().with_max_level(LevelFilter::DEBUG).init();
 
-    let descriptor: WnfStateNameDescriptor = WNF_PO_ENERGY_SAVER_OVERRIDE
+    let descriptor: WnfStateNameDescriptor = WnfStateName::from_opaque_value(WNF_PO_ENERGY_SAVER_OVERRIDE)
         .try_into()
         .expect("Failed to convert state name into descriptor");
 

@@ -4,8 +4,8 @@ use std::os::windows::ffi::OsStringExt;
 
 use wnf::{BorrowedWnfState, WnfDataAccessor, WnfSeenChangeStamp, WnfStateListener, WnfStateName, WnfSubscription};
 
-const WNF_SHEL_DESKTOP_APPLICATION_STARTED: WnfStateName = WnfStateName::from_opaque_value(0xd83063ea3be5075);
-const WNF_SHEL_DESKTOP_APPLICATION_TERMINATED: WnfStateName = WnfStateName::from_opaque_value(0xd83063ea3be5875);
+const WNF_SHEL_DESKTOP_APPLICATION_STARTED: u64 = 0xd83063ea3be5075;
+const WNF_SHEL_DESKTOP_APPLICATION_TERMINATED: u64 = 0xd83063ea3be5875;
 
 fn main() {
     println!("Listening to shell application starts and terminations, press any key to exit");
@@ -21,13 +21,11 @@ fn main() {
     stdin().read(&mut [0u8]).unwrap();
 }
 
-fn subscribe<F>(state_name: WnfStateName, listener: F) -> WnfSubscription<'static, ApplicationListener<F>>
+fn subscribe<F>(state_name: impl Into<WnfStateName>, listener: F) -> WnfSubscription<'static, ApplicationListener<F>>
 where
     F: FnMut(u32, &str) + Send + 'static,
 {
-    let state = BorrowedWnfState::from_state_name(state_name);
-
-    state
+    BorrowedWnfState::from_state_name(state_name)
         .subscribe(ApplicationListener(listener))
         .expect("Failed to subscribe to WNF state changes")
 }
