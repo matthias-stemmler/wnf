@@ -9,8 +9,8 @@ extern crate num_derive;
 pub use bytes::*;
 pub use data::{WnfChangeStamp, WnfOpaqueData, WnfStampedData};
 pub use manage::{UnspecifiedLifetime, UnspecifiedScope, WnfCreatableStateLifetime, WnfStateCreation};
+pub use privilege::can_create_permanent_shared_objects;
 pub use read::{WnfRead, WnfReadError};
-pub use security::can_create_permanent_shared_objects;
 pub use state::{AsWnfState, BorrowedWnfState, OwnedWnfState};
 pub use state_name::{
     WnfDataScope, WnfStateName, WnfStateNameDescriptor, WnfStateNameDescriptorFromStateNameError,
@@ -26,6 +26,7 @@ mod info;
 mod manage;
 mod ntdll_sys;
 mod predicate;
+mod privilege;
 mod query;
 mod read;
 mod replace;
