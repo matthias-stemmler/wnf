@@ -1,4 +1,3 @@
-use std::borrow::Borrow;
 use std::ffi::c_void;
 use std::{io, mem, ptr};
 
@@ -16,17 +15,11 @@ impl<T> OwnedWnfState<T>
 where
     T: NoUninit + ?Sized,
 {
-    pub fn set<D>(&self, data: D) -> io::Result<()>
-    where
-        D: Borrow<T>,
-    {
+    pub fn set(&self, data: &T) -> io::Result<()> {
         self.raw.set(data)
     }
 
-    pub fn update<D>(&self, data: D, expected_change_stamp: WnfChangeStamp) -> io::Result<bool>
-    where
-        D: Borrow<T>,
-    {
+    pub fn update(&self, data: &T, expected_change_stamp: WnfChangeStamp) -> io::Result<bool> {
         self.raw.update(data, expected_change_stamp)
     }
 }
@@ -35,17 +28,11 @@ impl<T> BorrowedWnfState<'_, T>
 where
     T: NoUninit + ?Sized,
 {
-    pub fn set<D>(self, data: D) -> io::Result<()>
-    where
-        D: Borrow<T>,
-    {
+    pub fn set(self, data: &T) -> io::Result<()> {
         self.raw.set(data)
     }
 
-    pub fn update<D>(self, data: D, expected_change_stamp: WnfChangeStamp) -> io::Result<bool>
-    where
-        D: Borrow<T>,
-    {
+    pub fn update(self, data: &T, expected_change_stamp: WnfChangeStamp) -> io::Result<bool> {
         self.raw.update(data, expected_change_stamp)
     }
 }
@@ -54,11 +41,7 @@ impl<T> RawWnfState<T>
 where
     T: NoUninit + ?Sized,
 {
-    fn set<D>(self, data: D) -> io::Result<()>
-    where
-        D: Borrow<T>,
-    {
-        let data = data.borrow();
+    fn set(self, data: &T) -> io::Result<()> {
         update(
             self.state_name,
             self.type_id,
@@ -70,11 +53,7 @@ where
         Ok(())
     }
 
-    pub(crate) fn update<D>(self, data: D, expected_change_stamp: WnfChangeStamp) -> io::Result<bool>
-    where
-        D: Borrow<T>,
-    {
-        let data = data.borrow();
+    pub(crate) fn update(self, data: &T, expected_change_stamp: WnfChangeStamp) -> io::Result<bool> {
         let result = update(
             self.state_name,
             self.type_id,

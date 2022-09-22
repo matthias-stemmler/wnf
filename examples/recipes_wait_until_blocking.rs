@@ -18,7 +18,7 @@ fn main() {
     let state = Arc::new(OwnedWnfState::<u32>::create_temporary().expect("Failed to create temporary WNF state"));
     let state2 = Arc::clone(&state);
 
-    state.set(0).expect("Failed to update WNF state data");
+    state.set(&0).expect("Failed to update WNF state data");
 
     let handle = thread::spawn(move || {
         info!("Waiting ...");
@@ -30,7 +30,7 @@ fn main() {
 
     for i in 1..3 {
         thread::sleep(Duration::from_secs(1));
-        state.set(i).expect("Failed to update WNF state data");
+        state.set(&i).expect("Failed to update WNF state data");
     }
 
     handle.join().expect("Failed to join thread");

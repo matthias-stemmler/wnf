@@ -12,18 +12,7 @@ use wnf::{
 };
 
 #[test]
-fn set_by_value() {
-    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
-
-    let value = 0x12345678;
-    state.set(value).unwrap();
-
-    let read_value = state.get().unwrap();
-    assert_eq!(read_value, value);
-}
-
-#[test]
-fn set_by_ref() {
+fn set() {
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
     let value = 0x12345678;
@@ -34,33 +23,11 @@ fn set_by_ref() {
 }
 
 #[test]
-fn set_boxed() {
-    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
-
-    let value = 0x12345678;
-    state.set(Box::new(value)).unwrap();
-
-    let read_value = state.get().unwrap();
-    assert_eq!(read_value, value);
-}
-
-#[test]
-fn set_slice_by_ref() {
+fn set_slice() {
     let state = OwnedWnfState::<[u32]>::create_temporary().unwrap();
 
     let values = [0x12345678, 0xABCDEF01, 0x23456789];
-    state.set(values.as_slice()).unwrap();
-
-    let read_slice = state.get_boxed().unwrap();
-    assert_eq!(*read_slice, values);
-}
-
-#[test]
-fn set_slice_vec() {
-    let state = OwnedWnfState::<[u32]>::create_temporary().unwrap();
-
-    let values = [0x12345678, 0xABCDEF01, 0x23456789];
-    state.set(values.to_vec()).unwrap();
+    state.set(&values).unwrap();
 
     let read_slice = state.get_boxed().unwrap();
     assert_eq!(*read_slice, values);
@@ -71,7 +38,7 @@ fn get_by_value() {
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
     let value = 0x12345678;
-    state.set(value).unwrap();
+    state.set(&value).unwrap();
 
     let read_value = state.get().unwrap();
     assert_eq!(read_value, value);
@@ -82,7 +49,7 @@ fn get_boxed() {
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
     let value = 0x12345678;
-    state.set(value).unwrap();
+    state.set(&value).unwrap();
 
     let read_value = state.get_boxed().unwrap();
     assert_eq!(*read_value, value);
@@ -105,7 +72,7 @@ macro_rules! apply_tests {
             #[test]
             fn $name() {
                 let state = Arc::new(OwnedWnfState::<u32>::create_temporary().unwrap());
-                state.set(0).unwrap();
+                state.set(&0).unwrap();
 
                 const NUM_THREADS: u32 = 2;
                 const NUM_ITERATIONS: u32 = 128;
@@ -144,7 +111,7 @@ apply_tests! {
 #[test]
 fn apply_slice_to_vec() {
     let state = Arc::new(OwnedWnfState::<[u32]>::create_temporary().unwrap());
-    state.set([0, 0]).unwrap();
+    state.set(&[0, 0]).unwrap();
 
     const NUM_THREADS: u32 = 2;
     const NUM_ITERATIONS: u32 = 128;
@@ -176,7 +143,7 @@ fn apply_slice_to_vec() {
 fn try_apply_by_value_ok() {
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
-    state.set(0).unwrap();
+    state.set(&0).unwrap();
     let result = state.try_apply(|v| Ok::<_, TestError>(v + 1)).unwrap();
 
     assert_eq!(result, 1);
@@ -187,7 +154,7 @@ fn try_apply_by_value_ok() {
 fn try_apply_by_value_err() {
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
-    state.set(0).unwrap();
+    state.set(&0).unwrap();
     let result = state.try_apply(|_| Err::<u32, _>(TestError));
 
     assert!(matches!(result, Err(err) if err.kind() == ErrorKind::Other));
@@ -197,7 +164,7 @@ fn try_apply_by_value_err() {
 fn try_apply_boxed_ok() {
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
-    state.set(0).unwrap();
+    state.set(&0).unwrap();
     let result = state.try_apply_boxed(|v| Ok::<_, TestError>(*v + 1)).unwrap();
 
     assert_eq!(result, 1);
@@ -208,7 +175,7 @@ fn try_apply_boxed_ok() {
 fn try_apply_boxed_err() {
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
-    state.set(0).unwrap();
+    state.set(&0).unwrap();
     let result = state.try_apply_boxed(|_| Err::<u32, _>(TestError));
 
     assert!(matches!(result, Err(err) if err.kind() == ErrorKind::Other));
@@ -218,7 +185,7 @@ fn try_apply_boxed_err() {
 fn try_apply_slice_ok() {
     let state = OwnedWnfState::<[u32]>::create_temporary().unwrap();
 
-    state.set([0]).unwrap();
+    state.set(&[0]).unwrap();
     let result = state
         .try_apply_boxed(|vs| Ok::<_, TestError>(vs.iter().map(|v| v + 1).collect::<Vec<_>>()))
         .unwrap();
@@ -231,7 +198,7 @@ fn try_apply_slice_ok() {
 fn try_apply_slice_err() {
     let state = OwnedWnfState::<[u32]>::create_temporary().unwrap();
 
-    state.set([0]).unwrap();
+    state.set(&[0]).unwrap();
     let result = state.try_apply_boxed(|_| Err::<Vec<_>, _>(TestError));
 
     assert!(matches!(result, Err(err) if err.kind() == ErrorKind::Other));
@@ -241,8 +208,8 @@ fn try_apply_slice_err() {
 fn replace() {
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
-    state.set(0).unwrap();
-    let old_value = state.replace(1).unwrap();
+    state.set(&0).unwrap();
+    let old_value = state.replace(&1).unwrap();
 
     assert_eq!(state.get().unwrap(), 1);
     assert_eq!(old_value, 0);
@@ -252,8 +219,8 @@ fn replace() {
 fn replace_boxed() {
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
-    state.set(0).unwrap();
-    let old_value = state.replace_boxed(1).unwrap();
+    state.set(&0).unwrap();
+    let old_value = state.replace_boxed(&1).unwrap();
 
     assert_eq!(state.get().unwrap(), 1);
     assert_eq!(*old_value, 0);
@@ -311,7 +278,7 @@ fn subscribe() {
     drop(tx);
 
     for i in 0..3 {
-        state.set(i).unwrap();
+        state.set(&i).unwrap();
 
         for _ in 0..NUM_SUBSCRIPTIONS {
             let (data, change_stamp) = rx
@@ -356,7 +323,7 @@ fn subscribe_boxed() {
     drop(tx);
 
     for i in 0..3 {
-        state.set(i).unwrap();
+        state.set(&i).unwrap();
 
         for _ in 0..NUM_SUBSCRIPTIONS {
             let (data, change_stamp) = rx
@@ -401,7 +368,7 @@ fn subscribe_slice() {
     drop(tx);
 
     for i in 0..3 {
-        state.set([i, i]).unwrap();
+        state.set(&[i, i]).unwrap();
 
         for _ in 0..NUM_SUBSCRIPTIONS {
             let (data, change_stamp) = rx
@@ -476,7 +443,7 @@ fn is_quiescent() {
 
     assert!(state.is_quiescent().unwrap());
 
-    state.set(42).unwrap();
+    state.set(&42).unwrap();
     assert!(!state.is_quiescent().unwrap());
 
     tx.send(()).unwrap();

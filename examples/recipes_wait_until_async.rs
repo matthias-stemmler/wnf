@@ -18,7 +18,7 @@ async fn main() {
     let state = Arc::new(OwnedWnfState::<u32>::create_temporary().expect("Failed to create temporary WNF state"));
     let state2 = Arc::clone(&state);
 
-    state.set(0).expect("Failed to update WNF state data");
+    state.set(&0).expect("Failed to update WNF state data");
 
     let handle = tokio::spawn(async move {
         info!("Waiting ...");
@@ -31,7 +31,7 @@ async fn main() {
 
     for i in 1..3 {
         tokio::time::sleep(Duration::from_secs(1)).await;
-        state.set(i).expect("Failed to update WNF state data");
+        state.set(&i).expect("Failed to update WNF state data");
     }
 
     handle.await.expect("Failed to join task");

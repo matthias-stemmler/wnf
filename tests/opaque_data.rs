@@ -5,7 +5,7 @@ use wnf::{AsWnfState, OwnedWnfState, WnfDataAccessor, WnfOpaqueData};
 #[test]
 fn query() {
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
-    state.set(42).unwrap();
+    state.set(&42).unwrap();
 
     let state: OwnedWnfState<WnfOpaqueData> = state.cast();
 
@@ -23,11 +23,11 @@ fn subscribe() {
         tx.send(accessor.change_stamp()).unwrap();
     });
 
-    state.as_wnf_state().cast::<u32>().set(42).unwrap();
+    state.as_wnf_state().cast::<u32>().set(&42).unwrap();
     let change_stamp = rx.recv_timeout(Duration::from_secs(1)).unwrap();
     assert_eq!(change_stamp, 1.into());
 
-    state.as_wnf_state().cast::<u16>().set(43).unwrap();
+    state.as_wnf_state().cast::<u16>().set(&43).unwrap();
     let change_stamp = rx.recv_timeout(Duration::from_secs(1)).unwrap();
     assert_eq!(change_stamp, 2.into());
 }

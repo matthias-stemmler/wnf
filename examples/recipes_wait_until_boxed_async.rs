@@ -18,7 +18,7 @@ async fn main() {
     let state = Arc::new(OwnedWnfState::<[u32]>::create_temporary().expect("Failed to create temporary WNF state"));
     let state2 = Arc::clone(&state);
 
-    state.set([]).expect("Failed to update WNF state data");
+    state.set(&[]).expect("Failed to update WNF state data");
 
     let handle = tokio::spawn(async move {
         info!("Waiting ...");

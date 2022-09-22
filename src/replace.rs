@@ -1,4 +1,3 @@
-use std::borrow::Borrow;
 use std::io;
 
 use crate::bytes::NoUninit;
@@ -9,10 +8,7 @@ impl<T> OwnedWnfState<T>
 where
     T: WnfRead<T> + NoUninit,
 {
-    pub fn replace<D>(&self, new_value: D) -> io::Result<T>
-    where
-        D: Borrow<T>,
-    {
+    pub fn replace(&self, new_value: &T) -> io::Result<T> {
         self.raw.replace(new_value)
     }
 }
@@ -21,10 +17,7 @@ impl<T> OwnedWnfState<T>
 where
     T: WnfRead<Box<T>> + NoUninit + ?Sized,
 {
-    pub fn replace_boxed<D>(&self, new_value: D) -> io::Result<Box<T>>
-    where
-        D: Borrow<T>,
-    {
+    pub fn replace_boxed(&self, new_value: &T) -> io::Result<Box<T>> {
         self.raw.replace_boxed(new_value)
     }
 }
@@ -33,10 +26,7 @@ impl<T> BorrowedWnfState<'_, T>
 where
     T: WnfRead<T> + NoUninit,
 {
-    pub fn replace<D>(self, new_value: D) -> io::Result<T>
-    where
-        D: Borrow<T>,
-    {
+    pub fn replace(self, new_value: &T) -> io::Result<T> {
         self.raw.replace(new_value)
     }
 }
@@ -45,10 +35,7 @@ impl<T> BorrowedWnfState<'_, T>
 where
     T: WnfRead<Box<T>> + NoUninit + ?Sized,
 {
-    pub fn replace_boxed<D>(self, new_value: D) -> io::Result<Box<T>>
-    where
-        D: Borrow<T>,
-    {
+    pub fn replace_boxed(self, new_value: &T) -> io::Result<Box<T>> {
         self.raw.replace_boxed(new_value)
     }
 }
@@ -57,10 +44,7 @@ impl<T> RawWnfState<T>
 where
     T: WnfRead<T> + NoUninit,
 {
-    fn replace<D>(self, new_value: D) -> io::Result<T>
-    where
-        D: Borrow<T>,
-    {
+    fn replace(self, new_value: &T) -> io::Result<T> {
         self.replace_as(new_value)
     }
 }
@@ -69,10 +53,7 @@ impl<T> RawWnfState<T>
 where
     T: WnfRead<Box<T>> + NoUninit + ?Sized,
 {
-    fn replace_boxed<D>(self, new_value: D) -> io::Result<Box<T>>
-    where
-        D: Borrow<T>,
-    {
+    fn replace_boxed(self, new_value: &T) -> io::Result<Box<T>> {
         self.replace_as(new_value)
     }
 }
@@ -81,15 +62,14 @@ impl<T> RawWnfState<T>
 where
     T: ?Sized,
 {
-    fn replace_as<ReadInto, WriteFrom>(self, new_value: WriteFrom) -> io::Result<ReadInto>
+    fn replace_as<D>(self, new_value: &T) -> io::Result<D>
     where
-        WriteFrom: Borrow<T>,
-        T: WnfRead<ReadInto> + NoUninit,
+        T: WnfRead<D> + NoUninit,
     {
         let mut old_value = None;
         self.apply_as(|value| {
             old_value = Some(value);
-            new_value.borrow()
+            new_value
         })?;
         Ok(old_value.unwrap())
     }

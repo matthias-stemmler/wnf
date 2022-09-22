@@ -25,6 +25,6 @@ async fn main() {
     });
 
     tokio::time::sleep(Duration::from_secs(3)).await;
-    state.set(0).expect("Failed to update WNF state data");
+    state.set(&0).expect("Failed to update WNF state data");
     handle.await.expect("Failed to join task");
 }

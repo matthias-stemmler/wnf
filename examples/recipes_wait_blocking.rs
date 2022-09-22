@@ -25,6 +25,6 @@ fn main() {
     });
 
     thread::sleep(Duration::from_secs(3));
-    state.set(0).expect("Failed to update WNF state data");
+    state.set(&0).expect("Failed to update WNF state data");
     handle.join().expect("Failed to join thread");
 }

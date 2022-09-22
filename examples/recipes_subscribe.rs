@@ -16,7 +16,7 @@ fn main() {
         .init();
 
     let state = OwnedWnfState::<u32>::create_temporary().expect("Failed to create temporary WNF state");
-    state.set(0).expect("Failed to set WNF state data");
+    state.set(&0).expect("Failed to set WNF state data");
 
     let (tx, rx) = mpsc::channel();
 
@@ -29,7 +29,7 @@ fn main() {
         .expect("Failed to subscribe to WNF state changes");
 
     for i in 1..=LAST_DATA {
-        state.set(i).expect("Failed to set WNF state data");
+        state.set(&i).expect("Failed to set WNF state data");
     }
 
     let mut receive_count = 0;

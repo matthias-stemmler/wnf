@@ -70,8 +70,8 @@ fn create_state_with_maximum_state_size() {
         .create_owned::<[u8]>()
         .unwrap();
 
-    assert!(state.set([1]).is_ok());
-    assert!(state.set([1, 2]).is_err());
+    assert!(state.set(&[1]).is_ok());
+    assert!(state.set(&[1, 2]).is_err());
 }
 
 #[test]
@@ -100,12 +100,12 @@ fn create_state_with_type_id() {
         .create_owned::<()>()
         .unwrap();
 
-    assert!(state.set(()).is_ok());
+    assert!(state.set(&()).is_ok());
 
     let borrowed_state_with_wrong_type_id =
         BorrowedWnfState::from_state_name_and_type_id(state.state_name(), "ee26d6d2-53f4-4230-9c9e-88556e82c3d3");
 
-    assert!(borrowed_state_with_wrong_type_id.set(()).is_err());
+    assert!(borrowed_state_with_wrong_type_id.set(&()).is_err());
 
     drop(borrowed_state_with_wrong_type_id);
 }

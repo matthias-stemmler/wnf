@@ -6,13 +6,13 @@ use wnf::{OwnedWnfState, WnfChangeStamp, WnfDataAccessor};
 #[test]
 fn data_type_can_be_inferred_from_set_call() {
     let state = OwnedWnfState::create_temporary().unwrap();
-    state.set(42u32).unwrap();
+    state.set(&42u32).unwrap();
 }
 
 #[test]
 fn data_type_can_be_inferred_from_update_call() {
     let state = OwnedWnfState::create_temporary().unwrap();
-    state.update(42u32, WnfChangeStamp::initial()).unwrap();
+    state.update(&42u32, WnfChangeStamp::initial()).unwrap();
 }
 
 #[test]
@@ -66,13 +66,13 @@ fn data_type_can_be_inferred_from_try_apply_boxed_call() {
 #[test]
 fn data_type_can_be_inferred_from_replace_call() {
     let state = OwnedWnfState::create_temporary().unwrap();
-    state.replace(()).unwrap();
+    state.replace(&()).unwrap();
 }
 
 #[test]
 fn data_type_can_be_inferred_from_replace_boxed_call() {
     let state = OwnedWnfState::create_temporary().unwrap();
-    state.replace_boxed(()).unwrap();
+    state.replace_boxed(&()).unwrap();
 }
 
 #[test]

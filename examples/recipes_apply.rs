@@ -10,7 +10,7 @@ fn main() {
     tracing_subscriber::fmt().with_max_level(LevelFilter::DEBUG).init();
 
     let state = Arc::new(OwnedWnfState::<u32>::create_temporary().expect("Failed to create temporary WNF state"));
-    state.set(0).expect("Failed to set WNF state data");
+    state.set(&0).expect("Failed to set WNF state data");
 
     let mut handles = Vec::new();
 

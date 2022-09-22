@@ -33,7 +33,7 @@ fn main() {
         .expect("Failed to convert state name into descriptor");
     info!(?descriptor);
 
-    state.set(0x11223344).expect("Failed to set WNF state data");
+    state.set(&0x11223344).expect("Failed to set WNF state data");
     let data = state.get().expect("Failed to get WNF state data");
     info!(data = %format!("{data:#10x}"));
 

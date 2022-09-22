@@ -10,7 +10,7 @@ fn main() {
 
     let value = 42;
     let updated = state
-        .update(value, WnfChangeStamp::initial())
+        .update(&value, WnfChangeStamp::initial())
         .expect("Failed to set WNF state data");
     info!(updated);
 
@@ -19,7 +19,7 @@ fn main() {
 
     let value = 42;
     let updated = state
-        .update(value, WnfChangeStamp::initial())
+        .update(&value, WnfChangeStamp::initial())
         .expect("Failed to set WNF state data");
     info!(updated);
 }
