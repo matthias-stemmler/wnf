@@ -79,7 +79,7 @@ impl<T> RawWnfState<T>
 where
     T: ?Sized,
 {
-    pub fn wait_blocking(self) -> io::Result<()> {
+    fn wait_blocking(self) -> io::Result<()> {
         let _: WnfOpaqueData = self.cast().wait_until_blocking_internal(ChangedPredicate)?;
         Ok(())
     }
@@ -89,7 +89,7 @@ impl<T> RawWnfState<T>
 where
     T: WnfRead<T>,
 {
-    pub fn wait_until_blocking<F>(self, predicate: F) -> io::Result<T>
+    fn wait_until_blocking<F>(self, predicate: F) -> io::Result<T>
     where
         F: FnMut(&T) -> bool,
     {
@@ -101,7 +101,7 @@ impl<T> RawWnfState<T>
 where
     T: WnfRead<Box<T>> + ?Sized,
 {
-    pub fn wait_until_boxed_blocking<F>(self, predicate: F) -> io::Result<Box<T>>
+    fn wait_until_boxed_blocking<F>(self, predicate: F) -> io::Result<Box<T>>
     where
         F: FnMut(&T) -> bool,
     {

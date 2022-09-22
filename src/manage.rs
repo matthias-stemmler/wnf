@@ -1,7 +1,7 @@
 use std::io;
 use tracing::debug;
 
-use crate::ntdll::NTDLL_TARGET;
+use crate::ntdll_sys::NTDLL_TARGET;
 use crate::security::SecurityDescriptor;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::state_name::{WnfDataScope, WnfStateName, WnfStateNameLifetime};
@@ -190,7 +190,7 @@ impl<T> RawWnfState<T>
 where
     T: ?Sized,
 {
-    pub(crate) fn create(
+    fn create(
         name_lifetime: WnfStateNameLifetime,
         data_scope: WnfDataScope,
         persist_data: bool,

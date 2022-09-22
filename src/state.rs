@@ -222,7 +222,7 @@ where
         }
     }
 
-    pub(crate) fn state_name(self) -> WnfStateName {
+    fn state_name(self) -> WnfStateName {
         self.state_name
     }
 

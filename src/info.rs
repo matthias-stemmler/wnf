@@ -3,13 +3,13 @@ use std::{io, mem, ptr};
 
 use tracing::debug;
 
-use crate::ntdll::NTDLL_TARGET;
 use crate::ntdll_sys;
+use crate::ntdll_sys::NTDLL_TARGET;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[repr(u32)]
-pub(crate) enum WnfNameInfoClass {
+enum WnfNameInfoClass {
     StateNameExist = 0,
     SubscribersPresent = 1,
     IsQuiescent = 2,
@@ -53,15 +53,15 @@ impl<T> RawWnfState<T>
 where
     T: ?Sized,
 {
-    pub fn exists(self) -> io::Result<bool> {
+    fn exists(self) -> io::Result<bool> {
         self.info_internal(WnfNameInfoClass::StateNameExist)
     }
 
-    pub fn subscribers_present(self) -> io::Result<bool> {
+    fn subscribers_present(self) -> io::Result<bool> {
         self.info_internal(WnfNameInfoClass::SubscribersPresent)
     }
 
-    pub fn is_quiescent(self) -> io::Result<bool> {
+    fn is_quiescent(self) -> io::Result<bool> {
         self.info_internal(WnfNameInfoClass::IsQuiescent)
     }
 

@@ -2,6 +2,8 @@ use std::ffi::c_void;
 
 use windows::{core::GUID, Win32::Foundation::NTSTATUS};
 
+pub(crate) const NTDLL_TARGET: &str = "wnf::ntdll";
+
 pub(crate) type WnfUserCallback = extern "system" fn(
     state_name: u64,
     change_stamp: u32,

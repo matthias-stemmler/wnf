@@ -10,7 +10,7 @@ use windows::core::GUID;
 use windows::Win32::Foundation::{NTSTATUS, STATUS_SUCCESS};
 
 use crate::data::WnfChangeStamp;
-use crate::ntdll::NTDLL_TARGET;
+use crate::ntdll_sys::NTDLL_TARGET;
 use crate::read::WnfRead;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::state_name::WnfStateName;
@@ -105,7 +105,7 @@ where
 {
     // Note: if unsubscribe fails, will leak data the size of `Option<F>`
     // if that's too much, box the listener
-    pub fn subscribe<'a, F>(&self, listener: F) -> io::Result<WnfSubscription<'a, F>>
+    pub(crate) fn subscribe<'a, F>(&self, listener: F) -> io::Result<WnfSubscription<'a, F>>
     where
         F: WnfStateListener<T>,
     {
@@ -362,7 +362,7 @@ impl<F> Debug for WnfSubscription<'_, F> {
 }
 
 impl<F> WnfSubscription<'_, F> {
-    pub(crate) fn new(context: Box<WnfSubscriptionContext<F>>, subscription: u64) -> Self {
+    fn new(context: Box<WnfSubscriptionContext<F>>, subscription: u64) -> Self {
         Self {
             inner: Some(WnfSubscriptionInner {
                 context: ManuallyDrop::new(context),
@@ -373,7 +373,7 @@ impl<F> WnfSubscription<'_, F> {
     }
 }
 
-pub(crate) struct WnfSubscriptionInner<F> {
+struct WnfSubscriptionInner<F> {
     context: ManuallyDrop<Box<WnfSubscriptionContext<F>>>,
     subscription: u64,
 }
@@ -386,7 +386,7 @@ impl<F> Debug for WnfSubscriptionInner<F> {
     }
 }
 
-pub(crate) struct WnfSubscriptionContext<F>(Mutex<Option<F>>);
+struct WnfSubscriptionContext<F>(Mutex<Option<F>>);
 
 impl<F> Debug for WnfSubscriptionContext<F> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -395,11 +395,11 @@ impl<F> Debug for WnfSubscriptionContext<F> {
 }
 
 impl<F> WnfSubscriptionContext<F> {
-    pub(crate) fn new(listener: F) -> Self {
+    fn new(listener: F) -> Self {
         Self(Mutex::new(Some(listener)))
     }
 
-    pub(crate) fn reset(&self) {
+    fn reset(&self) {
         let mut listener = match self.0.lock() {
             Ok(context) => context,
             Err(err) => err.into_inner(),
@@ -408,7 +408,7 @@ impl<F> WnfSubscriptionContext<F> {
         *listener = None;
     }
 
-    pub(crate) fn with_listener(&self, op: impl FnOnce(&mut F)) {
+    fn with_listener(&self, op: impl FnOnce(&mut F)) {
         if let Ok(mut listener) = self.0.lock() {
             if let Some(listener) = listener.as_mut() {
                 op(listener);

@@ -9,10 +9,13 @@ extern crate num_derive;
 pub use bytes::*;
 pub use data::{WnfChangeStamp, WnfOpaqueData, WnfStampedData};
 pub use manage::{UnspecifiedLifetime, UnspecifiedScope, WnfCreatableStateLifetime, WnfStateCreation};
-pub use read::WnfRead;
+pub use read::{WnfRead, WnfReadError};
 pub use security::can_create_permanent_shared_objects;
 pub use state::{AsWnfState, BorrowedWnfState, OwnedWnfState};
-pub use state_name::{WnfDataScope, WnfStateName, WnfStateNameDescriptor, WnfStateNameLifetime};
+pub use state_name::{
+    WnfDataScope, WnfStateName, WnfStateNameDescriptor, WnfStateNameDescriptorFromStateNameError,
+    WnfStateNameFromDescriptorError, WnfStateNameLifetime,
+};
 pub use subscribe::{WnfDataAccessor, WnfSeenChangeStamp, WnfStampedStateListener, WnfStateListener, WnfSubscription};
 pub use type_id::GUID;
 
@@ -21,7 +24,6 @@ mod bytes;
 mod data;
 mod info;
 mod manage;
-mod ntdll;
 mod ntdll_sys;
 mod predicate;
 mod query;
@@ -40,7 +42,7 @@ mod wait_blocking;
 // TODO consts for well-known states?
 // TODO ZST tests
 // TODO check which types are Send/Sync
-// TODO trait impls: all for external types, only needed (+Debug) for internal
+// TODO trait impls: all for external types, only needed (+Debug) for internal (check generics!)
 // TODO tests for error messages
 // TODO minimal dependency versions
 // TODO scoped subscriptions (without 'static)
@@ -52,6 +54,4 @@ mod wait_blocking;
 // TODO create with security descriptor
 // TODO real-life examples
 // TODO const fn
-// TODO use pub(crate) consistently
-// TODO use AsRef instead of Borrow?
 // TODO easier state borrowing from state name by accepting Into<WnfStateName>

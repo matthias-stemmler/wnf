@@ -83,7 +83,7 @@ impl<T> RawWnfState<T>
 where
     T: ?Sized,
 {
-    pub fn wait_async<'a>(self) -> WnfWait<'a> {
+    fn wait_async<'a>(self) -> WnfWait<'a> {
         WnfWait::new(self)
     }
 }
@@ -92,7 +92,7 @@ impl<T> RawWnfState<T>
 where
     T: WnfRead<T>,
 {
-    pub fn wait_until_async<'a, F>(self, predicate: F) -> WnfWaitUntil<'a, T, F>
+    fn wait_until_async<'a, F>(self, predicate: F) -> WnfWaitUntil<'a, T, F>
     where
         F: FnMut(&T) -> bool,
     {
@@ -104,7 +104,7 @@ impl<T> RawWnfState<T>
 where
     T: WnfRead<Box<T>> + ?Sized,
 {
-    pub fn wait_until_boxed_async<'a, F>(self, predicate: F) -> WnfWaitUntilBoxed<'a, T, F>
+    fn wait_until_boxed_async<'a, F>(self, predicate: F) -> WnfWaitUntilBoxed<'a, T, F>
     where
         F: FnMut(&T) -> bool,
     {

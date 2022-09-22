@@ -100,7 +100,7 @@ impl<T> RawWnfState<T>
 where
     T: WnfRead<T> + NoUninit,
 {
-    pub fn apply<D, F>(self, transform: F) -> io::Result<D>
+    fn apply<D, F>(self, transform: F) -> io::Result<D>
     where
         D: Borrow<T>,
         F: FnMut(T) -> D,
@@ -108,7 +108,7 @@ where
         self.apply_as(transform)
     }
 
-    pub fn try_apply<D, E, F>(self, transform: F) -> io::Result<D>
+    fn try_apply<D, E, F>(self, transform: F) -> io::Result<D>
     where
         D: Borrow<T>,
         E: Into<Box<dyn Error + Send + Sync>>,
@@ -122,7 +122,7 @@ impl<T> RawWnfState<T>
 where
     T: WnfRead<Box<T>> + NoUninit + ?Sized,
 {
-    pub fn apply_boxed<D, F>(self, transform: F) -> io::Result<D>
+    fn apply_boxed<D, F>(self, transform: F) -> io::Result<D>
     where
         D: Borrow<T>,
         F: FnMut(Box<T>) -> D,
@@ -130,7 +130,7 @@ where
         self.apply_as(transform)
     }
 
-    pub fn try_apply_boxed<D, E, F>(self, transform: F) -> io::Result<D>
+    fn try_apply_boxed<D, E, F>(self, transform: F) -> io::Result<D>
     where
         D: Borrow<T>,
         E: Into<Box<dyn Error + Send + Sync>>,

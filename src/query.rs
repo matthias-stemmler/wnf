@@ -5,7 +5,7 @@ use tracing::debug;
 use windows::Win32::Foundation::STATUS_BUFFER_TOO_SMALL;
 
 use crate::data::{WnfChangeStamp, WnfStampedData};
-use crate::ntdll::NTDLL_TARGET;
+use crate::ntdll_sys::NTDLL_TARGET;
 use crate::read::WnfRead;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::type_id::TypeId;
@@ -85,11 +85,11 @@ impl<T> RawWnfState<T>
 where
     T: WnfRead<T>,
 {
-    pub fn get(self) -> io::Result<T> {
+    fn get(self) -> io::Result<T> {
         self.query().map(WnfStampedData::into_data)
     }
 
-    pub fn query(self) -> io::Result<WnfStampedData<T>> {
+    fn query(self) -> io::Result<WnfStampedData<T>> {
         self.query_as()
     }
 }
@@ -98,11 +98,11 @@ impl<T> RawWnfState<T>
 where
     T: WnfRead<Box<T>> + ?Sized,
 {
-    pub fn get_boxed(self) -> io::Result<Box<T>> {
+    fn get_boxed(self) -> io::Result<Box<T>> {
         self.query_boxed().map(WnfStampedData::into_data)
     }
 
-    pub fn query_boxed(self) -> io::Result<WnfStampedData<Box<T>>> {
+    fn query_boxed(self) -> io::Result<WnfStampedData<Box<T>>> {
         self.query_as()
     }
 }
@@ -111,7 +111,7 @@ impl<T> RawWnfState<T>
 where
     T: ?Sized,
 {
-    pub fn change_stamp(self) -> io::Result<WnfChangeStamp> {
+    pub(crate) fn change_stamp(self) -> io::Result<WnfChangeStamp> {
         Ok(self.cast::<WnfOpaqueData>().query()?.change_stamp())
     }
 
