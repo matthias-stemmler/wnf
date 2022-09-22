@@ -16,11 +16,20 @@ use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::state_name::WnfStateName;
 use crate::{ntdll_sys, WnfStampedData};
 
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum WnfSeenChangeStamp {
+    Current,
+    Initial,
+    Value(WnfChangeStamp),
+}
+
 pub trait WnfStateListener<T>: Send + 'static
 where
     T: ?Sized,
 {
     fn call(&mut self, accessor: WnfDataAccessor<T>);
+
+    fn last_seen_change_stamp(&self) -> WnfSeenChangeStamp;
 }
 
 impl<F, T> WnfStateListener<T> for F
@@ -31,17 +40,50 @@ where
     fn call(&mut self, accessor: WnfDataAccessor<T>) {
         self(accessor)
     }
+
+    fn last_seen_change_stamp(&self) -> WnfSeenChangeStamp {
+        WnfSeenChangeStamp::Current
+    }
+}
+
+#[derive(Debug)]
+pub struct WnfStampedStateListener<F> {
+    listener: F,
+    last_seen_change_stamp: WnfSeenChangeStamp,
+}
+
+impl<F> WnfStampedStateListener<F> {
+    pub fn new(listener: F, last_seen_change_stamp: WnfSeenChangeStamp) -> Self {
+        Self {
+            listener,
+            last_seen_change_stamp,
+        }
+    }
+}
+
+impl<F, T> WnfStateListener<T> for WnfStampedStateListener<F>
+where
+    F: FnMut(WnfDataAccessor<T>) + Send + 'static,
+    T: ?Sized,
+{
+    fn call(&mut self, accessor: WnfDataAccessor<T>) {
+        (self.listener)(accessor)
+    }
+
+    fn last_seen_change_stamp(&self) -> WnfSeenChangeStamp {
+        self.last_seen_change_stamp
+    }
 }
 
 impl<T> OwnedWnfState<T>
 where
     T: ?Sized,
 {
-    pub fn subscribe<F>(&self, after_change_stamp: WnfChangeStamp, listener: F) -> io::Result<WnfSubscription<F>>
+    pub fn subscribe<F>(&self, listener: F) -> io::Result<WnfSubscription<F>>
     where
         F: WnfStateListener<T>,
     {
-        self.raw.subscribe(after_change_stamp, listener)
+        self.raw.subscribe(listener)
     }
 }
 
@@ -49,11 +91,11 @@ impl<'a, T> BorrowedWnfState<'a, T>
 where
     T: ?Sized,
 {
-    pub fn subscribe<F>(&self, after_change_stamp: WnfChangeStamp, listener: F) -> io::Result<WnfSubscription<'a, F>>
+    pub fn subscribe<F>(&self, listener: F) -> io::Result<WnfSubscription<'a, F>>
     where
         F: WnfStateListener<T>,
     {
-        self.raw.subscribe(after_change_stamp, listener)
+        self.raw.subscribe(listener)
     }
 }
 
@@ -63,11 +105,7 @@ where
 {
     // Note: if unsubscribe fails, will leak data the size of `Option<F>`
     // if that's too much, box the listener
-    pub fn subscribe<'a, F>(
-        &self,
-        after_change_stamp: WnfChangeStamp,
-        listener: F,
-    ) -> io::Result<WnfSubscription<'a, F>>
+    pub fn subscribe<'a, F>(&self, listener: F) -> io::Result<WnfSubscription<'a, F>>
     where
         F: WnfStateListener<T>,
     {
@@ -104,6 +142,12 @@ where
             STATUS_SUCCESS
         }
 
+        let last_seen_change_stamp = match listener.last_seen_change_stamp() {
+            WnfSeenChangeStamp::Current => self.change_stamp()?,
+            WnfSeenChangeStamp::Initial => WnfChangeStamp::initial(),
+            WnfSeenChangeStamp::Value(value) => value,
+        };
+
         let mut subscription = 0;
         let context = Box::new(WnfSubscriptionContext::new(listener));
 
@@ -111,7 +155,7 @@ where
             ntdll_sys::RtlSubscribeWnfStateChangeNotification(
                 &mut subscription,
                 self.state_name.opaque_value(),
-                after_change_stamp.into(),
+                last_seen_change_stamp.into(),
                 callback::<F, T>,
                 &*context as *const _ as *mut c_void,
                 self.type_id.as_ptr(),
@@ -125,7 +169,7 @@ where
                 target: NTDLL_TARGET,
                 ?result,
                 input.state_name = %self.state_name,
-                input.after_change_stamp = %after_change_stamp,
+                input.change_stamp = %last_seen_change_stamp,
                 input.type_id = %self.type_id,
                 output.subscription = subscription,
                 "RtlSubscribeWnfStateChangeNotification",
@@ -137,7 +181,7 @@ where
                 target: NTDLL_TARGET,
                 ?result,
                 input.state_name = %self.state_name,
-                input.after_change_stamp = %after_change_stamp,
+                input.change_stamp = %last_seen_change_stamp,
                 input.type_id = %self.type_id,
                 "RtlSubscribeWnfStateChangeNotification",
             );

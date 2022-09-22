@@ -2,7 +2,7 @@ use std::ffi::OsString;
 use std::io::{stdin, Read};
 use std::os::windows::ffi::OsStringExt;
 
-use wnf::{BorrowedWnfState, WnfDataAccessor, WnfStateListener, WnfStateName, WnfSubscription};
+use wnf::{BorrowedWnfState, WnfDataAccessor, WnfSeenChangeStamp, WnfStateListener, WnfStateName, WnfSubscription};
 
 const WNF_SHEL_DESKTOP_APPLICATION_STARTED: WnfStateName = WnfStateName::from_opaque_value(0xd83063ea3be5075);
 const WNF_SHEL_DESKTOP_APPLICATION_TERMINATED: WnfStateName = WnfStateName::from_opaque_value(0xd83063ea3be5875);
@@ -26,10 +26,9 @@ where
     F: FnMut(u32, &str) + Send + 'static,
 {
     let state = BorrowedWnfState::from_state_name(state_name);
-    let change_stamp = state.change_stamp().expect("Failed to get WNF state change stamp");
 
     state
-        .subscribe(change_stamp, ApplicationListener(listener))
+        .subscribe(ApplicationListener(listener))
         .expect("Failed to subscribe to WNF state changes")
 }
 
@@ -48,5 +47,9 @@ where
         if let Some(application) = OsString::from_wide(&data).to_string_lossy().strip_prefix("e:") {
             (self.0)(change_stamp.into(), application);
         }
+    }
+
+    fn last_seen_change_stamp(&self) -> WnfSeenChangeStamp {
+        WnfSeenChangeStamp::Current
     }
 }

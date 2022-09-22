@@ -13,7 +13,7 @@ pub use read::WnfRead;
 pub use security::can_create_permanent_shared_objects;
 pub use state::{AsWnfState, BorrowedWnfState, OwnedWnfState};
 pub use state_name::{WnfDataScope, WnfStateName, WnfStateNameDescriptor, WnfStateNameLifetime};
-pub use subscribe::{WnfDataAccessor, WnfStateListener, WnfSubscription};
+pub use subscribe::{WnfDataAccessor, WnfSeenChangeStamp, WnfStampedStateListener, WnfStateListener, WnfSubscription};
 pub use type_id::GUID;
 
 mod apply;
@@ -40,7 +40,6 @@ mod wait_blocking;
 // TODO consts for well-known states?
 // TODO ZST tests
 // TODO check which types are Send/Sync
-// TODO different subscribe variants with change_stamp 0/current/custom
 // TODO trait impls: all for external types, only needed (+Debug) for internal
 // TODO tests for error messages
 // TODO minimal dependency versions

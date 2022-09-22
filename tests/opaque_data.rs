@@ -1,6 +1,6 @@
 use std::sync::mpsc::channel;
 use std::time::Duration;
-use wnf::{AsWnfState, OwnedWnfState, WnfChangeStamp, WnfDataAccessor, WnfOpaqueData};
+use wnf::{AsWnfState, OwnedWnfState, WnfDataAccessor, WnfOpaqueData};
 
 #[test]
 fn query() {
@@ -19,7 +19,7 @@ fn subscribe() {
 
     let (tx, rx) = channel();
 
-    let _subscription = state.subscribe(WnfChangeStamp::initial(), move |accessor: WnfDataAccessor<_>| {
+    let _subscription = state.subscribe(move |accessor: WnfDataAccessor<_>| {
         tx.send(accessor.change_stamp()).unwrap();
     });
 
