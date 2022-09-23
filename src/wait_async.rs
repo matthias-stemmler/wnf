@@ -5,7 +5,7 @@ use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll, Waker};
 
-use crate::data::{WnfChangeStamp, WnfOpaqueData};
+use crate::data::WnfOpaqueData;
 use crate::predicate::{ChangedPredicate, Predicate, PredicateStage};
 use crate::read::WnfRead;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
@@ -262,7 +262,10 @@ where
                     }
 
                     let shared_state = Arc::new(Mutex::new(SharedState::from_waker(cx.waker().clone())));
-                    let subscription = state.subscribe(WaitListener::new(Arc::clone(&shared_state), change_stamp))?;
+                    let subscription = state.subscribe(WaitListener::new(
+                        Arc::clone(&shared_state),
+                        WnfSeenChangeStamp::Value(change_stamp),
+                    ))?;
 
                     FutureState::Waiting {
                         predicate,
@@ -310,11 +313,11 @@ where
 #[derive(Debug)]
 struct WaitListener<D> {
     shared_state: Arc<Mutex<SharedState<D>>>,
-    last_seen_change_stamp: WnfChangeStamp,
+    last_seen_change_stamp: WnfSeenChangeStamp,
 }
 
 impl<D> WaitListener<D> {
-    fn new(shared_state: Arc<Mutex<SharedState<D>>>, last_seen_change_stamp: WnfChangeStamp) -> Self {
+    fn new(shared_state: Arc<Mutex<SharedState<D>>>, last_seen_change_stamp: WnfSeenChangeStamp) -> Self {
         Self {
             shared_state,
             last_seen_change_stamp,
@@ -334,6 +337,6 @@ where
     }
 
     fn last_seen_change_stamp(&self) -> WnfSeenChangeStamp {
-        WnfSeenChangeStamp::Value(self.last_seen_change_stamp)
+        self.last_seen_change_stamp
     }
 }

@@ -35,7 +35,7 @@ extern "system" {
         persist_data: u8,
         type_id: *const GUID,
         maximum_state_size: u32,
-        security_descriptor: *const c_void,
+        security_descriptor: *mut c_void,
     ) -> NTSTATUS;
 
     pub(crate) fn ZwDeleteWnfStateName(state_name: *const u64) -> NTSTATUS;

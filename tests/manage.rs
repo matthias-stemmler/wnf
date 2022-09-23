@@ -1,6 +1,6 @@
 use wnf::{
-    BorrowedWnfState, OwnedWnfState, WnfCreatableStateLifetime, WnfDataScope, WnfOpaqueData, WnfStateCreation,
-    WnfStateNameDescriptor, WnfStateNameLifetime,
+    BorrowedWnfState, OwnedWnfState, SecurityDescriptor, WnfCreatableStateLifetime, WnfDataScope, WnfOpaqueData,
+    WnfStateCreation, WnfStateNameDescriptor, WnfStateNameLifetime,
 };
 
 #[test]
@@ -97,7 +97,7 @@ fn create_state_with_type_id() {
         .lifetime(WnfCreatableStateLifetime::Temporary)
         .scope(WnfDataScope::Machine)
         .type_id("b75fa6ba-77fd-4790-b825-1715ffefbac8")
-        .create_owned::<()>()
+        .create_owned()
         .unwrap();
 
     assert!(state.set(&()).is_ok());
@@ -108,6 +108,74 @@ fn create_state_with_type_id() {
     assert!(borrowed_state_with_wrong_type_id.set(&()).is_err());
 
     drop(borrowed_state_with_wrong_type_id);
+}
+
+#[test]
+fn create_state_with_everyone_generic_all_security_descriptor() {
+    let state = WnfStateCreation::new()
+        .lifetime(WnfCreatableStateLifetime::Temporary)
+        .scope(WnfDataScope::Machine)
+        .security_descriptor(SecurityDescriptor::create_everyone_generic_all().unwrap())
+        .create_owned()
+        .unwrap();
+
+    assert!(state.get().is_ok());
+    assert!(state.set(&()).is_ok());
+}
+
+#[test]
+fn create_state_with_security_descriptor_from_string() {
+    let state_creation = WnfStateCreation::new()
+        .lifetime(WnfCreatableStateLifetime::Temporary)
+        .scope(WnfDataScope::Machine);
+
+    let sd_all: SecurityDescriptor = "D:(A;;GA;;;WD)".parse().unwrap();
+    let sd_readonly: SecurityDescriptor = "D:(A;;GR;;;WD)".parse().unwrap();
+    let sd_none: SecurityDescriptor = "D:(A;;;;;WD)".parse().unwrap();
+
+    let state = state_creation.security_descriptor(sd_all).create_owned().unwrap();
+
+    assert!(state.get().is_ok());
+    assert!(state.set(&()).is_ok());
+
+    let state = state_creation.security_descriptor(sd_readonly).create_owned().unwrap();
+
+    assert!(state.get().is_ok());
+    assert!(state.set(&()).is_err());
+
+    let state = state_creation.security_descriptor(sd_none).create_owned().unwrap();
+
+    assert!(state.get().is_err());
+    assert!(state.set(&()).is_err());
+}
+
+#[cfg(feature = "windows-permissions")]
+#[test]
+fn create_state_with_security_descriptor_from_windows_permissions() {
+    use windows_permissions::{LocalBox, SecurityDescriptor};
+
+    let state_creation = WnfStateCreation::new()
+        .lifetime(WnfCreatableStateLifetime::Temporary)
+        .scope(WnfDataScope::Machine);
+
+    let sd_all: LocalBox<SecurityDescriptor> = "D:(A;;GA;;;WD)".parse().unwrap();
+    let sd_readonly: LocalBox<SecurityDescriptor> = "D:(A;;GR;;;WD)".parse().unwrap();
+    let sd_none: LocalBox<SecurityDescriptor> = "D:(A;;;;;WD)".parse().unwrap();
+
+    let state = state_creation.security_descriptor(sd_all).create_owned().unwrap();
+
+    assert!(state.get().is_ok());
+    assert!(state.set(&()).is_ok());
+
+    let state = state_creation.security_descriptor(sd_readonly).create_owned().unwrap();
+
+    assert!(state.get().is_ok());
+    assert!(state.set(&()).is_err());
+
+    let state = state_creation.security_descriptor(sd_none).create_owned().unwrap();
+
+    assert!(state.get().is_err());
+    assert!(state.set(&()).is_err());
 }
 
 #[test]

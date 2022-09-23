@@ -558,6 +558,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "windows-permissions"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9e2ccdc3c6bf4d4a094e031b63fadd08d8e42abd259940eb8aa5fdc09d4bf9be"
+dependencies = [
+ "bitflags",
+ "winapi",
+]
+
+[[package]]
 name = "windows_aarch64_msvc"
 version = "0.39.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -602,6 +612,7 @@ dependencies = [
  "uuid",
  "winapi",
  "windows",
+ "windows-permissions",
  "zerocopy",
 ]
 

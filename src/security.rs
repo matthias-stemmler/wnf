@@ -1,62 +1,92 @@
-use std::{alloc, alloc::Layout, ffi::c_void, io, mem};
+use std::ffi::OsStr;
+use std::os::windows::ffi::OsStrExt;
+use std::str::FromStr;
+use std::{ffi::c_void, io, ptr};
 
-use windows::Win32::{
-    Foundation::PSID,
-    Security::{
-        self, CreateWellKnownSid, WinWorldSid, ACCESS_ALLOWED_ACE, ACL, ACL_REVISION, PSECURITY_DESCRIPTOR,
-        SECURITY_DESCRIPTOR, SID,
-    },
-    System::SystemServices::{GENERIC_ALL, SECURITY_DESCRIPTOR_REVISION},
-};
+use windows::core::PCWSTR;
+use windows::Win32::Security::Authorization::{ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION};
+use windows::Win32::Security::PSECURITY_DESCRIPTOR;
+use windows::Win32::System::Memory::LocalFree;
 
-#[derive(Debug)]
-pub(crate) struct SecurityDescriptor {
-    raw_security_descriptor: SECURITY_DESCRIPTOR,
-    acl_buffer: *mut u8,
-    acl_layout: Layout,
+/// # Safety
+/// It is safe to implement this trait for a type `T` if and only if the raw pointer returned from
+/// [`as_raw_security_descriptor`](Self::as_raw_security_descriptor) for an instance of `T` points to a security
+/// descriptor that is valid during the lifetime of the instance of `T`.
+pub unsafe trait AsRawSecurityDescriptor {
+    fn as_raw_security_descriptor(&self) -> *mut c_void;
 }
 
+unsafe impl<SD> AsRawSecurityDescriptor for &SD
+where
+    SD: AsRawSecurityDescriptor,
+{
+    fn as_raw_security_descriptor(&self) -> *mut c_void {
+        SD::as_raw_security_descriptor(self)
+    }
+}
+
+#[derive(Debug)]
+pub struct SecurityDescriptor(PSECURITY_DESCRIPTOR);
+
 impl SecurityDescriptor {
-    pub(crate) fn as_void_ptr(&self) -> *const c_void {
-        &self.raw_security_descriptor as *const SECURITY_DESCRIPTOR as *const c_void
+    pub fn create_everyone_generic_all() -> io::Result<Self> {
+        "D:(A;;GA;;;WD)".parse()
     }
 
-    pub(crate) fn create_everyone_generic_all() -> io::Result<Self> {
-        let mut sid = SID::default();
-        let psid = PSID(&mut sid as *mut SID as *mut c_void);
-        let mut sid_size = mem::size_of::<SID>() as u32;
+    unsafe fn from_raw(sd_ptr: *mut c_void) -> Self {
+        Self(PSECURITY_DESCRIPTOR(sd_ptr))
+    }
+}
 
-        unsafe { CreateWellKnownSid(WinWorldSid, None, psid, &mut sid_size) }.ok()?;
+impl FromStr for SecurityDescriptor {
+    type Err = io::Error;
 
-        let acl_size =
-            mem::size_of::<ACL>() + mem::size_of::<ACCESS_ALLOWED_ACE>() + sid_size as usize - mem::size_of::<u32>();
+    fn from_str(s: &str) -> io::Result<Self> {
+        let mut psecurity_descriptor = PSECURITY_DESCRIPTOR::default();
 
-        let acl_layout = unsafe { Layout::from_size_align_unchecked(acl_size, mem::align_of::<u32>()) };
+        let result = unsafe {
+            ConvertStringSecurityDescriptorToSecurityDescriptorW(
+                PCWSTR::from_raw(OsStr::new(s).encode_wide().chain(Some(0)).collect::<Vec<_>>().as_ptr()),
+                SDDL_REVISION,
+                &mut psecurity_descriptor,
+                ptr::null_mut(),
+            )
+        };
 
-        let acl_buffer = unsafe { alloc::alloc(acl_layout) };
+        if !result.as_bool() {
+            return Err(io::Error::last_os_error());
+        }
 
-        unsafe { Security::InitializeAcl(acl_buffer.cast(), acl_size as u32, ACL_REVISION.0) }.ok()?;
-
-        unsafe { Security::AddAccessAllowedAce(acl_buffer.cast(), ACL_REVISION.0, GENERIC_ALL, psid) }.ok()?;
-
-        let mut raw_security_descriptor = SECURITY_DESCRIPTOR::default();
-        let psecurity_descriptor =
-            PSECURITY_DESCRIPTOR(&mut raw_security_descriptor as *mut SECURITY_DESCRIPTOR as *mut c_void);
-
-        unsafe { Security::InitializeSecurityDescriptor(psecurity_descriptor, SECURITY_DESCRIPTOR_REVISION) }.ok()?;
-
-        unsafe { Security::SetSecurityDescriptorDacl(psecurity_descriptor, true, acl_buffer.cast(), false) }.ok()?;
-
-        Ok(Self {
-            raw_security_descriptor,
-            acl_buffer,
-            acl_layout,
-        })
+        Ok(Self(psecurity_descriptor))
     }
 }
 
 impl Drop for SecurityDescriptor {
     fn drop(&mut self) {
-        unsafe { alloc::dealloc(self.acl_buffer, self.acl_layout) };
+        unsafe { LocalFree(self.as_raw_security_descriptor() as isize) };
+    }
+}
+
+unsafe impl AsRawSecurityDescriptor for SecurityDescriptor {
+    fn as_raw_security_descriptor(&self) -> *mut c_void {
+        let PSECURITY_DESCRIPTOR(sd_ptr) = self.0;
+        sd_ptr
+    }
+}
+
+#[cfg(feature = "windows-permissions")]
+mod impl_windows_permissions {
+    use super::*;
+
+    unsafe impl AsRawSecurityDescriptor for windows_permissions::SecurityDescriptor {
+        fn as_raw_security_descriptor(&self) -> *mut c_void {
+            self as *const Self as *mut c_void
+        }
+    }
+
+    unsafe impl AsRawSecurityDescriptor for windows_permissions::LocalBox<windows_permissions::SecurityDescriptor> {
+        fn as_raw_security_descriptor(&self) -> *mut c_void {
+            (**self).as_raw_security_descriptor()
+        }
     }
 }

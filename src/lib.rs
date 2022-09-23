@@ -8,9 +8,13 @@ extern crate num_derive;
 
 pub use bytes::*;
 pub use data::{WnfChangeStamp, WnfOpaqueData, WnfStampedData};
-pub use manage::{UnspecifiedLifetime, UnspecifiedScope, WnfCreatableStateLifetime, WnfStateCreation};
+pub use manage::{
+    TryIntoSecurityDescriptor, UnspecifiedLifetime, UnspecifiedScope, UnspecifiedSecurityDescriptor,
+    WnfCreatableStateLifetime, WnfStateCreation,
+};
 pub use privilege::can_create_permanent_shared_objects;
 pub use read::{WnfRead, WnfReadError};
+pub use security::{AsRawSecurityDescriptor, SecurityDescriptor};
 pub use state::{AsWnfState, BorrowedWnfState, OwnedWnfState};
 pub use state_name::{
     WnfDataScope, WnfStateName, WnfStateNameDescriptor, WnfStateNameDescriptorFromStateNameError,
@@ -46,13 +50,13 @@ mod wait_blocking;
 // TODO trait impls: all for external types, only needed (+Debug) for internal (check generics!)
 // TODO tests for error messages
 // TODO minimal dependency versions
-// TODO scoped subscriptions (without 'static)
-// TODO compatibility layer to external crates for security descriptors (windows-permissions, windows, winapi)
 // TODO test on Windows 11
 // TODO document what's not supported (kernel mode? event aggregation? meta subscriptions?)
-// TODO impl CheckedBitPattern/NoUninit for FromPrimitive/ToPrimitive?
-// TODO create with security descriptor
 // TODO real-life examples
 // TODO const fn
 // TODO configure clippy
 // TODO CI
+// TODO Which traits should be sealed?
+// TODO unit tests (Miri?)
+// TODO Safety comments
+// TODO documentation

@@ -11,7 +11,7 @@ const STATE_NAME_XOR_KEY: u64 = 0x41C64E6DA3BC0074;
 pub enum WnfStateNameLifetime {
     /// Provisioned with the system, lives forever
     /// Persisted under HKLM\SYSTEM\CurrentControlSet\Control\Notifications
-    WellKnown = 0, // -> HKLM\SYSTEM\CurrentControlSet\Control\Notifications
+    WellKnown = 0,
 
     /// Lives forever
     /// Persisted under HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Notifications
@@ -19,7 +19,7 @@ pub enum WnfStateNameLifetime {
 
     /// Lives until system reboot ("volatile")
     /// Persisted under HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\VolatileNotifications
-    Persistent = 2, // system uptime (aka "volatile") -> HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\VolatileNotifications
+    Persistent = 2,
 
     /// Lives as long as the process that created it
     /// Not persisted

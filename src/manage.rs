@@ -3,7 +3,7 @@ use std::io;
 use tracing::debug;
 
 use crate::ntdll_sys::{self, NTDLL_TARGET};
-use crate::security::SecurityDescriptor;
+use crate::security::{AsRawSecurityDescriptor, SecurityDescriptor};
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::state_name::{WnfDataScope, WnfStateName, WnfStateNameLifetime};
 use crate::type_id::{TypeId, GUID};
@@ -33,6 +33,17 @@ impl UnspecifiedScope {
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct UnspecifiedSecurityDescriptor {
+    _private: (),
+}
+
+impl UnspecifiedSecurityDescriptor {
+    fn new() -> Self {
+        Self { _private: () }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum WnfCreatableStateLifetime {
     Permanent { persist_data: bool },
     Persistent,
@@ -55,64 +66,107 @@ impl From<WnfCreatableStateLifetime> for WnfStateNameLifetime {
     }
 }
 
+pub trait TryIntoSecurityDescriptor {
+    type IntoSecurityDescriptor: AsRawSecurityDescriptor;
+
+    fn try_into_security_descriptor(self) -> io::Result<Self::IntoSecurityDescriptor>;
+}
+
+impl<SD> TryIntoSecurityDescriptor for SD
+where
+    SD: AsRawSecurityDescriptor,
+{
+    type IntoSecurityDescriptor = Self;
+
+    fn try_into_security_descriptor(self) -> io::Result<Self> {
+        Ok(self)
+    }
+}
+
+impl TryIntoSecurityDescriptor for UnspecifiedSecurityDescriptor {
+    type IntoSecurityDescriptor = SecurityDescriptor;
+
+    fn try_into_security_descriptor(self) -> io::Result<SecurityDescriptor> {
+        SecurityDescriptor::create_everyone_generic_all()
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct WnfStateCreation<L, S> {
+pub struct WnfStateCreation<L, S, SD> {
     // mandatory fields
     lifetime: L,
     scope: S,
 
     // optional fields
     maximum_state_size: Option<usize>,
+    security_descriptor: SD,
     type_id: TypeId,
 }
 
-impl Default for WnfStateCreation<UnspecifiedLifetime, UnspecifiedScope> {
+impl Default for WnfStateCreation<UnspecifiedLifetime, UnspecifiedScope, UnspecifiedSecurityDescriptor> {
     fn default() -> Self {
         Self {
             lifetime: UnspecifiedLifetime::new(),
             scope: UnspecifiedScope::new(),
 
             maximum_state_size: None,
+            security_descriptor: UnspecifiedSecurityDescriptor::new(),
             type_id: TypeId::none(),
         }
     }
 }
 
-impl WnfStateCreation<UnspecifiedLifetime, UnspecifiedScope> {
+impl WnfStateCreation<UnspecifiedLifetime, UnspecifiedScope, UnspecifiedSecurityDescriptor> {
     pub fn new() -> Self {
         Self::default()
     }
 }
 
-impl<L, S> WnfStateCreation<L, S> {
-    pub fn lifetime(self, lifetime: WnfCreatableStateLifetime) -> WnfStateCreation<WnfCreatableStateLifetime, S> {
+impl<L, S, SD> WnfStateCreation<L, S, SD> {
+    pub fn lifetime(self, lifetime: WnfCreatableStateLifetime) -> WnfStateCreation<WnfCreatableStateLifetime, S, SD> {
         WnfStateCreation {
             lifetime,
 
             scope: self.scope,
+            security_descriptor: self.security_descriptor,
             maximum_state_size: self.maximum_state_size,
             type_id: self.type_id,
         }
     }
 
-    pub fn scope(self, scope: WnfDataScope) -> WnfStateCreation<L, WnfDataScope> {
+    pub fn scope(self, scope: WnfDataScope) -> WnfStateCreation<L, WnfDataScope, SD> {
         WnfStateCreation {
             scope,
 
             lifetime: self.lifetime,
             maximum_state_size: self.maximum_state_size,
+            security_descriptor: self.security_descriptor,
             type_id: self.type_id,
         }
     }
 
-    pub fn maximum_state_size(self, maximum_state_size: usize) -> WnfStateCreation<L, S> {
+    pub fn maximum_state_size(self, maximum_state_size: usize) -> WnfStateCreation<L, S, SD> {
         WnfStateCreation {
             maximum_state_size: Some(maximum_state_size),
             ..self
         }
     }
 
-    pub fn type_id(self, type_id: impl Into<GUID>) -> WnfStateCreation<L, S> {
+    pub fn security_descriptor<NewSD>(self, security_descriptor: NewSD) -> WnfStateCreation<L, S, NewSD>
+    where
+        NewSD: AsRawSecurityDescriptor,
+    {
+        WnfStateCreation {
+            security_descriptor,
+
+            lifetime: self.lifetime,
+            maximum_state_size: self.maximum_state_size,
+            scope: self.scope,
+            type_id: self.type_id,
+        }
+    }
+
+    pub fn type_id(self, type_id: impl Into<GUID>) -> WnfStateCreation<L, S, SD> {
         WnfStateCreation {
             type_id: type_id.into().into(),
             ..self
@@ -120,22 +174,25 @@ impl<L, S> WnfStateCreation<L, S> {
     }
 }
 
-impl WnfStateCreation<WnfCreatableStateLifetime, WnfDataScope> {
-    pub fn create_owned<T>(&self) -> io::Result<OwnedWnfState<T>>
+impl<SD> WnfStateCreation<WnfCreatableStateLifetime, WnfDataScope, SD>
+where
+    SD: TryIntoSecurityDescriptor,
+{
+    pub fn create_owned<T>(self) -> io::Result<OwnedWnfState<T>>
     where
         T: ?Sized,
     {
         self.create_raw().map(OwnedWnfState::from_raw)
     }
 
-    pub fn create_static<T>(&self) -> io::Result<BorrowedWnfState<'static, T>>
+    pub fn create_static<T>(self) -> io::Result<BorrowedWnfState<'static, T>>
     where
         T: ?Sized,
     {
         self.create_raw().map(BorrowedWnfState::from_raw)
     }
 
-    fn create_raw<T>(&self) -> io::Result<RawWnfState<T>>
+    fn create_raw<T>(self) -> io::Result<RawWnfState<T>>
     where
         T: ?Sized,
     {
@@ -145,6 +202,7 @@ impl WnfStateCreation<WnfCreatableStateLifetime, WnfDataScope> {
             self.lifetime.persist_data(),
             self.type_id,
             self.maximum_state_size.unwrap_or(MAXIMUM_STATE_SIZE),
+            self.security_descriptor.try_into_security_descriptor()?,
         )
     }
 }
@@ -196,10 +254,9 @@ where
         persist_data: bool,
         type_id: TypeId,
         maximum_state_size: usize,
+        security_descriptor: impl AsRawSecurityDescriptor,
     ) -> io::Result<Self> {
         let mut opaque_value = 0;
-
-        let security_descriptor = SecurityDescriptor::create_everyone_generic_all()?;
 
         let name_lifetime = name_lifetime as u32;
         let data_scope = data_scope as u32;
@@ -214,7 +271,7 @@ where
                 persist_data,
                 type_id.as_ptr(),
                 maximum_state_size,
-                security_descriptor.as_void_ptr(),
+                security_descriptor.as_raw_security_descriptor(),
             )
         };
 
