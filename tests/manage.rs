@@ -1,5 +1,5 @@
 use wnf::{
-    BorrowedWnfState, OwnedWnfState, SecurityDescriptor, WnfCreatableStateLifetime, WnfDataScope, WnfOpaqueData,
+    BorrowedWnfState, BoxedSecurityDescriptor, OwnedWnfState, WnfCreatableStateLifetime, WnfDataScope, WnfOpaqueData,
     WnfStateCreation, WnfStateNameDescriptor, WnfStateNameLifetime,
 };
 
@@ -115,7 +115,7 @@ fn create_state_with_everyone_generic_all_security_descriptor() {
     let state = WnfStateCreation::new()
         .lifetime(WnfCreatableStateLifetime::Temporary)
         .scope(WnfDataScope::Machine)
-        .security_descriptor(SecurityDescriptor::create_everyone_generic_all().unwrap())
+        .security_descriptor(BoxedSecurityDescriptor::create_everyone_generic_all().unwrap())
         .create_owned()
         .unwrap();
 
@@ -129,9 +129,9 @@ fn create_state_with_security_descriptor_from_string() {
         .lifetime(WnfCreatableStateLifetime::Temporary)
         .scope(WnfDataScope::Machine);
 
-    let sd_all: SecurityDescriptor = "D:(A;;GA;;;WD)".parse().unwrap();
-    let sd_readonly: SecurityDescriptor = "D:(A;;GR;;;WD)".parse().unwrap();
-    let sd_none: SecurityDescriptor = "D:(A;;;;;WD)".parse().unwrap();
+    let sd_all: BoxedSecurityDescriptor = "D:(A;;GA;;;WD)".parse().unwrap();
+    let sd_readonly: BoxedSecurityDescriptor = "D:(A;;GR;;;WD)".parse().unwrap();
+    let sd_none: BoxedSecurityDescriptor = "D:(A;;;;;WD)".parse().unwrap();
 
     let state = state_creation.security_descriptor(sd_all).create_owned().unwrap();
 

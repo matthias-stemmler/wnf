@@ -1,44 +1,40 @@
+use std::borrow::Borrow;
 use std::ffi::OsStr;
+use std::ops::Deref;
 use std::os::windows::ffi::OsStrExt;
+use std::ptr::NonNull;
 use std::str::FromStr;
-use std::{ffi::c_void, io, ptr};
+use std::{io, ptr};
 
 use windows::core::PCWSTR;
 use windows::Win32::Security::Authorization::{ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION};
 use windows::Win32::Security::PSECURITY_DESCRIPTOR;
 use windows::Win32::System::Memory::LocalFree;
 
-/// # Safety
-/// It is safe to implement this trait for a type `T` if and only if the raw pointer returned from
-/// [`as_raw_security_descriptor`](Self::as_raw_security_descriptor) for an instance of `T` points to a security
-/// descriptor that is valid during the lifetime of the instance of `T`.
-pub unsafe trait AsRawSecurityDescriptor {
-    fn as_raw_security_descriptor(&self) -> *mut c_void;
+#[derive(Debug)]
+#[repr(C)]
+pub struct SecurityDescriptor {
+    _private: [u8; 0],
 }
 
-unsafe impl<SD> AsRawSecurityDescriptor for &SD
-where
-    SD: AsRawSecurityDescriptor,
-{
-    fn as_raw_security_descriptor(&self) -> *mut c_void {
-        SD::as_raw_security_descriptor(self)
+impl Drop for SecurityDescriptor {
+    fn drop(&mut self) {
+        unreachable!("SecurityDescriptor is an opaque type");
     }
 }
 
 #[derive(Debug)]
-pub struct SecurityDescriptor(PSECURITY_DESCRIPTOR);
+pub struct BoxedSecurityDescriptor {
+    ptr: NonNull<SecurityDescriptor>,
+}
 
-impl SecurityDescriptor {
+impl BoxedSecurityDescriptor {
     pub fn create_everyone_generic_all() -> io::Result<Self> {
         "D:(A;;GA;;;WD)".parse()
     }
-
-    unsafe fn from_raw(sd_ptr: *mut c_void) -> Self {
-        Self(PSECURITY_DESCRIPTOR(sd_ptr))
-    }
 }
 
-impl FromStr for SecurityDescriptor {
+impl FromStr for BoxedSecurityDescriptor {
     type Err = io::Error;
 
     fn from_str(s: &str) -> io::Result<Self> {
@@ -57,36 +53,41 @@ impl FromStr for SecurityDescriptor {
             return Err(io::Error::last_os_error());
         }
 
-        Ok(Self(psecurity_descriptor))
+        Ok(Self {
+            ptr: NonNull::new(psecurity_descriptor.0 as *mut SecurityDescriptor)
+                .expect("ConvertStringSecurityDescriptorToSecurityDescriptorW returned NULL security descriptor"),
+        })
     }
 }
 
-impl Drop for SecurityDescriptor {
+impl Drop for BoxedSecurityDescriptor {
     fn drop(&mut self) {
-        unsafe { LocalFree(self.as_raw_security_descriptor() as isize) };
+        let result = unsafe { LocalFree(self.ptr.as_ptr() as isize) };
+        debug_assert_eq!(result, 0);
     }
 }
 
-unsafe impl AsRawSecurityDescriptor for SecurityDescriptor {
-    fn as_raw_security_descriptor(&self) -> *mut c_void {
-        let PSECURITY_DESCRIPTOR(sd_ptr) = self.0;
-        sd_ptr
+impl Deref for BoxedSecurityDescriptor {
+    type Target = SecurityDescriptor;
+
+    fn deref(&self) -> &SecurityDescriptor {
+        unsafe { self.ptr.as_ref() }
+    }
+}
+
+impl Borrow<SecurityDescriptor> for BoxedSecurityDescriptor {
+    fn borrow(&self) -> &SecurityDescriptor {
+        self
     }
 }
 
 #[cfg(feature = "windows-permissions")]
-mod impl_windows_permissions {
-    use super::*;
-
-    unsafe impl AsRawSecurityDescriptor for windows_permissions::SecurityDescriptor {
-        fn as_raw_security_descriptor(&self) -> *mut c_void {
-            self as *const Self as *mut c_void
-        }
-    }
-
-    unsafe impl AsRawSecurityDescriptor for windows_permissions::LocalBox<windows_permissions::SecurityDescriptor> {
-        fn as_raw_security_descriptor(&self) -> *mut c_void {
-            (**self).as_raw_security_descriptor()
-        }
+impl<T> Borrow<SecurityDescriptor> for T
+where
+    T: Borrow<windows_permissions::SecurityDescriptor>,
+{
+    fn borrow(&self) -> &SecurityDescriptor {
+        let ptr = self.borrow() as *const windows_permissions::SecurityDescriptor as *const SecurityDescriptor;
+        unsafe { &*ptr }
     }
 }

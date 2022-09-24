@@ -73,7 +73,7 @@ where
                 &self.state_name.opaque_value(),
                 name_info_class,
                 ptr::null(),
-                &mut buffer as *mut _ as *mut c_void,
+                &mut buffer as *mut u32 as *mut c_void,
                 mem::size_of_val(&buffer) as u32,
             )
         };

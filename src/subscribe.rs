@@ -156,7 +156,7 @@ where
                 self.state_name.opaque_value(),
                 last_seen_change_stamp.into(),
                 callback::<F, T>,
-                &*context as *const _ as *mut c_void,
+                &*context as *const WnfSubscriptionContext<F> as *mut c_void,
                 self.type_id.as_ptr(),
                 0,
                 0,

@@ -1,12 +1,15 @@
+use std::borrow::Borrow;
+use std::ffi::c_void;
 use std::io;
 
 use tracing::debug;
 
 use crate::ntdll_sys::{self, NTDLL_TARGET};
-use crate::security::{AsRawSecurityDescriptor, SecurityDescriptor};
+use crate::security::SecurityDescriptor;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::state_name::{WnfDataScope, WnfStateName, WnfStateNameLifetime};
 use crate::type_id::{TypeId, GUID};
+use crate::BoxedSecurityDescriptor;
 
 const MAXIMUM_STATE_SIZE: usize = 0x1000; // 4 KB
 
@@ -67,14 +70,14 @@ impl From<WnfCreatableStateLifetime> for WnfStateNameLifetime {
 }
 
 pub trait TryIntoSecurityDescriptor {
-    type IntoSecurityDescriptor: AsRawSecurityDescriptor;
+    type IntoSecurityDescriptor: Borrow<SecurityDescriptor>;
 
     fn try_into_security_descriptor(self) -> io::Result<Self::IntoSecurityDescriptor>;
 }
 
 impl<SD> TryIntoSecurityDescriptor for SD
 where
-    SD: AsRawSecurityDescriptor,
+    SD: Borrow<SecurityDescriptor>,
 {
     type IntoSecurityDescriptor = Self;
 
@@ -84,10 +87,10 @@ where
 }
 
 impl TryIntoSecurityDescriptor for UnspecifiedSecurityDescriptor {
-    type IntoSecurityDescriptor = SecurityDescriptor;
+    type IntoSecurityDescriptor = BoxedSecurityDescriptor;
 
-    fn try_into_security_descriptor(self) -> io::Result<SecurityDescriptor> {
-        SecurityDescriptor::create_everyone_generic_all()
+    fn try_into_security_descriptor(self) -> io::Result<BoxedSecurityDescriptor> {
+        BoxedSecurityDescriptor::create_everyone_generic_all()
     }
 }
 
@@ -154,7 +157,7 @@ impl<L, S, SD> WnfStateCreation<L, S, SD> {
 
     pub fn security_descriptor<NewSD>(self, security_descriptor: NewSD) -> WnfStateCreation<L, S, NewSD>
     where
-        NewSD: AsRawSecurityDescriptor,
+        NewSD: Borrow<SecurityDescriptor>,
     {
         WnfStateCreation {
             security_descriptor,
@@ -254,7 +257,7 @@ where
         persist_data: bool,
         type_id: TypeId,
         maximum_state_size: usize,
-        security_descriptor: impl AsRawSecurityDescriptor,
+        security_descriptor: impl Borrow<SecurityDescriptor>,
     ) -> io::Result<Self> {
         let mut opaque_value = 0;
 
@@ -271,7 +274,7 @@ where
                 persist_data,
                 type_id.as_ptr(),
                 maximum_state_size,
-                security_descriptor.as_raw_security_descriptor(),
+                security_descriptor.borrow() as *const SecurityDescriptor as *mut c_void,
             )
         };
 

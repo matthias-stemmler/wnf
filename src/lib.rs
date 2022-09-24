@@ -14,7 +14,7 @@ pub use manage::{
 };
 pub use privilege::can_create_permanent_shared_objects;
 pub use read::{WnfRead, WnfReadError};
-pub use security::{AsRawSecurityDescriptor, SecurityDescriptor};
+pub use security::{BoxedSecurityDescriptor, SecurityDescriptor};
 pub use state::{AsWnfState, BorrowedWnfState, OwnedWnfState};
 pub use state_name::{
     WnfDataScope, WnfStateName, WnfStateNameDescriptor, WnfStateNameDescriptorFromStateNameError,
