@@ -57,7 +57,7 @@ unsafe impl<T, const N: usize> AnyBitPattern for [T; N] where T: AnyBitPattern {
 
 /// # Safety
 /// An implementation of this trait for a type `T` is safe if and only the following hold:
-/// - `<T as CheckedBitPattern>::Bits` has the same layout (i.e. size and alignment) as `T`
+/// - `<T as CheckedBitPattern>::Bits` has the same memory layout (i.e. size and alignment) as `T`
 /// - Any value `bits: <T as CheckedBitPattern>::Bits` for which `<T as CheckedBitPattern>::is_valid_bit_pattern(&bits)`
 ///   is `true` can be interpreted as a value of type `T`
 pub unsafe trait CheckedBitPattern: Copy + Send + Sized + 'static {
