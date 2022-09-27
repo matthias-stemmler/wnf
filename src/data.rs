@@ -2,7 +2,9 @@ use std::fmt;
 use std::fmt::{Display, Formatter};
 
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
-pub struct WnfOpaqueData(());
+pub struct WnfOpaqueData {
+    _private: (),
+}
 
 impl WnfOpaqueData {
     pub fn new() -> Self {
