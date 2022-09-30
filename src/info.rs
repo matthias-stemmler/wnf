@@ -3,7 +3,7 @@ use std::{io, mem, ptr};
 
 use tracing::debug;
 
-use crate::ntdll_sys::{self, NTDLL_TARGET};
+use crate::ntdll;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -69,7 +69,7 @@ where
         let name_info_class = name_info_class as u32;
 
         let result = unsafe {
-            ntdll_sys::ZwQueryWnfStateNameInformation(
+            ntdll::ZwQueryWnfStateNameInformation(
                 &self.state_name.opaque_value(),
                 name_info_class,
                 ptr::null(),
@@ -80,7 +80,7 @@ where
 
         if result.is_ok() {
             debug!(
-                 target: NTDLL_TARGET,
+                 target: ntdll::TRACING_TARGET,
                  ?result,
                  input.state_name = %self.state_name,
                  input.name_info_class = name_info_class,
@@ -95,7 +95,7 @@ where
             })
         } else {
             debug!(
-                 target: NTDLL_TARGET,
+                 target: ntdll::TRACING_TARGET,
                  ?result,
                  input.state_name = %self.state_name,
                  input.name_info_class = name_info_class,

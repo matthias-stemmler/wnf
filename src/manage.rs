@@ -4,7 +4,7 @@ use std::io;
 
 use tracing::debug;
 
-use crate::ntdll_sys::{self, NTDLL_TARGET};
+use crate::ntdll;
 use crate::security::SecurityDescriptor;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::state_name::{WnfDataScope, WnfStateName, WnfStateNameLifetime};
@@ -267,7 +267,7 @@ where
         let maximum_state_size = maximum_state_size as u32;
 
         let result = unsafe {
-            ntdll_sys::ZwCreateWnfStateName(
+            ntdll::ZwCreateWnfStateName(
                 &mut opaque_value,
                 name_lifetime,
                 data_scope,
@@ -282,7 +282,7 @@ where
             let state_name = WnfStateName::from_opaque_value(opaque_value);
 
             debug!(
-                target: NTDLL_TARGET,
+                target: ntdll::TRACING_TARGET,
                 ?result,
                 input.name_lifetime = name_lifetime,
                 input.data_scope = data_scope,
@@ -296,7 +296,7 @@ where
             Ok(Self::from_state_name_and_type_id(state_name, type_id))
         } else {
             debug!(
-                target: NTDLL_TARGET,
+                target: ntdll::TRACING_TARGET,
                 ?result,
                 input.name_lifetime = name_lifetime,
                 input.data_scope = data_scope,
@@ -311,10 +311,10 @@ where
     }
 
     pub(crate) fn delete(self) -> io::Result<()> {
-        let result = unsafe { ntdll_sys::ZwDeleteWnfStateName(&self.state_name.opaque_value()) };
+        let result = unsafe { ntdll::ZwDeleteWnfStateName(&self.state_name.opaque_value()) };
 
         debug!(
-            target: NTDLL_TARGET,
+            target: ntdll::TRACING_TARGET,
             ?result,
             input.state_name = %self.state_name,
             "ZwDeleteWnfStateName",

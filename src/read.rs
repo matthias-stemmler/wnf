@@ -14,8 +14,9 @@ use crate::data::WnfOpaqueData;
 
 /// Trait for types that can be read from WNF state data
 ///
-/// A type `T` implements [`WnfRead<D>`] if the data of a WNF state of type `T` (i.e., an [`OwnedWnfState<T>`] or a
-/// [`BorrowedWnfState<'_, T>`]) can be read as an instance of type `D`, where `D` is either `T` or [`Box<T>`].
+/// A type `T` implements [`WnfRead<D>`] if the data of a WNF state of type `T` (i.e., an
+/// [`OwnedWnfState<T>`](crate::state::OwnedWnfState) or a [`BorrowedWnfState<'_, T>`](crate::state::BorrowedWnfState))
+/// can be read as an instance of type `D`, where `D` is either `T` or [`Box<T>`].
 ///
 /// This is used to abstract over types that either implement [`CheckedBitPattern`] themselves or are of the form `[T]`
 /// where `T` implements [`CheckedBitPattern`].

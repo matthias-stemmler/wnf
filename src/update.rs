@@ -6,7 +6,7 @@ use windows::Win32::Foundation::{NTSTATUS, STATUS_UNSUCCESSFUL};
 
 use crate::bytes::NoUninit;
 use crate::data::WnfChangeStamp;
-use crate::ntdll_sys::{self, NTDLL_TARGET};
+use crate::ntdll;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::state_name::WnfStateName;
 use crate::type_id::TypeId;
@@ -82,7 +82,7 @@ fn update(
     let check_stamp = expected_change_stamp.is_some() as u32;
 
     let result = unsafe {
-        ntdll_sys::ZwUpdateWnfStateData(
+        ntdll::ZwUpdateWnfStateData(
             &state_name.opaque_value(),
             buffer,
             buffer_size as u32,
@@ -94,7 +94,7 @@ fn update(
     };
 
     debug!(
-        target: NTDLL_TARGET,
+        target: ntdll::TRACING_TARGET,
         ?result,
         input.state_name = %state_name,
         input.buffer_size = buffer_size,

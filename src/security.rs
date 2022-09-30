@@ -82,12 +82,25 @@ impl Borrow<SecurityDescriptor> for BoxedSecurityDescriptor {
 }
 
 #[cfg(feature = "windows-permissions")]
-impl<T> Borrow<SecurityDescriptor> for T
-where
-    T: Borrow<windows_permissions::SecurityDescriptor>,
-{
-    fn borrow(&self) -> &SecurityDescriptor {
-        let ptr = self.borrow() as *const windows_permissions::SecurityDescriptor as *const SecurityDescriptor;
-        unsafe { &*ptr }
+mod impl_windows_permissions {
+    use super::*;
+
+    impl Borrow<SecurityDescriptor> for windows_permissions::SecurityDescriptor {
+        fn borrow(&self) -> &SecurityDescriptor {
+            let ptr = self as *const windows_permissions::SecurityDescriptor as *const SecurityDescriptor;
+            unsafe { &*ptr }
+        }
+    }
+
+    impl Borrow<SecurityDescriptor> for &windows_permissions::SecurityDescriptor {
+        fn borrow(&self) -> &SecurityDescriptor {
+            (*self).borrow()
+        }
+    }
+
+    impl Borrow<SecurityDescriptor> for windows_permissions::LocalBox<windows_permissions::SecurityDescriptor> {
+        fn borrow(&self) -> &SecurityDescriptor {
+            (**self).borrow()
+        }
     }
 }

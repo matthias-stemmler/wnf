@@ -28,7 +28,7 @@ mod bytes;
 mod data;
 mod info;
 mod manage;
-mod ntdll_sys;
+mod ntdll;
 mod predicate;
 mod privilege;
 mod query;

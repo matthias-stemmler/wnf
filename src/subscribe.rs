@@ -10,7 +10,7 @@ use windows::core::GUID;
 use windows::Win32::Foundation::{NTSTATUS, STATUS_SUCCESS};
 
 use crate::data::{WnfChangeStamp, WnfStampedData};
-use crate::ntdll_sys::{self, NTDLL_TARGET};
+use crate::ntdll;
 use crate::read::WnfRead;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::state_name::WnfStateName;
@@ -122,7 +122,7 @@ where
         {
             let _ = panic::catch_unwind(|| {
                 let span = trace_span!(
-                    target: NTDLL_TARGET,
+                    target: ntdll::TRACING_TARGET,
                     "WnfUserCallback",
                     input.state_name = %WnfStateName::from_opaque_value(state_name),
                     input.change_stamp = change_stamp,
@@ -151,7 +151,7 @@ where
         let context = Box::new(WnfSubscriptionContext::new(listener));
 
         let result = unsafe {
-            ntdll_sys::RtlSubscribeWnfStateChangeNotification(
+            ntdll::RtlSubscribeWnfStateChangeNotification(
                 &mut subscription,
                 self.state_name.opaque_value(),
                 last_seen_change_stamp.into(),
@@ -165,7 +165,7 @@ where
 
         if result.is_ok() {
             debug!(
-                target: NTDLL_TARGET,
+                target: ntdll::TRACING_TARGET,
                 ?result,
                 input.state_name = %self.state_name,
                 input.change_stamp = %last_seen_change_stamp,
@@ -177,7 +177,7 @@ where
             Ok(WnfSubscription::new(context, subscription))
         } else {
             debug!(
-                target: NTDLL_TARGET,
+                target: ntdll::TRACING_TARGET,
                 ?result,
                 input.state_name = %self.state_name,
                 input.change_stamp = %last_seen_change_stamp,
@@ -427,10 +427,10 @@ impl<F> WnfSubscription<'_, F> {
 
     fn try_unsubscribe(&mut self) -> io::Result<()> {
         if let Some(inner) = self.inner.take() {
-            let result = unsafe { ntdll_sys::RtlUnsubscribeWnfStateChangeNotification(inner.subscription) };
+            let result = unsafe { ntdll::RtlUnsubscribeWnfStateChangeNotification(inner.subscription) };
 
             debug!(
-                target: NTDLL_TARGET,
+                target: ntdll::TRACING_TARGET,
                 ?result,
                 input.subscription = inner.subscription,
                 "RtlUnsubscribeWnfStateChangeNotification",
