@@ -355,7 +355,7 @@ where
             let len = size / mem::size_of::<T::Bits>();
 
             if len > buffer.capacity() {
-                buffer.reserve(len - buffer.len());
+                buffer.reserve(len);
                 // At this point we have `buffer.capacity() >= len`
             } else {
                 break (len, meta);
@@ -424,10 +424,12 @@ mod tests {
 
     #[test]
     fn opaque_data_from_buffer() {
+        let data = MisalignedU16::default();
+        let (ptr, size) = data.as_buffer();
+
         // SAFETY:
-        // - `NonNull::dangling()` is valid for zero-size reads
-        // - a zero-size memory range is always initialized
-        let result = unsafe { WnfOpaqueData::from_buffer(NonNull::dangling().as_ptr(), 0) };
+        // - `ptr` and `size` come from a preallocated buffer
+        let result = unsafe { WnfOpaqueData::from_buffer(ptr, size) };
 
         assert!(result.is_ok());
     }
