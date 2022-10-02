@@ -40,6 +40,7 @@ mod state_name;
 mod subscribe;
 mod type_id;
 mod update;
+mod util;
 mod wait_async;
 mod wait_blocking;
 
@@ -60,3 +61,4 @@ mod wait_blocking;
 // TODO unit tests (Miri?)
 // TODO Safety comments
 // TODO documentation
+// TODO Wording: state vs. state name

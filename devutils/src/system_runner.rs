@@ -1,13 +1,15 @@
+use std::ffi::OsStr;
 use std::io::{stderr, stdout, ErrorKind};
+use std::os::windows::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{env, fs, io, iter, mem, process};
 
+use windows::core::PCWSTR;
 use windows::Win32::Foundation::{CloseHandle, WAIT_FAILED};
 use windows::Win32::System::Threading::{GetExitCodeProcess, WaitForSingleObject};
 use windows::Win32::UI::Shell::{ShellExecuteExW, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW};
 
-use crate::c_wide_string::CWideString;
 use crate::temp_file::TempFile;
 
 const ARG_PREFIX: &str = "__SYSTEM_RUNNER";
@@ -181,4 +183,20 @@ fn elevate_self(args: impl IntoIterator<Item = String>) -> io::Result<i32> {
     }
 
     Ok(exit_code as i32)
+}
+
+#[derive(Debug)]
+struct CWideString(Vec<u16>);
+
+impl CWideString {
+    fn new<S>(s: &S) -> Self
+    where
+        S: AsRef<OsStr> + ?Sized,
+    {
+        Self(OsStr::new(s).encode_wide().chain(Some(0)).collect())
+    }
+
+    fn as_pcwstr(&self) -> PCWSTR {
+        PCWSTR::from_raw(self.0.as_ptr())
+    }
 }
