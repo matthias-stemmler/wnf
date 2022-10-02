@@ -28,6 +28,7 @@ fn create_state_with_persistent_lifetime() {
     assert_eq!(state_name_descriptor.lifetime, WnfStateNameLifetime::Persistent);
     assert_eq!(state_name_descriptor.data_scope, WnfDataScope::Machine);
     assert!(!state_name_descriptor.is_permanent);
+    assert_eq!(state_name_descriptor.owner_tag, 0);
 }
 
 fn create_state_with_permanent_lifetime_and_non_persistent_data() {
@@ -43,6 +44,7 @@ fn create_state_with_permanent_lifetime_and_non_persistent_data() {
     assert_eq!(state_name_descriptor.lifetime, WnfStateNameLifetime::Permanent);
     assert_eq!(state_name_descriptor.data_scope, WnfDataScope::Machine);
     assert!(!state_name_descriptor.is_permanent);
+    assert_eq!(state_name_descriptor.owner_tag, 0);
 }
 
 fn create_state_with_permanent_lifetime_and_persistent_data() {
@@ -58,6 +60,7 @@ fn create_state_with_permanent_lifetime_and_persistent_data() {
     assert_eq!(state_name_descriptor.lifetime, WnfStateNameLifetime::Permanent);
     assert_eq!(state_name_descriptor.data_scope, WnfDataScope::Machine);
     assert!(state_name_descriptor.is_permanent);
+    assert_eq!(state_name_descriptor.owner_tag, 0);
 }
 
 fn create_state_with_process_scope() {
@@ -73,4 +76,5 @@ fn create_state_with_process_scope() {
     assert_eq!(state_name_descriptor.lifetime, WnfStateNameLifetime::Persistent);
     assert_eq!(state_name_descriptor.data_scope, WnfDataScope::Process);
     assert!(!state_name_descriptor.is_permanent);
+    assert_eq!(state_name_descriptor.owner_tag, 0);
 }

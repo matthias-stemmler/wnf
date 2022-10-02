@@ -408,7 +408,8 @@ fn not_exists() {
             lifetime: WnfStateNameLifetime::Temporary,
             data_scope: WnfDataScope::Machine,
             is_permanent: false,
-            unique_id: (1 << 53) - 1,
+            unique_id: 0,
+            owner_tag: 1, // this must be `0` for non-well-known state names, so such a state name cannot exist
         })
         .unwrap(),
     );

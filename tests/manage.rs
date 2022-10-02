@@ -12,6 +12,7 @@ fn owned_state_create_temporary() {
     assert_eq!(state_name_descriptor.lifetime, WnfStateNameLifetime::Temporary);
     assert_eq!(state_name_descriptor.data_scope, WnfDataScope::Machine);
     assert!(!state_name_descriptor.is_permanent);
+    assert_eq!(state_name_descriptor.owner_tag, 0);
 }
 
 #[test]
@@ -23,6 +24,7 @@ fn borrowed_state_create_temporary() {
     assert_eq!(state_name_descriptor.lifetime, WnfStateNameLifetime::Temporary);
     assert_eq!(state_name_descriptor.data_scope, WnfDataScope::Machine);
     assert!(!state_name_descriptor.is_permanent);
+    assert_eq!(state_name_descriptor.owner_tag, 0);
 
     state.delete().unwrap()
 }
@@ -43,7 +45,8 @@ create_state_with_scope_tests![
     create_state_with_session_scope: WnfDataScope::Session,
     create_state_with_user_scope: WnfDataScope::User,
     create_state_with_machine_scope: WnfDataScope::Machine,
-    // WnfDataScope::Process requires SeCreatePermanentPrivilege, see system.rs
+    // WnfDataScope::Process is not compatible with WnfStateNameLifetime::Temporary and hence requires
+    // SeCreatePermanentPrivilege, see system.rs
 ];
 
 fn create_state_with_scope_test(scope: WnfDataScope) {
@@ -59,6 +62,7 @@ fn create_state_with_scope_test(scope: WnfDataScope) {
     assert_eq!(state_name_descriptor.lifetime, WnfStateNameLifetime::Temporary);
     assert_eq!(state_name_descriptor.data_scope, scope);
     assert!(!state_name_descriptor.is_permanent);
+    assert_eq!(state_name_descriptor.owner_tag, 0);
 }
 
 #[test]

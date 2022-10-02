@@ -4,8 +4,8 @@ use std::os::windows::ffi::OsStringExt;
 
 use wnf::{BorrowedWnfState, WnfDataAccessor, WnfSeenChangeStamp, WnfStateListener, WnfStateName, WnfSubscription};
 
-const WNF_SHEL_DESKTOP_APPLICATION_STARTED: u64 = 0xd83063ea3be5075;
-const WNF_SHEL_DESKTOP_APPLICATION_TERMINATED: u64 = 0xd83063ea3be5875;
+const WNF_SHEL_DESKTOP_APPLICATION_STARTED: u64 = 0x0D83063EA3BE5075;
+const WNF_SHEL_DESKTOP_APPLICATION_TERMINATED: u64 = 0x0D83063EA3BE5875;
 
 fn main() {
     println!("Listening to shell application starts and terminations, press any key to exit");
