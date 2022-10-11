@@ -1,183 +1,377 @@
-use std::io::{stderr, stdout, ErrorKind};
-use std::path::{Path, PathBuf};
-use std::process::Command;
-use std::{env, fs, io, iter, mem, process};
+use std::ffi::{OsStr, OsString};
+use std::io::{ErrorKind, Read, Write};
+use std::process::{Child, Command, Stdio};
+use std::{env, io, process};
 
-use windows::Win32::Foundation::{CloseHandle, WAIT_FAILED};
-use windows::Win32::System::Threading::{GetExitCodeProcess, WaitForSingleObject};
-use windows::Win32::UI::Shell::{ShellExecuteExW, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW};
+use crate::admin_process;
+use crate::system_runner::stdio::Pipe;
 
-use crate::util::{CWideString, TempFile};
+pub fn ensure_running_as_system() -> io::Result<()> {
+    SystemRunner::from_args()?.ensure_running_as_system()
+}
 
-const ARG_PREFIX: &str = "__SYSTEM_RUNNER";
-const ARG_MARKER_ADMIN: &str = "ADMIN";
-const ARG_MARKER_SYSTEM: &str = "SYSTEM";
-const ARG_SEPARATOR: &str = "::";
+#[derive(Clone, Copy, Debug)]
+struct PipelineId(u32);
 
-#[derive(Debug)]
-enum SystemRunnerStage {
+impl PipelineId {
+    fn new() -> Self {
+        Self(process::id())
+    }
+
+    fn from_str(s: &str) -> Option<Self> {
+        s.parse().ok().map(Self)
+    }
+
+    fn to_pipe_name(self, key: &str) -> String {
+        format!("__system_runner__.{}.{}", self.0, key)
+    }
+}
+
+impl ToString for PipelineId {
+    fn to_string(&self) -> String {
+        self.0.to_string()
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+enum Stage {
     Initial,
-    RunningAsAdmin {
-        stdout_file_path: PathBuf,
-        stderr_file_path: PathBuf,
-    },
-    RunningAsSystem,
+    Admin,
+    System,
+    Payload,
 }
 
-#[derive(Debug)]
-pub struct SystemRunner {
-    args: Vec<String>,
-    stage: SystemRunnerStage,
+impl Stage {
+    fn id(self) -> &'static str {
+        match self {
+            Stage::Initial => "0",
+            Stage::Admin => "1",
+            Stage::System => "2",
+            Stage::Payload => "3",
+        }
+    }
+
+    fn from_id(id: &str) -> Option<Self> {
+        match id {
+            "0" => Some(Self::Initial),
+            "1" => Some(Self::Admin),
+            "2" => Some(Self::System),
+            "3" => Some(Self::Payload),
+            _ => None,
+        }
+    }
+
+    fn next(self) -> Option<Self> {
+        match self {
+            Stage::Initial => Some(Stage::Admin),
+            Stage::Admin => Some(Stage::System),
+            Stage::System => Some(Stage::Payload),
+            Stage::Payload => None,
+        }
+    }
 }
 
-impl SystemRunner {
-    pub fn from_args() -> io::Result<Self> {
-        let prefix = format!("{ARG_PREFIX}{ARG_SEPARATOR}");
-        let (system_runner_args, args) = env::args().partition(|arg| arg.starts_with(&prefix));
+#[derive(Clone, Copy, Debug)]
+struct State {
+    pipeline_id: PipelineId,
+    stage: Stage,
+}
 
-        Ok(Self {
-            args,
+impl State {
+    fn initial() -> Self {
+        Self {
+            pipeline_id: PipelineId::new(),
+            stage: Stage::Initial,
+        }
+    }
 
-            stage: {
-                let mut system_runner_args = system_runner_args.iter().filter_map(|arg| arg.strip_prefix(&prefix));
-
-                match system_runner_args.next() {
-                    None => SystemRunnerStage::Initial,
-
-                    Some(arg) if system_runner_args.next().is_none() => {
-                        let mut parts = arg.split(ARG_SEPARATOR);
-
-                        match (parts.next(), parts.next(), parts.next()) {
-                            (Some(ARG_MARKER_ADMIN), Some(stdout_file_path), Some(stderr_file_path)) => {
-                                SystemRunnerStage::RunningAsAdmin {
-                                    stdout_file_path: stdout_file_path.into(),
-                                    stderr_file_path: stderr_file_path.into(),
-                                }
-                            }
-
-                            (Some(ARG_MARKER_SYSTEM), None, None) => SystemRunnerStage::RunningAsSystem,
-
-                            _ => return Err(io::Error::new(ErrorKind::Other, "Invalid system runner argument")),
-                        }
-                    }
-
-                    _ => {
-                        return Err(io::Error::new(
-                            ErrorKind::Other,
-                            "Found more than one system runner argument",
-                        ))
-                    }
-                }
-            },
+    fn next(self) -> Option<Self> {
+        Some(Self {
+            stage: self.stage.next()?,
+            ..self
         })
     }
 
-    pub fn args(&self) -> &[String] {
-        &self.args
-    }
+    fn from_arg<S>(arg: S) -> Option<Self>
+    where
+        S: AsRef<OsStr>,
+    {
+        let mut parts = arg.as_ref().to_str()?.strip_prefix("__system_runner__.")?.split('.');
 
-    pub fn ensure_running_as_system(&self) -> io::Result<()> {
-        match &self.stage {
-            SystemRunnerStage::Initial => self.reexecute_as_admin()?,
-
-            SystemRunnerStage::RunningAsAdmin {
-                stdout_file_path,
-                stderr_file_path,
-            } => {
-                if let Err(err) = self.reexecute_as_system(stdout_file_path) {
-                    let _ = fs::write(stderr_file_path, format!("{err}\n"));
-                }
-            }
-
-            _ => (),
+        match (parts.next(), parts.next()) {
+            (Some(pipeline_id), Some(stage_id)) => Some(Self {
+                pipeline_id: PipelineId::from_str(pipeline_id)?,
+                stage: Stage::from_id(stage_id)?,
+            }),
+            _ => None,
         }
-
-        Ok(())
     }
 
-    fn reexecute_as_admin(&self) -> io::Result<()> {
-        let mut stdout_file = TempFile::new()?;
-        let mut stderr_file = TempFile::new()?;
-
-        let exit_code = elevate_self(
-            iter::once(format!(
-                "{ARG_PREFIX}{ARG_SEPARATOR}{ARG_MARKER_ADMIN}{ARG_SEPARATOR}{}{ARG_SEPARATOR}{}",
-                stdout_file.path().display(),
-                stderr_file.path().display()
-            ))
-            .chain(self.args.iter().skip(1).cloned()),
-        )?;
-
-        stdout_file.read_to(&mut stdout())?;
-        stderr_file.read_to(&mut stderr())?;
-
-        process::exit(exit_code);
-    }
-
-    fn reexecute_as_system(&self, stdout_file_path: &Path) -> io::Result<()> {
-        let output = Command::new(concat!(env!("CARGO_MANIFEST_DIR"), "/thirdparty/paexec.exe"))
-            .arg("-s")
-            .arg(&env::current_exe()?)
-            .arg(format!("{ARG_PREFIX}{ARG_SEPARATOR}{ARG_MARKER_SYSTEM}"))
-            .args(self.args.iter().skip(1))
-            .output()?;
-
-        fs::write(stdout_file_path, output.stdout)?;
-
-        let exit_code = output.status.code().unwrap();
-        if exit_code < 0 {
-            return Err(io::Error::new(ErrorKind::Other, "PAExec failed"));
-        }
-
-        process::exit(exit_code);
+    fn to_arg(self) -> String {
+        format!("__system_runner__.{}.{}", self.pipeline_id.to_string(), self.stage.id())
     }
 }
 
-fn elevate_self(args: impl IntoIterator<Item = String>) -> io::Result<i32> {
-    let verb = CWideString::new("runas");
-    let file = CWideString::new(&env::current_exe()?);
+#[derive(Debug)]
+pub(crate) struct SystemRunner {
+    args: Vec<OsString>,
+    state: State,
+}
 
-    let params = CWideString::new(
-        &args
-            .into_iter()
-            .map(|arg| format!(r#""{arg}""#))
-            .collect::<Vec<_>>()
-            .join(" "),
-    );
+impl SystemRunner {
+    pub(crate) fn from_args() -> io::Result<Self> {
+        let mut args_os = env::args_os().skip(1).peekable();
 
-    let mut shell_execute_info = SHELLEXECUTEINFOW {
-        cbSize: mem::size_of::<SHELLEXECUTEINFOW>() as u32,
-        fMask: SEE_MASK_NOCLOSEPROCESS,
-        lpVerb: verb.as_pcwstr(),
-        lpFile: file.as_pcwstr(),
-        lpParameters: params.as_pcwstr(),
-        ..Default::default()
-    };
+        match args_os.peek().and_then(State::from_arg) {
+            Some(state) => Ok(Self {
+                args: args_os.skip(1).collect(),
+                state,
+            }),
 
-    let result = unsafe { ShellExecuteExW(&mut shell_execute_info) };
-    if !result.as_bool() {
-        return Err(io::Error::last_os_error());
+            None => Ok(Self {
+                args: args_os.collect(),
+                state: State::initial(),
+            }),
+        }
     }
 
-    if shell_execute_info.hProcess.is_invalid() {
-        return Err(io::Error::new(ErrorKind::Other, "Failed to elevate"));
+    pub(crate) fn into_args(self) -> Vec<OsString> {
+        self.args
     }
 
-    let result = unsafe { WaitForSingleObject(shell_execute_info.hProcess, u32::MAX) };
-    if result == WAIT_FAILED.0 {
-        return Err(io::Error::last_os_error());
+    pub(crate) fn ensure_running_as_system(&self) -> io::Result<()> {
+        let payload_stdout = Pipe::for_name(self.state.pipeline_id.to_pipe_name("payload_stdout"));
+        let payload_stderr = Pipe::for_name(self.state.pipeline_id.to_pipe_name("payload_stderr"));
+        let payload_stdin = Pipe::for_name(self.state.pipeline_id.to_pipe_name("payload_stdin"));
+        let admin_stderr = Pipe::for_name(self.state.pipeline_id.to_pipe_name("admin_stderr"));
+        let system_stderr = Pipe::for_name(self.state.pipeline_id.to_pipe_name("system_stderr"));
+
+        match self.state.stage {
+            Stage::Initial => {
+                payload_stdout.create_reading_to(io::stdout())?;
+                payload_stderr.create_reading_to(io::stderr())?;
+                payload_stdin.create_writing_from(io::stdin())?;
+                admin_stderr.create_reading_to(io::stderr())?;
+                system_stderr.create_reading_to(io::stderr())?;
+
+                let exit_code = self.rerun_as_admin()?.wait()?;
+
+                process::exit(exit_code);
+            }
+
+            Stage::Admin => {
+                let mut stderr = admin_stderr.connect_writing()?;
+
+                match self.rerun_as_system().and_then(SystemProcess::wait) {
+                    Ok(exit_code) => process::exit(exit_code),
+                    Err(err) => {
+                        writeln!(stderr, "{err}").unwrap();
+                        process::exit(-1);
+                    }
+                }
+            }
+
+            Stage::System => {
+                let mut stderr = system_stderr.connect_writing()?;
+
+                let rerun = || {
+                    let stdout_client = payload_stdout.connect_writing()?;
+                    let stderr_client = payload_stderr.connect_writing()?;
+                    let stdin_client = payload_stdin.connect_reading()?;
+
+                    let mut process = self.rerun()?;
+
+                    stdout_client.redirect_from(process.stdout());
+                    stderr_client.redirect_from(process.stderr());
+                    stdin_client.redirect_to(process.stdin());
+
+                    process.wait()
+                };
+
+                match rerun() {
+                    Ok(exit_code) => process::exit(exit_code),
+                    Err(err) => {
+                        writeln!(stderr, "{err}").unwrap();
+                        process::exit(-1);
+                    }
+                }
+            }
+
+            Stage::Payload => Ok(()),
+        }
     }
 
-    let mut exit_code = 0u32;
-    let result = unsafe { GetExitCodeProcess(shell_execute_info.hProcess, &mut exit_code) };
-    if !result.as_bool() {
-        return Err(io::Error::last_os_error());
+    fn rerun_as_admin(&self) -> io::Result<AdminProcess> {
+        let child = admin_process::Command::new(&env::current_exe()?)
+            .arg(self.state.next().unwrap().to_arg())
+            .args(&self.args)
+            .spawn()?;
+
+        Ok(AdminProcess(child))
     }
 
-    let result = unsafe { CloseHandle(shell_execute_info.hProcess) };
-    if !result.as_bool() {
-        return Err(io::Error::last_os_error());
+    fn rerun_as_system(&self) -> io::Result<SystemProcess> {
+        let child = Command::new(concat!(env!("CARGO_MANIFEST_DIR"), "/thirdparty/paexec.exe"))
+            .arg("-s")
+            .arg(&env::current_exe()?)
+            .arg(self.state.next().unwrap().to_arg())
+            .args(&self.args)
+            .spawn()?;
+
+        Ok(SystemProcess(child))
     }
 
-    Ok(exit_code as i32)
+    fn rerun(&self) -> io::Result<PayloadProcess> {
+        let child = Command::new(&env::current_exe()?)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .arg(self.state.next().unwrap().to_arg())
+            .args(&self.args)
+            .spawn()?;
+
+        Ok(PayloadProcess(child))
+    }
+}
+
+#[derive(Debug)]
+struct AdminProcess(admin_process::Child);
+
+impl AdminProcess {
+    fn wait(self) -> io::Result<i32> {
+        self.0.wait()
+    }
+}
+
+#[derive(Debug)]
+struct SystemProcess(Child);
+
+impl SystemProcess {
+    fn wait(mut self) -> io::Result<i32> {
+        match self.0.wait()?.code().unwrap() {
+            exit_code if exit_code < 0 => Err(io::Error::new(
+                ErrorKind::Other,
+                format!("PAExec failed with exit code {exit_code}"),
+            )),
+            exit_code => Ok(exit_code),
+        }
+    }
+}
+
+#[derive(Debug)]
+struct PayloadProcess(Child);
+
+impl PayloadProcess {
+    fn wait(mut self) -> io::Result<i32> {
+        Ok(self.0.wait()?.code().unwrap())
+    }
+
+    fn stdin(&mut self) -> impl Write {
+        self.0.stdin.take().unwrap()
+    }
+
+    fn stdout(&mut self) -> impl Read {
+        self.0.stdout.take().unwrap()
+    }
+
+    fn stderr(&mut self) -> impl Read {
+        self.0.stderr.take().unwrap()
+    }
+}
+
+mod stdio {
+    use std::ffi::OsStr;
+    use std::io::{ErrorKind, Read, Write};
+    use std::{io, thread};
+
+    use interprocess::os::windows::named_pipe::{ByteReaderPipeStream, ByteWriterPipeStream, PipeListenerOptions};
+
+    #[derive(Debug)]
+    pub(super) struct Pipe {
+        name: String,
+    }
+
+    impl Pipe {
+        pub(super) fn for_name(name: String) -> Self {
+            Self { name }
+        }
+
+        pub(super) fn create_reading_to<W>(&self, mut writer: W) -> io::Result<()>
+        where
+            W: Write + Send + 'static,
+        {
+            let listener = PipeListenerOptions::new()
+                .name(OsStr::new(&self.name))
+                .create::<ByteReaderPipeStream>()?;
+
+            thread::spawn(move || copy(&mut listener.accept()?, &mut writer));
+            Ok(())
+        }
+
+        pub(super) fn create_writing_from<R>(&self, mut reader: R) -> io::Result<()>
+        where
+            R: Read + Send + 'static,
+        {
+            let listener = PipeListenerOptions::new()
+                .name(OsStr::new(&self.name))
+                .create::<ByteWriterPipeStream>()?;
+
+            thread::spawn(move || copy(&mut reader, &mut listener.accept()?));
+            Ok(())
+        }
+
+        pub(super) fn connect_reading(&self) -> io::Result<ReadClient> {
+            ByteReaderPipeStream::connect(&self.name).map(ReadClient)
+        }
+
+        pub(super) fn connect_writing(&self) -> io::Result<WriteClient> {
+            ByteWriterPipeStream::connect(&self.name).map(WriteClient)
+        }
+    }
+
+    #[derive(Debug)]
+    pub(super) struct ReadClient(ByteReaderPipeStream);
+
+    impl ReadClient {
+        pub(super) fn redirect_to<W>(mut self, mut writer: W)
+        where
+            W: Write + Send + 'static,
+        {
+            thread::spawn(move || copy(&mut self.0, &mut writer));
+        }
+    }
+
+    #[derive(Debug)]
+    pub(super) struct WriteClient(ByteWriterPipeStream);
+
+    impl WriteClient {
+        pub(super) fn redirect_from<R>(mut self, mut reader: R)
+        where
+            R: Read + Send + 'static,
+        {
+            thread::spawn(move || copy(&mut reader, &mut self.0));
+        }
+    }
+
+    impl Write for WriteClient {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            self.0.write(buf)
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            self.0.flush()
+        }
+    }
+
+    fn copy<R, W>(reader: &mut R, writer: &mut W) -> io::Result<()>
+    where
+        R: Read,
+        W: Write,
+    {
+        match io::copy(reader, writer) {
+            Ok(..) => Ok(()),
+            Err(err) if err.kind() == ErrorKind::BrokenPipe => Ok(()),
+            Err(err) => Err(err),
+        }
+    }
 }

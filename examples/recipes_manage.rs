@@ -1,20 +1,13 @@
-//! To run this, you need the
-//! [`SeCreatePermanentPrivilege`](https://docs.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/create-permanent-shared-objects)
-//! privilege
-//!
-//! Steps to achieve this:
-//! 1. Build the example using `cargo build --example recipes_manage`
-//! 2. Run a shell as Administrator, then from the package root directory, run
-//!    `devutils\thirdparty\paexec -s %cd%\target\debug\examples\recipes_manage.exe`
-//!
-//! This runs the example under the `LocalSystem` account, which always has the required privilege implicitly
-
 use std::io::{self, Read};
+
 use tracing::info;
 use tracing_subscriber::filter::LevelFilter;
+
 use wnf::{WnfCreatableStateLifetime, WnfDataScope, WnfStateCreation, WnfStateNameDescriptor};
 
 fn main() {
+    devutils::ensure_running_as_system().expect("Failed to run as system");
+
     tracing_subscriber::fmt().with_max_level(LevelFilter::DEBUG).init();
 
     let state = WnfStateCreation::new()

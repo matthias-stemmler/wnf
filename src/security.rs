@@ -1,12 +1,10 @@
 use std::borrow::Borrow;
-use std::ffi::OsStr;
 use std::ops::Deref;
-use std::os::windows::ffi::OsStrExt;
 use std::ptr::NonNull;
 use std::str::FromStr;
 use std::{io, ptr};
 
-use windows::core::PCWSTR;
+use crate::util::CWideString;
 use windows::Win32::Security::Authorization::{ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION};
 use windows::Win32::Security::PSECURITY_DESCRIPTOR;
 use windows::Win32::System::Memory::LocalFree;
@@ -39,10 +37,11 @@ impl FromStr for BoxedSecurityDescriptor {
 
     fn from_str(s: &str) -> io::Result<Self> {
         let mut psecurity_descriptor = PSECURITY_DESCRIPTOR::default();
+        let string_security_descriptor = CWideString::new(s);
 
         let result = unsafe {
             ConvertStringSecurityDescriptorToSecurityDescriptorW(
-                PCWSTR::from_raw(OsStr::new(s).encode_wide().chain(Some(0)).collect::<Vec<_>>().as_ptr()),
+                string_security_descriptor.as_pcwstr(),
                 SDDL_REVISION,
                 &mut psecurity_descriptor,
                 ptr::null_mut(),

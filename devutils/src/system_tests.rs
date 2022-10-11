@@ -63,5 +63,7 @@ pub fn test_main(tests: Vec<Trial>) -> ExitCode {
 fn run_tests_as_system(tests: Vec<Trial>) -> io::Result<()> {
     let system_runner = SystemRunner::from_args()?;
     system_runner.ensure_running_as_system()?;
-    libtest_mimic::run(&Arguments::from_iter(system_runner.args()), tests).exit()
+    let args = system_runner.into_args();
+
+    libtest_mimic::run(&Arguments::from_iter(args), tests).exit();
 }

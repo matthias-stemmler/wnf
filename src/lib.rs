@@ -45,6 +45,7 @@ mod wait_async;
 mod wait_blocking;
 
 // TODO check Debug impls
+// TODO check error messages for capitalization
 // TODO consts for well-known states?
 // TODO ZST tests
 // TODO check which types are Send/Sync
