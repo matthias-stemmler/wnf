@@ -178,26 +178,29 @@ where
     }
 }
 
-pub trait AsWnfState<T>
-where
-    T: ?Sized,
-{
-    fn as_wnf_state(&self) -> BorrowedWnfState<T>;
+pub trait AsWnfState {
+    type Data: ?Sized;
+
+    fn as_wnf_state(&self) -> BorrowedWnfState<Self::Data>;
 }
 
-impl<T> AsWnfState<T> for OwnedWnfState<T>
+impl<T> AsWnfState for OwnedWnfState<T>
 where
     T: ?Sized,
 {
+    type Data = T;
+
     fn as_wnf_state(&self) -> BorrowedWnfState<T> {
         BorrowedWnfState::from_raw(self.raw)
     }
 }
 
-impl<T> AsWnfState<T> for BorrowedWnfState<'_, T>
+impl<T> AsWnfState for BorrowedWnfState<'_, T>
 where
     T: ?Sized,
 {
+    type Data = T;
+
     fn as_wnf_state(&self) -> BorrowedWnfState<T> {
         *self
     }
