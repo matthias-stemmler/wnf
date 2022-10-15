@@ -1,9 +1,11 @@
+//! Utilities for running integration tests under the local system account
+
 pub extern crate libtest_mimic;
 
 use std::io;
 use std::process::ExitCode;
 
-use libtest_mimic::{Arguments, Trial};
+use libtest_mimic::{Arguments, Conclusion, Trial};
 
 use crate::system_runner::SystemRunner;
 
@@ -41,7 +43,7 @@ pub fn test_main(tests: Vec<Trial>) -> ExitCode {
         .as_deref()
     {
         Some("true") => match run_tests_as_system(tests) {
-            Ok(..) => ExitCode::SUCCESS,
+            Ok(conclusion) => conclusion.exit(),
             Err(err) => {
                 eprintln!("Failed to run tests as system: {err}");
                 ExitCode::FAILURE
@@ -50,20 +52,21 @@ pub fn test_main(tests: Vec<Trial>) -> ExitCode {
 
         _ => {
             println!("System tests are disabled, set WNF_SYSTEM_TESTS_ENABLED=true to enable");
-
-            libtest_mimic::run(
-                &Arguments::from_args(),
-                tests.into_iter().map(|test| test.with_ignored_flag(true)).collect(),
-            )
+            ignore_tests(tests).exit()
         }
-        .exit(),
     }
 }
 
-fn run_tests_as_system(tests: Vec<Trial>) -> io::Result<()> {
+fn run_tests_as_system(tests: Vec<Trial>) -> io::Result<Conclusion> {
     let system_runner = SystemRunner::from_args()?;
     system_runner.ensure_running_as_system()?;
     let args = system_runner.into_args();
+    Ok(libtest_mimic::run(&Arguments::from_iter(args), tests))
+}
 
-    libtest_mimic::run(&Arguments::from_iter(args), tests).exit();
+fn ignore_tests(tests: Vec<Trial>) -> Conclusion {
+    libtest_mimic::run(
+        &Arguments::from_args(),
+        tests.into_iter().map(|test| test.with_ignored_flag(true)).collect(),
+    )
 }

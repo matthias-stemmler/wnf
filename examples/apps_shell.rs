@@ -25,7 +25,7 @@ fn subscribe<F>(state_name: impl Into<WnfStateName>, listener: F) -> WnfSubscrip
 where
     F: FnMut(u32, &str) + Send + 'static,
 {
-    BorrowedWnfState::from_state_name(state_name)
+    BorrowedWnfState::from_state_name(state_name.into())
         .subscribe(ApplicationListener(listener))
         .expect("Failed to subscribe to WNF state changes")
 }

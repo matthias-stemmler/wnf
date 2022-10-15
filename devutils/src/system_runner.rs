@@ -1,3 +1,26 @@
+//! Utilities for rerunning the current program under the local system account
+//!
+//! This is useful both in integration tests (see the [`system_tests`] module) and in examples.
+//!
+//! It is achieved by running the current program multiple times in "stages":
+//! - "Initial" stage: The original invocation of the program
+//! - "Admin" stage: Running as Administrator (through the Windows API function `ShellExecuteExW` with the `runas` verb)
+//! - "System" stage: Running under the local system account through the `PAExec` utility program
+//! - "Payload" stage: Running under the local system account again in order to capture standard IO (see below)
+//!
+//! The information which stage the current process is in is passed via the first command line argument. Other command
+//! line arguments are passed through verbatim. Each process waits for the next one to exit and passes on its exit code
+//! to the previous one.
+//!
+//! Standard IO (stdin, stdout and stderr) cannot be captured at all when running a process as Administrator, neither
+//! can they be captured in all cases by PAExec due to a bug. Therefore, we set up named pipes for the following
+//! purposes:
+//! - forwarding stdin of the Initial stage to stdin of the Payload stage
+//! - forwarding stdout of the Payload stage to stdout of the Initial stage
+//! - forwarding stderr of the Payload stage to stderr of the Initial stage
+//! - forwarding stderr of the Admin stage to stderr of the Initial stage (in case we fail in the Admin stage)
+//! - forwarding stderr of the System stage to stderr of the Initial stage (in case we fail in the System stage)
+
 use std::ffi::{OsStr, OsString};
 use std::io::{ErrorKind, Read, Write};
 use std::process::{Child, Command, Stdio};
@@ -5,6 +28,8 @@ use std::{env, io, process};
 
 use crate::admin_process;
 use crate::system_runner::stdio::Pipe;
+
+const INTERNAL_ERROR_CODE: i32 = i32::MIN;
 
 pub fn ensure_running_as_system() -> io::Result<()> {
     SystemRunner::from_args()?.ensure_running_as_system()
@@ -154,9 +179,10 @@ impl SystemRunner {
                 admin_stderr.create_reading_to(io::stderr())?;
                 system_stderr.create_reading_to(io::stderr())?;
 
-                let exit_code = self.rerun_as_admin()?.wait()?;
-
-                process::exit(exit_code);
+                match self.rerun_as_admin()?.wait()? {
+                    INTERNAL_ERROR_CODE => Err(io::Error::new(ErrorKind::Other, "rerunning as system failed")),
+                    exit_code => process::exit(exit_code),
+                }
             }
 
             Stage::Admin => {
@@ -166,7 +192,7 @@ impl SystemRunner {
                     Ok(exit_code) => process::exit(exit_code),
                     Err(err) => {
                         writeln!(stderr, "{err}").unwrap();
-                        process::exit(-1);
+                        process::exit(INTERNAL_ERROR_CODE);
                     }
                 }
             }
@@ -192,7 +218,7 @@ impl SystemRunner {
                     Ok(exit_code) => process::exit(exit_code),
                     Err(err) => {
                         writeln!(stderr, "{err}").unwrap();
-                        process::exit(-1);
+                        process::exit(INTERNAL_ERROR_CODE);
                     }
                 }
             }
@@ -263,7 +289,7 @@ struct PayloadProcess(Child);
 
 impl PayloadProcess {
     fn wait(mut self) -> io::Result<i32> {
-        Ok(self.0.wait()?.code().unwrap())
+        self.0.wait().map(|status| status.code().unwrap())
     }
 
     fn stdin(&mut self) -> impl Write {

@@ -7,8 +7,8 @@ use std::time::Duration;
 use std::{fmt, thread};
 
 use wnf::{
-    AsWnfState, BorrowedWnfState, OwnedWnfState, WnfChangeStamp, WnfDataAccessor, WnfDataScope, WnfStateName,
-    WnfStateNameDescriptor, WnfStateNameLifetime,
+    AsWnfState, BorrowedWnfState, OwnedWnfState, WnfChangeStamp, WnfDataAccessor, WnfDataScope, WnfOpaqueData,
+    WnfStateName, WnfStateNameDescriptor, WnfStateNameLifetime,
 };
 
 #[test]
@@ -229,11 +229,33 @@ fn replace_boxed() {
 #[test]
 fn owned_wnf_state_drop_deletes_state() {
     let state = OwnedWnfState::<()>::create_temporary().unwrap();
+    assert!(state.exists().unwrap());
+
     let state_name = state.state_name();
     drop(state);
 
     let state = BorrowedWnfState::<()>::from_state_name(state_name);
     assert!(!state.exists().unwrap());
+}
+
+#[test]
+fn owned_wnf_state_leak_does_not_delete_state() {
+    let state = {
+        let owned_state = OwnedWnfState::<()>::create_temporary().unwrap();
+        owned_state.leak()
+    };
+    assert!(state.exists().unwrap());
+
+    state.to_owned_wnf_state();
+}
+
+#[test]
+fn owned_wnf_state_cast_does_not_delete_state() {
+    let state = OwnedWnfState::<()>::create_temporary().unwrap();
+    assert!(state.exists().unwrap());
+
+    let state = state.cast::<WnfOpaqueData>();
+    assert!(state.exists().unwrap());
 }
 
 #[test]
@@ -249,6 +271,8 @@ fn owned_wnf_state_delete() {
 #[test]
 fn borrowed_wnf_state_delete() {
     let state = OwnedWnfState::<()>::create_temporary().unwrap().leak();
+    assert!(state.exists().unwrap());
+
     let state_name = state.state_name();
     state.delete().unwrap();
 

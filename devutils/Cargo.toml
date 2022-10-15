@@ -7,4 +7,12 @@ publish = false
 [dependencies]
 interprocess = "1.1.1"
 libtest-mimic = "0.5.2"
-windows = { version = "0.39.0", features = ["Win32_Foundation", "Win32_System_Registry", "Win32_UI_Shell"] }
+
+[dependencies.windows]
+version = "0.39.0"
+features = [
+    "Win32_Foundation",
+    "Win32_System_Registry",
+    "Win32_System_Threading",
+    "Win32_UI_Shell",
+]

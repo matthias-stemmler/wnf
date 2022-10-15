@@ -86,8 +86,13 @@ pub(crate) struct TypeId(Option<windows::core::GUID>);
 
 impl TypeId {
     /// Creates a [`TypeId`] containing no GUID for use in an untyped WNF state
-    pub(crate) fn none() -> Self {
+    pub(crate) const fn none() -> Self {
         Self(None)
+    }
+
+    /// Creates a [`TypeId`] containing the given [`GUID`]
+    pub(crate) const fn from_guid(guid: GUID) -> Self {
+        Self(Some(guid.0))
     }
 
     /// Returns a raw pointer to the underlying GUID, or a null pointer if there is none
