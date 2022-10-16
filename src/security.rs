@@ -4,10 +4,11 @@ use std::ptr::NonNull;
 use std::str::FromStr;
 use std::{io, ptr};
 
-use crate::util::CWideString;
 use windows::Win32::Security::Authorization::{ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION};
 use windows::Win32::Security::PSECURITY_DESCRIPTOR;
 use windows::Win32::System::Memory::LocalFree;
+
+use crate::util::CWideString;
 
 #[derive(Debug)]
 #[repr(C)]
@@ -61,8 +62,7 @@ impl FromStr for BoxedSecurityDescriptor {
 
 impl Drop for BoxedSecurityDescriptor {
     fn drop(&mut self) {
-        let result = unsafe { LocalFree(self.ptr.as_ptr() as isize) };
-        debug_assert_eq!(result, 0);
+        unsafe { LocalFree(self.ptr.as_ptr() as isize) };
     }
 }
 
