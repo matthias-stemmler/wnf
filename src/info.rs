@@ -5,7 +5,7 @@ use std::{io, mem, ptr};
 
 use tracing::debug;
 
-use crate::ntdll;
+use crate::ntapi;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 
 /// Different classes of information on a WNF state
@@ -95,7 +95,7 @@ where
         //   reference
         // - The number in the sixth argument is `4` because it equals `mem::size_of::<u32>()`
         let result = unsafe {
-            ntdll::ZwQueryWnfStateNameInformation(
+            ntapi::NtQueryWnfStateNameInformation(
                 &self.state_name.opaque_value(),
                 name_info_class,
                 ptr::null(),
@@ -106,26 +106,26 @@ where
 
         if result.is_ok() {
             debug!(
-                 target: ntdll::TRACING_TARGET,
+                 target: ntapi::TRACING_TARGET,
                  ?result,
                  input.state_name = %self.state_name,
                  input.name_info_class = name_info_class,
                  output.buffer = buffer,
-                 "ZwQueryWnfStateNameInformation",
+                 "NtQueryWnfStateNameInformation",
             );
 
             Ok(match buffer {
                 0 => false,
                 1 => true,
-                _ => unreachable!("ZwQueryWnfStateNameInformation did not produce valid boolean"),
+                _ => unreachable!("NtQueryWnfStateNameInformation did not produce valid boolean"),
             })
         } else {
             debug!(
-                 target: ntdll::TRACING_TARGET,
+                 target: ntapi::TRACING_TARGET,
                  ?result,
                  input.state_name = %self.state_name,
                  input.name_info_class = name_info_class,
-                 "ZwQueryWnfStateNameInformation",
+                 "NtQueryWnfStateNameInformation",
             );
 
             Err(io::Error::from_raw_os_error(result.0))

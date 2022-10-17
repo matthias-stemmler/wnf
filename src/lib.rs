@@ -28,7 +28,7 @@ mod bytes;
 mod data;
 mod info;
 mod manage;
-mod ntdll;
+mod ntapi;
 mod predicate;
 mod privilege;
 mod query;
@@ -63,3 +63,4 @@ mod wait_blocking;
 // TODO Safety comments
 // TODO documentation
 // TODO Wording: state vs. state name
+// TODO Compare with ntapi crate

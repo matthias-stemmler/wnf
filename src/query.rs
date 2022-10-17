@@ -5,7 +5,7 @@ use tracing::debug;
 use windows::Win32::Foundation::STATUS_BUFFER_TOO_SMALL;
 
 use crate::data::{WnfChangeStamp, WnfOpaqueData, WnfStampedData};
-use crate::ntdll;
+use crate::ntapi;
 use crate::read::WnfRead;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
 use crate::state_name::WnfStateName;
@@ -134,7 +134,7 @@ unsafe fn query(
     let mut change_stamp = WnfChangeStamp::default();
     let mut size = buffer_size as u32;
 
-    let result = ntdll::ZwQueryWnfStateData(
+    let result = ntapi::NtQueryWnfStateData(
         &state_name.opaque_value(),
         type_id.as_ptr(),
         ptr::null(),
@@ -145,23 +145,23 @@ unsafe fn query(
 
     if result.is_err() && (result != STATUS_BUFFER_TOO_SMALL || size as usize <= buffer_size) {
         debug!(
-             target: ntdll::TRACING_TARGET,
+             target: ntapi::TRACING_TARGET,
              ?result,
              input.state_name = %state_name,
              input.type_id = %type_id,
-             "ZwQueryWnfStateData",
+             "NtQueryWnfStateData",
         );
 
         Err(io::Error::from_raw_os_error(result.0))
     } else {
         debug!(
-            target: ntdll::TRACING_TARGET,
+            target: ntapi::TRACING_TARGET,
             ?result,
             input.state_name = %state_name,
             input.type_id = %type_id,
             output.change_stamp = %change_stamp,
             output.buffer_size = size,
-            "ZwQueryWnfStateData",
+            "NtQueryWnfStateData",
         );
 
         Ok((size as usize, change_stamp))

@@ -1,18 +1,18 @@
-//! Raw bindings to the WNF API in `ntdll.dll`
+//! Raw bindings to some of the WNF functions of the Windows Native API
 //!
 //! *Note*: This is an undocumented part of the Windows API. The information given in the function documentations in
 //! this module has been collected from various sources and via reverse engineering. There is no guarantee that it is
 //! correct. This applies in particular to the safety conditions.
 //!
 //! Functions whose names start with `Rtl` (standing for "runtime library") provide higher-level abstractions while
-//! functions whose names start with `Zw` (which is just an arbitrary combination of letters) are more low level. We use
-//! a combination of both, choosing whichever function is more suitable for the task at hand.
+//! functions whose names start with `Nt` are more low level. We use a combination of both, choosing whichever function
+//! is more suitable for the task at hand.
 
 use std::ffi::c_void;
 
 use windows::{core::GUID, Win32::Foundation::NTSTATUS};
 
-pub(crate) const TRACING_TARGET: &str = "wnf::ntdll";
+pub(crate) const TRACING_TARGET: &str = "wnf::ntapi";
 
 pub(crate) type WnfUserCallback = extern "system" fn(
     state_name: u64,
@@ -38,7 +38,7 @@ extern "system" {
 
     pub(crate) fn RtlUnsubscribeWnfStateChangeNotification(subscription: u64) -> NTSTATUS;
 
-    pub(crate) fn ZwCreateWnfStateName(
+    pub(crate) fn NtCreateWnfStateName(
         state_name: *mut u64,
         name_lifetime: u32,
         data_scope: u32,
@@ -48,9 +48,9 @@ extern "system" {
         security_descriptor: *mut c_void,
     ) -> NTSTATUS;
 
-    pub(crate) fn ZwDeleteWnfStateName(state_name: *const u64) -> NTSTATUS;
+    pub(crate) fn NtDeleteWnfStateName(state_name: *const u64) -> NTSTATUS;
 
-    pub(crate) fn ZwQueryWnfStateData(
+    pub(crate) fn NtQueryWnfStateData(
         state_name: *const u64,
         type_id: *const GUID,
         explicit_scope: *const c_void,
@@ -82,7 +82,7 @@ extern "system" {
     /// - `state_name` must point to a valid `u64`
     /// - `buffer` must be valid for writes of `u32`
     /// - `buffer_size` must be `4`
-    pub(crate) fn ZwQueryWnfStateNameInformation(
+    pub(crate) fn NtQueryWnfStateNameInformation(
         state_name: *const u64,
         name_info_class: u32,
         explicit_scope: *const c_void,
@@ -90,7 +90,7 @@ extern "system" {
         buffer_size: u32,
     ) -> NTSTATUS;
 
-    pub(crate) fn ZwUpdateWnfStateData(
+    pub(crate) fn NtUpdateWnfStateData(
         state_name: *const u64,
         buffer: *const c_void,
         buffer_size: u32,

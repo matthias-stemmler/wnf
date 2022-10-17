@@ -11,11 +11,7 @@ use crate::system_runner::SystemRunner;
 
 #[macro_export]
 macro_rules! system_tests {
-    ($($test_name:ident),*) => {
-        $crate::system_tests![$($test_name,)*];
-    };
-
-    ($($test_name:ident,)*) => {
+    ($($test_name:ident),*$(,)?) => {
         fn main() -> ::std::process::ExitCode {
             $(
                 fn $test_name() -> ::std::result::Result<(), $crate::system_tests::libtest_mimic::Failed> {
