@@ -6,32 +6,7 @@ use std::sync::{mpsc, Arc};
 use std::time::Duration;
 use std::{fmt, thread};
 
-use wnf::{
-    AsWnfState, BorrowedWnfState, OwnedWnfState, WnfChangeStamp, WnfDataAccessor, WnfDataScope, WnfOpaqueData,
-    WnfStateName, WnfStateNameDescriptor, WnfStateNameLifetime,
-};
-
-#[test]
-fn set() {
-    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
-
-    let value = 0x12345678;
-    state.set(&value).unwrap();
-
-    let read_value = state.get().unwrap();
-    assert_eq!(read_value, value);
-}
-
-#[test]
-fn set_slice() {
-    let state = OwnedWnfState::<[u32]>::create_temporary().unwrap();
-
-    let values = [0x12345678, 0xABCDEF01, 0x23456789];
-    state.set(&values).unwrap();
-
-    let read_slice = state.get_boxed().unwrap();
-    assert_eq!(*read_slice, values);
-}
+use wnf::{AsWnfState, BorrowedWnfState, OwnedWnfState, WnfChangeStamp, WnfDataAccessor};
 
 #[test]
 fn get_by_value() {
@@ -227,38 +202,6 @@ fn replace_boxed() {
 }
 
 #[test]
-fn owned_wnf_state_drop_deletes_state() {
-    let state = OwnedWnfState::<()>::create_temporary().unwrap();
-    assert!(state.exists().unwrap());
-
-    let state_name = state.state_name();
-    drop(state);
-
-    let state = BorrowedWnfState::<()>::from_state_name(state_name);
-    assert!(!state.exists().unwrap());
-}
-
-#[test]
-fn owned_wnf_state_leak_does_not_delete_state() {
-    let state = {
-        let owned_state = OwnedWnfState::<()>::create_temporary().unwrap();
-        owned_state.leak()
-    };
-    assert!(state.exists().unwrap());
-
-    state.to_owned_wnf_state();
-}
-
-#[test]
-fn owned_wnf_state_cast_does_not_delete_state() {
-    let state = OwnedWnfState::<()>::create_temporary().unwrap();
-    assert!(state.exists().unwrap());
-
-    let state = state.cast::<WnfOpaqueData>();
-    assert!(state.exists().unwrap());
-}
-
-#[test]
 fn owned_wnf_state_delete() {
     let state = OwnedWnfState::<()>::create_temporary().unwrap();
     let state_name = state.state_name();
@@ -413,68 +356,6 @@ fn subscribe_slice() {
         rx.recv_timeout(Duration::from_secs(1)),
         Err(RecvTimeoutError::Disconnected)
     );
-}
-
-#[test]
-fn exists() {
-    let state = OwnedWnfState::<()>::create_temporary().unwrap();
-
-    let exists = state.exists().unwrap();
-
-    assert!(exists);
-}
-
-#[test]
-fn not_exists() {
-    let state = BorrowedWnfState::<()>::from_state_name(
-        WnfStateName::try_from(WnfStateNameDescriptor {
-            version: 1,
-            lifetime: WnfStateNameLifetime::Temporary,
-            data_scope: WnfDataScope::Machine,
-            is_permanent: false,
-            unique_id: 0,
-            owner_tag: 1, // this must be `0` for non-well-known state names, so such a state name cannot exist
-        })
-        .unwrap(),
-    );
-
-    let exists = state.exists().unwrap();
-
-    assert!(!exists);
-}
-
-#[test]
-fn subscribers_present() {
-    let state = OwnedWnfState::<()>::create_temporary().unwrap();
-    assert!(!state.subscribers_present().unwrap());
-
-    let subscription = state.subscribe(|_: WnfDataAccessor<_>| {}).unwrap();
-    assert!(state.subscribers_present().unwrap());
-
-    subscription.unsubscribe().unwrap();
-    assert!(!state.subscribers_present().unwrap());
-}
-
-#[test]
-fn is_quiescent() {
-    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
-    let (tx, rx) = mpsc::channel();
-
-    let subscription = state
-        .subscribe(move |_: WnfDataAccessor<_>| {
-            let _ = rx.recv();
-        })
-        .unwrap();
-
-    assert!(state.is_quiescent().unwrap());
-
-    state.set(&42).unwrap();
-    assert!(!state.is_quiescent().unwrap());
-
-    tx.send(()).unwrap();
-    subscription.unsubscribe().unwrap();
-
-    assert!(state.is_quiescent().unwrap());
 }
 
 #[derive(Debug, Eq, Hash, PartialEq)]

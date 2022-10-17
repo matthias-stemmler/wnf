@@ -90,6 +90,32 @@ extern "system" {
         buffer_size: u32,
     ) -> NTSTATUS;
 
+    /// Updates the data of a WNF state
+    ///
+    /// # Arguments
+    /// - `state_name`: Pointer to the WNF state name
+    /// - `buffer`: Pointer to a buffer the data will be read from
+    /// - `buffer_size`: Size of the buffer in bytes
+    /// - `type_id`: Pointer to a GUID used as the type ID, can be a null pointer
+    /// - `explicit_scope`: Irrelevant, can be a null pointer
+    /// - `matching_change_stamp`: The expected current change stamp of the state
+    ///   (only relevant if `check_stamp` is `1`)
+    /// - `check_stamp`:
+    ///   `1` if the update should only be performed if the current change stamp equals `matching_change_stamp`,
+    ///   `0` if the update should be performed regardless of the current change stamp
+    ///
+    /// # Returns
+    /// An `NTSTATUS` value that is `>= 0` on success and `< 0` on failure.
+    ///
+    /// In particular, returns [`STATUS_UNSUCCESSFUL`](windows::Win32::Foundation::STATUS_UNSUCCESSFUL) if the update
+    /// was not performed because `check_stamp` was `1` and the current change stamp was different from
+    /// `matching_change_stamp`.
+    ///
+    /// # Safety
+    /// - `state_name` must point to a valid `u64`
+    /// - `buffer` must be valid for reads of at least size `buffer_size`
+    /// - The memory range of size `buffer_size` starting at `buffer` must be initialized
+    /// - `type_id` must either be a null pointer or point to a valid [`GUID`]
     pub(crate) fn NtUpdateWnfStateData(
         state_name: *const u64,
         buffer: *const c_void,

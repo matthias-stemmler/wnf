@@ -97,8 +97,8 @@ impl TypeId {
 
     /// Returns a raw pointer to the underlying GUID, or a null pointer if there is none
     ///
-    /// It is guaranteed that the returned pointer is either null or points to a valid GUID as long the instance of
-    /// [`TypeId`] is live. The returned pointer can be passed to WNF APIs expecting an optional type id.
+    /// It is guaranteed that the returned pointer is either a null pointer or points to a valid GUID as long the
+    /// instance of [`TypeId`] is live. The returned pointer can be passed to WNF APIs expecting an optional type id.
     pub(crate) fn as_ptr(&self) -> *const windows::core::GUID {
         match self.0.as_ref() {
             Some(guid) => guid,
