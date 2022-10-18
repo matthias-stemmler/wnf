@@ -181,7 +181,7 @@ mod tests {
             $(
                 $name:ident: [$($input:literal),*] => [$($expected:literal),*],
             )*
-        )=> {
+        ) => {
             $(
                 #[test]
                 fn $name() {
