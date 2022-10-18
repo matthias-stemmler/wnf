@@ -1,5 +1,7 @@
 //! Utilities for running integration tests under the local system account
 
+#![deny(unsafe_code)]
+
 pub extern crate libtest_mimic;
 
 use std::io;

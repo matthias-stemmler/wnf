@@ -21,6 +21,8 @@
 //! - forwarding stderr of the Admin stage to stderr of the Initial stage (in case we fail in the Admin stage)
 //! - forwarding stderr of the System stage to stderr of the Initial stage (in case we fail in the System stage)
 
+#![deny(unsafe_code)]
+
 use std::ffi::{OsStr, OsString};
 use std::io::{ErrorKind, Read, Write};
 use std::process::{Child, Command, Stdio};
