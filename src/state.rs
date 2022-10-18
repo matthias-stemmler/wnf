@@ -2,6 +2,8 @@
 //!
 //! Additional `impl` blocks for these types can be found in other modules of this crate
 
+#![deny(unsafe_code)]
+
 use std::fmt;
 use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};

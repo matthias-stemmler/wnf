@@ -1,3 +1,5 @@
+#![deny(unsafe_code)]
+
 use std::borrow::Borrow;
 use std::io;
 use std::sync::{Arc, Condvar, Mutex};

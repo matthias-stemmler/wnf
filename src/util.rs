@@ -1,5 +1,7 @@
 //! Utility types
 
+#![deny(unsafe_code)]
+
 use std::ffi::OsStr;
 use std::os::windows::ffi::OsStrExt;
 
@@ -29,6 +31,8 @@ impl CWideString {
 
 #[cfg(test)]
 mod tests {
+    #![allow(unsafe_code)]
+
     use std::ffi::OsString;
     use std::os::windows::ffi::OsStringExt;
     use std::slice;

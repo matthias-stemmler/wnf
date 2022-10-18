@@ -3,6 +3,9 @@
 #![deny(improper_ctypes_definitions)]
 #![deny(missing_debug_implementations)]
 
+#[cfg(not(windows))]
+compile_error!("The `wnf` crate supports Windows only");
+
 #[macro_use]
 extern crate num_derive;
 

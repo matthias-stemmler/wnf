@@ -1,5 +1,7 @@
 //! Dealing with WNF state names and their properties
 
+#![deny(unsafe_code)]
+
 use std::fmt;
 use std::fmt::{Display, Formatter};
 

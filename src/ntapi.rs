@@ -8,6 +8,8 @@
 //! functions whose names start with `Nt` are more low level. We use a combination of both, choosing whichever function
 //! is more suitable for the task at hand.
 
+#![deny(unsafe_code)]
+
 use std::ffi::c_void;
 
 use windows::{core::GUID, Win32::Foundation::NTSTATUS};

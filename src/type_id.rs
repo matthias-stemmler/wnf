@@ -1,5 +1,7 @@
 //! Dealing with type IDs of WNF states
 
+#![deny(unsafe_code)]
+
 use std::fmt::{Debug, Display, Formatter};
 use std::{fmt, io, ptr};
 
@@ -121,6 +123,8 @@ impl Display for TypeId {
 
 #[cfg(test)]
 mod tests {
+    #![allow(unsafe_code)]
+
     use super::*;
 
     #[test]

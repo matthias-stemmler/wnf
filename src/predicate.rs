@@ -1,5 +1,7 @@
 //! Types dealing with predicates on WNF state data
 
+#![deny(unsafe_code)]
+
 /// A stage at which a predicate is evaluated
 ///
 /// When evaluating a predicate on WNF state data, the predicate can be evaluated both initially, i.e. before
