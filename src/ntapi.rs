@@ -52,6 +52,31 @@ extern "system" {
 
     pub(crate) fn NtDeleteWnfStateName(state_name: *const u64) -> NTSTATUS;
 
+    /// Queries the data of a WNF state
+    ///
+    /// # Arguments
+    /// - [in] `state_name`: Pointer to the WNF state name
+    /// - [in] `type_id`: Pointer to a GUID used as the type ID, can be a null pointer
+    /// - [in] `explicit_scope`: Irrelevant, can be a null pointer
+    /// - [out] `change_stamp`: Pointer to a `u32` buffer the change stamp will be written to
+    /// - [out] `buffer`: Pointer to a buffer the data will be written to
+    /// - [in, out] `buffer_size`: Pointer to a `u32` buffer containing the size of the buffer pointed to by `buffer` in
+    ///   bytes and receiving the actual required buffer size in bytes
+    ///
+    /// # Returns
+    /// An `NTSTATUS` value that is `>= 0` on success and `< 0` on failure.
+    ///
+    /// # Safety
+    /// - `state_name` must point to a valid `u64`
+    /// - `type_id` must either be a null pointer or point to a valid [`GUID`]
+    /// - `change_stamp` must be valid for writes of `u32`
+    /// - `buffer` must be valid for writes of at least size `*buffer_size`
+    /// - `buffer_size` must point to a valid `u32`
+    /// - `buffer_size` must be valid for writes of `u32`
+    /// 
+    /// # Assumption
+    /// If this function succeeds, then the memory range of size `*buffer_size` (read after the call) starting at
+    /// `buffer` is initialized
     pub(crate) fn NtQueryWnfStateData(
         state_name: *const u64,
         type_id: *const GUID,
@@ -67,15 +92,15 @@ extern "system" {
     /// means `true`.
     ///
     /// # Arguments
-    /// - `state_name`: Pointer to the WNF state name
-    /// - `name_info_class`: Tag of the class of information to obtain
+    /// - [in] `state_name`: Pointer to the WNF state name
+    /// - [in] `name_info_class`: Tag of the class of information to obtain
     ///   At least the following values are valid:
     ///   - `0`: "State name exist"
     ///   - `1`: "Subscribers present"
     ///   - `2`: "Is quiescent"
-    /// - `explicit_scope`: Irrelevant, can be a null pointer
-    /// - `buffer`: Pointer to a buffer the information will be written to, usually having the layout of a `u32`
-    /// - `buffer_size`: Size of the buffer in bytes, usually `4`
+    /// - [in] `explicit_scope`: Irrelevant, can be a null pointer
+    /// - [out] `buffer`: Pointer to a `u32` buffer the information will be written to
+    /// - [in] `buffer_size`: Size of the buffer in bytes, must be `4`
     ///
     /// # Returns
     /// An `NTSTATUS` value that is `>= 0` on success and `< 0` on failure.
@@ -95,14 +120,14 @@ extern "system" {
     /// Updates the data of a WNF state
     ///
     /// # Arguments
-    /// - `state_name`: Pointer to the WNF state name
-    /// - `buffer`: Pointer to a buffer the data will be read from
-    /// - `buffer_size`: Size of the buffer in bytes
-    /// - `type_id`: Pointer to a GUID used as the type ID, can be a null pointer
-    /// - `explicit_scope`: Irrelevant, can be a null pointer
-    /// - `matching_change_stamp`: The expected current change stamp of the state
+    /// - [in] `state_name`: Pointer to the WNF state name
+    /// - [in] `buffer`: Pointer to a buffer the data will be read from
+    /// - [in] `buffer_size`: Size of the buffer in bytes
+    /// - [in] `type_id`: Pointer to a GUID used as the type ID, can be a null pointer
+    /// - [in] `explicit_scope`: Irrelevant, can be a null pointer
+    /// - [in] `matching_change_stamp`: The expected current change stamp of the state
     ///   (only relevant if `check_stamp` is `1`)
-    /// - `check_stamp`:
+    /// - [in] `check_stamp`:
     ///   `1` if the update should only be performed if the current change stamp equals `matching_change_stamp`,
     ///   `0` if the update should be performed regardless of the current change stamp
     ///

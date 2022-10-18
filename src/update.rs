@@ -1,4 +1,4 @@
-//! Methods for updating WNF states
+//! Methods for updating WNF state data
 
 use std::ffi::c_void;
 use std::{io, mem, ptr};

@@ -8,39 +8,6 @@ use std::{fmt, thread};
 
 use wnf::{AsWnfState, BorrowedWnfState, OwnedWnfState, WnfChangeStamp, WnfDataAccessor};
 
-#[test]
-fn get_by_value() {
-    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
-
-    let value = 0x12345678;
-    state.set(&value).unwrap();
-
-    let read_value = state.get().unwrap();
-    assert_eq!(read_value, value);
-}
-
-#[test]
-fn get_boxed() {
-    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
-
-    let value = 0x12345678;
-    state.set(&value).unwrap();
-
-    let read_value = state.get_boxed().unwrap();
-    assert_eq!(*read_value, value);
-}
-
-#[test]
-fn get_slice() {
-    let state = OwnedWnfState::<[u32]>::create_temporary().unwrap();
-
-    let values = [0x12345678, 0xABCDEF01, 0x23456789];
-    state.set(values.as_slice()).unwrap();
-
-    let read_values = state.get_boxed().unwrap();
-    assert_eq!(*read_values, values);
-}
-
 macro_rules! apply_tests {
     ($($name:ident: $state:ident => $apply:expr,)*) => {
         $(
