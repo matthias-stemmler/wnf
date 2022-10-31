@@ -1,7 +1,8 @@
-#![allow(dead_code)]
 #![deny(improper_ctypes)]
 #![deny(improper_ctypes_definitions)]
 #![deny(missing_debug_implementations)]
+#![deny(clippy::missing_safety_doc)]
+#![deny(clippy::undocumented_unsafe_blocks)]
 
 #[cfg(not(windows))]
 compile_error!("The `wnf` crate supports Windows only");
