@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
-use wnf::{OwnedWnfState, WnfChangeStamp, WnfDataAccessor};
+use wnf::{OwnedWnfState, WnfChangeStamp, WnfDataAccessor, WnfSeenChangeStamp};
 
 #[test]
 fn data_type_can_be_inferred_from_set_call() {
@@ -78,7 +78,9 @@ fn data_type_can_be_inferred_from_replace_boxed_call() {
 #[test]
 fn data_type_can_be_inferred_from_subscribe_call() {
     let state = OwnedWnfState::create_temporary().unwrap();
-    let _ = state.subscribe(|_: WnfDataAccessor<()>| {}).unwrap();
+    let _ = state
+        .subscribe(|_: WnfDataAccessor<()>| {}, WnfSeenChangeStamp::None)
+        .unwrap();
 }
 
 #[derive(Debug, Eq, Hash, PartialEq)]

@@ -1,4 +1,4 @@
-//! Raw bindings to some of the WNF functions of the Windows Native API
+//! Raw bindings to some of the WNF functions of the Windows Native API (NTAPI)
 //!
 //! *Note*: This is an undocumented part of the Windows API. The information given in the function documentations in
 //! this module has been collected from various sources and via reverse engineering. There is no guarantee that it is
@@ -7,6 +7,11 @@
 //! Functions whose names start with `Rtl` (standing for "runtime library") provide higher-level abstractions while
 //! functions whose names start with `Nt` are more low level. We use a combination of both, choosing whichever function
 //! is more suitable for the task at hand.
+//!
+//! Each of the `Nt` functions has a counterpart whose name starts with `Zw` instead. For calls from user mode (which is
+//! the only mode supported by this crate), these two classes of functions behave identically.
+//!
+//! See also <https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/using-nt-and-zw-versions-of-the-native-system-services-routines>
 
 #![deny(unsafe_code)]
 
@@ -14,8 +19,26 @@ use std::ffi::c_void;
 
 use windows::{core::GUID, Win32::Foundation::NTSTATUS};
 
+/// Target used for logging calls to NTAPI functions using the `tracing` crate
 pub(crate) const TRACING_TARGET: &str = "wnf::ntapi";
 
+/// A callback function for a WNF state subscription
+///
+/// # Arguments
+/// - [in] `state_name`: The WNF state name
+/// - [in] `change_stamp`: The current change stamp of the WNF state
+/// - [in] `type_id`: Pointer to a GUID used as the type ID, may be a null pointer
+/// - [in] `context`: Opaque pointer to arbitrary context data passed to `RtlSubscribeWnfStateChangeNotification`
+/// - [in] `buffer`: Pointer to a buffer containing the current data of the WNF state
+/// - [in] `buffer_size`: Size of the buffer in bytes
+///
+/// # Returns
+/// An `NTSTATUS` value that is `>= 0` on success and `< 0` on failure
+///
+/// # Assumption
+/// During the runtime of the callback:
+/// - `buffer` is valid for reads of size `buffer_size`
+/// - the memory range of size `buffer_size` starting at `buffer` is initialized
 pub(crate) type WnfUserCallback = extern "system" fn(
     state_name: u64,
     change_stamp: u32,
@@ -27,8 +50,32 @@ pub(crate) type WnfUserCallback = extern "system" fn(
 
 #[link(name = "ntdll")]
 extern "system" {
+    /// Subscribes to updates of a WNF state
+    ///
+    /// # Arguments
+    /// - [out] `subscription_handle`: Pointer to a `*mut c_void` buffer the subscription handle will be written to
+    /// - [in] `state_name`: The WNF state name
+    /// - [in] `change_stamp`: The change stamp the listener has last seen
+    /// - [in] `callback`: Pointer to a callback function to be called on state updates
+    /// - [in] `callback_context`: Opaque pointer to arbitrary context data that is passed on to the callback
+    /// - [in] `type_id`: Pointer to a GUID used as the type ID, can be a null pointer
+    /// - [in] `serialization_group`: Irrelevant, can be zero
+    /// - [in] `unknown`: Irrelevant, can be zero
+    ///
+    /// # Returns
+    /// An `NTSTATUS` value that is `>= 0` on success and `< 0` on failure
+    ///
+    /// # Safety
+    /// - `subscription_handle` must be valid for writes of `*mut c_void`
+    /// - The function pointed to by `callback` must not unwind
+    /// - `type_id` must either be a null pointer or point to a valid [`GUID`]
+    ///
+    /// # Assumption
+    /// On every call of `callback(_, _, _, context, _, _)`:
+    /// - `context` is the `callback_context` passed to some successful call to `RtlSubscribeWnfStateChangeNotification`
+    /// - The assumptions listed under [`WnfUserCallback`] are satisfied
     pub(crate) fn RtlSubscribeWnfStateChangeNotification(
-        subscription: *mut u64,
+        subscription_handle: *mut *mut c_void,
         state_name: u64,
         change_stamp: u32,
         callback: WnfUserCallback,
@@ -38,7 +85,26 @@ extern "system" {
         unknown: u32,
     ) -> NTSTATUS;
 
-    pub(crate) fn RtlUnsubscribeWnfStateChangeNotification(subscription: u64) -> NTSTATUS;
+    /// Unsubscribes from updates of a WNF state
+    ///
+    /// # Arguments
+    /// - [in] `subscription_handle`: The subscription handle to unsubscribe
+    ///
+    /// # Returns
+    /// An `NTSTATUS` value that is `>= 0` on success and `< 0` on failure
+    ///
+    /// # Safety
+    /// - `subscription_handle` must have been returned from a successful call to
+    ///   `RtlSubscribeWnfStateChangeNotification`
+    /// - `RtlUnsubscribeWnfStateChangeNotification` must not have been called with `subscription_handle` before
+    ///
+    /// # Assumptions
+    /// - If `subscription_handle` was returned from a successful call of
+    ///   `RtlSubscribeWnfStateChangeNotification(_, _, _, callback, callback_context, _, _, _)`, where
+    ///   `callback_context` is unique among all such calls, and this function succeeds, then `callback` is not called
+    ///   with `callback_context` anymore.
+    /// - This function is safe to call with a `subscription_handle` originating from a different thread
+    pub(crate) fn RtlUnsubscribeWnfStateChangeNotification(subscription_handle: *mut c_void) -> NTSTATUS;
 
     pub(crate) fn NtCreateWnfStateName(
         state_name: *mut u64,
@@ -64,7 +130,7 @@ extern "system" {
     ///   bytes and receiving the actual required buffer size in bytes
     ///
     /// # Returns
-    /// An `NTSTATUS` value that is `>= 0` on success and `< 0` on failure.
+    /// An `NTSTATUS` value that is `>= 0` on success and `< 0` on failure
     ///
     /// # Safety
     /// - `state_name` must point to a valid `u64`
@@ -73,10 +139,10 @@ extern "system" {
     /// - `buffer` must be valid for writes of at least size `*buffer_size`
     /// - `buffer_size` must point to a valid `u32`
     /// - `buffer_size` must be valid for writes of `u32`
-    /// 
+    ///
     /// # Assumption
     /// If this function succeeds, then the memory range of size `*buffer_size` (read after the call) starting at
-    /// `buffer` is initialized
+    /// `buffer` is initialized.
     pub(crate) fn NtQueryWnfStateData(
         state_name: *const u64,
         type_id: *const GUID,
@@ -103,7 +169,7 @@ extern "system" {
     /// - [in] `buffer_size`: Size of the buffer in bytes, must be `4`
     ///
     /// # Returns
-    /// An `NTSTATUS` value that is `>= 0` on success and `< 0` on failure.
+    /// An `NTSTATUS` value that is `>= 0` on success and `< 0` on failure
     ///
     /// # Safety
     /// - `state_name` must point to a valid `u64`
@@ -132,7 +198,7 @@ extern "system" {
     ///   `0` if the update should be performed regardless of the current change stamp
     ///
     /// # Returns
-    /// An `NTSTATUS` value that is `>= 0` on success and `< 0` on failure.
+    /// An `NTSTATUS` value that is `>= 0` on success and `< 0` on failure
     ///
     /// In particular, returns [`STATUS_UNSUCCESSFUL`](windows::Win32::Foundation::STATUS_UNSUCCESSFUL) if the update
     /// was not performed because `check_stamp` was `1` and the current change stamp was different from

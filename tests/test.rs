@@ -1,12 +1,10 @@
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::io::ErrorKind;
-use std::sync::mpsc::RecvTimeoutError;
-use std::sync::{mpsc, Arc};
-use std::time::Duration;
+use std::sync::Arc;
 use std::{fmt, thread};
 
-use wnf::{AsWnfState, BorrowedWnfState, OwnedWnfState, WnfChangeStamp, WnfDataAccessor};
+use wnf::{AsWnfState, BorrowedWnfState, OwnedWnfState};
 
 macro_rules! apply_tests {
     ($($name:ident: $state:ident => $apply:expr,)*) => {
@@ -188,141 +186,6 @@ fn borrowed_wnf_state_delete() {
 
     let state = BorrowedWnfState::<()>::from_state_name(state_name);
     assert!(!state.exists().unwrap());
-}
-
-#[test]
-fn subscribe() {
-    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
-    let (tx, rx) = mpsc::channel();
-    let mut subscriptions = Vec::new();
-
-    const NUM_SUBSCRIPTIONS: usize = 2;
-
-    for _ in 0..NUM_SUBSCRIPTIONS {
-        let tx = tx.clone();
-        subscriptions.push(
-            state
-                .subscribe(move |accessor: WnfDataAccessor<_>| {
-                    tx.send(accessor.query().unwrap()).unwrap();
-                })
-                .unwrap(),
-        )
-    }
-
-    drop(tx);
-
-    for i in 0..3 {
-        state.set(&i).unwrap();
-
-        for _ in 0..NUM_SUBSCRIPTIONS {
-            let (data, change_stamp) = rx
-                .recv_timeout(Duration::from_secs(1))
-                .unwrap()
-                .into_data_change_stamp();
-
-            assert_eq!(data, i);
-            assert_eq!(change_stamp, WnfChangeStamp::from(i + 1));
-        }
-    }
-
-    for subscription in subscriptions {
-        subscription.unsubscribe().unwrap();
-    }
-
-    assert_eq!(
-        rx.recv_timeout(Duration::from_secs(1)),
-        Err(RecvTimeoutError::Disconnected)
-    );
-}
-
-#[test]
-fn subscribe_boxed() {
-    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
-    let (tx, rx) = mpsc::channel();
-    let mut subscriptions = Vec::new();
-
-    const NUM_SUBSCRIPTIONS: usize = 2;
-
-    for _ in 0..NUM_SUBSCRIPTIONS {
-        let tx = tx.clone();
-        subscriptions.push(
-            state
-                .subscribe(move |accessor: WnfDataAccessor<_>| {
-                    tx.send(accessor.query_boxed().unwrap()).unwrap();
-                })
-                .unwrap(),
-        )
-    }
-
-    drop(tx);
-
-    for i in 0..3 {
-        state.set(&i).unwrap();
-
-        for _ in 0..NUM_SUBSCRIPTIONS {
-            let (data, change_stamp) = rx
-                .recv_timeout(Duration::from_secs(1))
-                .unwrap()
-                .into_data_change_stamp();
-
-            assert_eq!(*data, i);
-            assert_eq!(change_stamp, WnfChangeStamp::from(i + 1));
-        }
-    }
-
-    for subscription in subscriptions {
-        subscription.unsubscribe().unwrap();
-    }
-
-    assert_eq!(
-        rx.recv_timeout(Duration::from_secs(1)),
-        Err(RecvTimeoutError::Disconnected)
-    );
-}
-
-#[test]
-fn subscribe_slice() {
-    let state = OwnedWnfState::<[u32]>::create_temporary().unwrap();
-    let (tx, rx) = mpsc::channel();
-    let mut subscriptions = Vec::new();
-
-    const NUM_SUBSCRIPTIONS: usize = 2;
-
-    for _ in 0..NUM_SUBSCRIPTIONS {
-        let tx = tx.clone();
-        subscriptions.push(
-            state
-                .subscribe(move |accessor: WnfDataAccessor<_>| {
-                    tx.send(accessor.query_boxed().unwrap()).unwrap();
-                })
-                .unwrap(),
-        )
-    }
-
-    drop(tx);
-
-    for i in 0..3 {
-        state.set(&[i, i]).unwrap();
-
-        for _ in 0..NUM_SUBSCRIPTIONS {
-            let (data, change_stamp) = rx
-                .recv_timeout(Duration::from_secs(1))
-                .unwrap()
-                .into_data_change_stamp();
-
-            assert_eq!(*data, [i, i]);
-            assert_eq!(change_stamp, WnfChangeStamp::from(i + 1));
-        }
-    }
-
-    for subscription in subscriptions {
-        subscription.unsubscribe().unwrap();
-    }
-
-    assert_eq!(
-        rx.recv_timeout(Duration::from_secs(1)),
-        Err(RecvTimeoutError::Disconnected)
-    );
 }
 
 #[derive(Debug, Eq, Hash, PartialEq)]

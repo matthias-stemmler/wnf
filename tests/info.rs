@@ -1,8 +1,8 @@
 use std::sync::mpsc;
 
 use wnf::{
-    BorrowedWnfState, OwnedWnfState, WnfDataAccessor, WnfDataScope, WnfStateName, WnfStateNameDescriptor,
-    WnfStateNameLifetime,
+    BorrowedWnfState, OwnedWnfState, WnfDataAccessor, WnfDataScope, WnfSeenChangeStamp, WnfStateName,
+    WnfStateNameDescriptor, WnfStateNameLifetime,
 };
 
 #[test]
@@ -38,7 +38,9 @@ fn subscribers_present() {
     let state = OwnedWnfState::<()>::create_temporary().unwrap();
     assert!(!state.subscribers_present().unwrap());
 
-    let subscription = state.subscribe(|_: WnfDataAccessor<_>| {}).unwrap();
+    let subscription = state
+        .subscribe(|_: WnfDataAccessor<_>| {}, WnfSeenChangeStamp::None)
+        .unwrap();
     assert!(state.subscribers_present().unwrap());
 
     subscription.unsubscribe().unwrap();
@@ -51,9 +53,12 @@ fn is_quiescent() {
     let (tx, rx) = mpsc::channel();
 
     let subscription = state
-        .subscribe(move |_: WnfDataAccessor<_>| {
-            let _ = rx.recv();
-        })
+        .subscribe(
+            move |_: WnfDataAccessor<_>| {
+                let _ = rx.recv();
+            },
+            WnfSeenChangeStamp::None,
+        )
         .unwrap();
 
     assert!(state.is_quiescent().unwrap());

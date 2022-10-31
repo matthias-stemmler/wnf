@@ -8,7 +8,7 @@ use crate::data::WnfOpaqueData;
 use crate::predicate::{ChangedPredicate, Predicate, PredicateStage};
 use crate::read::WnfRead;
 use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
-use crate::subscribe::{WnfDataAccessor, WnfSeenChangeStamp, WnfStampedStateListener};
+use crate::subscribe::{WnfDataAccessor, WnfSeenChangeStamp};
 
 impl<T> OwnedWnfState<T>
 where
@@ -129,14 +129,14 @@ where
         let pair = Arc::new((Mutex::new(Some(Ok(data))), Condvar::new()));
         let pair_for_subscription = Arc::clone(&pair);
 
-        let subscription = self.subscribe(WnfStampedStateListener::new(
+        let subscription = self.subscribe(
             move |accessor: WnfDataAccessor<_>| {
                 let (mutex, condvar) = &*pair_for_subscription;
                 *mutex.lock().unwrap() = Some(accessor.get_as());
                 condvar.notify_one();
             },
             WnfSeenChangeStamp::Value(change_stamp),
-        ))?;
+        )?;
 
         let (mutex, condvar) = &*pair;
         let mut guard = condvar

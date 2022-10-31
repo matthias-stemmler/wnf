@@ -23,7 +23,7 @@ pub use state_name::{
     WnfDataScope, WnfStateName, WnfStateNameDescriptor, WnfStateNameDescriptorFromStateNameError,
     WnfStateNameFromDescriptorError, WnfStateNameLifetime,
 };
-pub use subscribe::{WnfDataAccessor, WnfSeenChangeStamp, WnfStampedStateListener, WnfStateListener, WnfSubscription};
+pub use subscribe::{WnfDataAccessor, WnfSeenChangeStamp, WnfStateListener, WnfSubscription};
 pub use type_id::GUID;
 
 mod apply;

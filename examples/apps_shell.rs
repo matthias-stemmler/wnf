@@ -26,7 +26,7 @@ where
     F: FnMut(u32, &str) + Send + 'static,
 {
     BorrowedWnfState::from_state_name(state_name.into())
-        .subscribe(ApplicationListener(listener))
+        .subscribe(ApplicationListener(listener), WnfSeenChangeStamp::Current)
         .expect("Failed to subscribe to WNF state changes")
 }
 
@@ -45,9 +45,5 @@ where
         if let Some(application) = OsString::from_wide(&data).to_string_lossy().strip_prefix("e:") {
             (self.0)(change_stamp.into(), application);
         }
-    }
-
-    fn last_seen_change_stamp(&self) -> WnfSeenChangeStamp {
-        WnfSeenChangeStamp::Current
     }
 }

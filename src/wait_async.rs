@@ -264,10 +264,10 @@ where
                     }
 
                     let shared_state = Arc::new(Mutex::new(SharedState::from_waker(cx.waker().clone())));
-                    let subscription = state.subscribe(WaitListener::new(
-                        Arc::clone(&shared_state),
+                    let subscription = state.subscribe(
+                        WaitListener::new(Arc::clone(&shared_state)),
                         WnfSeenChangeStamp::Value(change_stamp),
-                    ))?;
+                    )?;
 
                     FutureState::Waiting {
                         predicate,
@@ -315,15 +315,11 @@ where
 #[derive(Debug)]
 struct WaitListener<D> {
     shared_state: Arc<Mutex<SharedState<D>>>,
-    last_seen_change_stamp: WnfSeenChangeStamp,
 }
 
 impl<D> WaitListener<D> {
-    fn new(shared_state: Arc<Mutex<SharedState<D>>>, last_seen_change_stamp: WnfSeenChangeStamp) -> Self {
-        Self {
-            shared_state,
-            last_seen_change_stamp,
-        }
+    fn new(shared_state: Arc<Mutex<SharedState<D>>>) -> Self {
+        Self { shared_state }
     }
 }
 
@@ -336,9 +332,5 @@ where
         let SharedState { result, ref waker } = &mut *self.shared_state.lock().unwrap();
         *result = Some(accessor.get_as());
         waker.wake_by_ref();
-    }
-
-    fn last_seen_change_stamp(&self) -> WnfSeenChangeStamp {
-        self.last_seen_change_stamp
     }
 }
