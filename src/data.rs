@@ -36,8 +36,8 @@ pub struct WnfOpaqueData {
 
 impl WnfOpaqueData {
     /// Creates a new [`WnfOpaqueData`]
-    pub(crate) fn new() -> Self {
-        Self::default()
+    pub(crate) const fn new() -> Self {
+        Self { _private: () }
     }
 }
 
@@ -55,6 +55,11 @@ impl WnfOpaqueData {
 pub struct WnfChangeStamp(u32);
 
 impl WnfChangeStamp {
+    /// Creates a new [`WnfChangeStamp`] with the given value
+    pub const fn new(value: u32) -> Self {
+        Self(value)
+    }
+
     /// Returns the initial change stamp of every WNF state, which is `0`:
     ///
     /// ```
@@ -67,7 +72,7 @@ impl WnfChangeStamp {
     }
 
     /// Returns the inner value
-    pub const fn value(&self) -> u32 {
+    pub const fn value(self) -> u32 {
         self.0
     }
 
@@ -104,11 +109,8 @@ pub struct WnfStampedData<T> {
 
 impl<T> WnfStampedData<T> {
     /// Creates a new [`WnfStampedData`] from the given data and change stamp
-    pub fn from_data_change_stamp(data: T, change_stamp: impl Into<WnfChangeStamp>) -> Self {
-        Self {
-            data,
-            change_stamp: change_stamp.into(),
-        }
+    pub const fn from_data_change_stamp(data: T, change_stamp: WnfChangeStamp) -> Self {
+        Self { data, change_stamp }
     }
 
     /// Moves the contained data and change stamp out of this [`WnfStampedData`]
@@ -127,7 +129,7 @@ impl<T> WnfStampedData<T> {
     }
 
     /// Returns the change stamp contained in this [`WnfStampedData`]
-    pub fn change_stamp(&self) -> WnfChangeStamp {
+    pub const fn change_stamp(&self) -> WnfChangeStamp {
         self.change_stamp
     }
 
@@ -167,8 +169,8 @@ mod tests {
     #[test]
     fn stamped_data_map() {
         assert_eq!(
-            WnfStampedData::from_data_change_stamp(42, 1).map(|x| x.to_string()),
-            WnfStampedData::from_data_change_stamp(String::from("42"), 1)
+            WnfStampedData::from_data_change_stamp(42, 1.into()).map(|x| x.to_string()),
+            WnfStampedData::from_data_change_stamp(String::from("42"), 1.into())
         );
     }
 }
