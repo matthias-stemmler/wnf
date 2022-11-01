@@ -1,5 +1,3 @@
-use std::sync::mpsc;
-
 use wnf::{
     BorrowedWnfState, OwnedWnfState, WnfDataAccessor, WnfDataScope, WnfSeenChangeStamp, WnfStateName,
     WnfStateNameDescriptor, WnfStateNameLifetime,
@@ -50,7 +48,7 @@ fn subscribers_present() {
 #[test]
 fn is_quiescent() {
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = crossbeam_channel::unbounded();
 
     let subscription = state
         .subscribe(

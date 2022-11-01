@@ -1,15 +1,12 @@
-use std::{
-    sync::mpsc::{self, RecvTimeoutError},
-    time::Duration,
-};
-
+use crossbeam_channel::RecvTimeoutError;
+use std::time::Duration;
 use wnf::{OwnedWnfState, WnfChangeStamp, WnfDataAccessor, WnfSeenChangeStamp};
 
 #[test]
 fn subscribe() {
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = crossbeam_channel::unbounded();
     let mut subscriptions = Vec::new();
 
     const NUM_SUBSCRIPTIONS: usize = 2;
@@ -58,7 +55,7 @@ fn subscribe() {
 fn subscribe_boxed() {
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
 
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = crossbeam_channel::unbounded();
     let mut subscriptions = Vec::new();
 
     const NUM_SUBSCRIPTIONS: usize = 2;
@@ -107,7 +104,7 @@ fn subscribe_boxed() {
 fn subscribe_slice() {
     let state = OwnedWnfState::<[u32]>::create_temporary().unwrap();
 
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = crossbeam_channel::unbounded();
     let mut subscriptions = Vec::new();
 
     const NUM_SUBSCRIPTIONS: usize = 2;
@@ -157,7 +154,7 @@ fn subscribe_with_last_seen_change_stamp_none() {
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
     state.set(&0).unwrap();
 
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = crossbeam_channel::unbounded();
 
     let subscription = state
         .subscribe(
@@ -190,7 +187,7 @@ fn subscribe_with_last_seen_change_stamp_current() {
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
     state.set(&0).unwrap();
 
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = crossbeam_channel::unbounded();
 
     let subscription = state
         .subscribe(
@@ -220,7 +217,7 @@ fn subscribe_with_last_seen_change_stamp_value() {
     let state = OwnedWnfState::<u32>::create_temporary().unwrap();
     state.set(&0).unwrap();
 
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = crossbeam_channel::unbounded();
 
     let subscription = state
         .subscribe(

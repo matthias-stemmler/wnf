@@ -1,4 +1,3 @@
-use std::sync::mpsc::channel;
 use std::time::Duration;
 use wnf::{AsWnfState, OwnedWnfState, WnfDataAccessor, WnfOpaqueData, WnfSeenChangeStamp};
 
@@ -17,7 +16,7 @@ fn query() {
 fn subscribe() {
     let state = OwnedWnfState::<WnfOpaqueData>::create_temporary().unwrap();
 
-    let (tx, rx) = channel();
+    let (tx, rx) = crossbeam_channel::unbounded();
 
     let _subscription = state.subscribe(
         move |accessor: WnfDataAccessor<_>| {

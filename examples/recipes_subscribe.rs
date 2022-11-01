@@ -1,5 +1,3 @@
-use std::sync::mpsc;
-
 use tracing::info;
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::fmt::format::FmtSpan;
@@ -18,14 +16,14 @@ fn main() {
     let state = OwnedWnfState::<u32>::create_temporary().expect("Failed to create temporary WNF state");
     state.set(&0).expect("Failed to set WNF state data");
 
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = crossbeam_channel::unbounded();
 
     let subscription = state
         .subscribe(
             move |accessor: WnfDataAccessor<_>| {
                 let (data, change_stamp) = accessor.query().expect("Data is invalid").into_data_change_stamp();
                 info!(data, ?change_stamp);
-                tx.send(data).expect("Failed to send data to mpsc channel");
+                tx.send(data).expect("Failed to send data to channel");
             },
             WnfSeenChangeStamp::None,
         )
