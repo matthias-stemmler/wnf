@@ -1,6 +1,6 @@
 //! Types representing WNF states
 //!
-//! Additional `impl` blocks for these types can be found in other modules of this crate
+//! Additional `impl` blocks for these types can be found in other modules of this crate.
 
 #![deny(unsafe_code)]
 
