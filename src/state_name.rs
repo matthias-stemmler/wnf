@@ -11,8 +11,8 @@ use thiserror::Error;
 /// This is the magic number used by WNF to convert between the opaque value of a state name and its corresponding
 /// transparent value that contains information about the state name encoded into its bits.
 ///
-/// For reference, see e.g. [https://blog.quarkslab.com/playing-with-the-windows-notification-facility-wnf.html]
-const STATE_NAME_XOR_KEY: u64 = 0x41C64E6DA3BC0074;
+/// For reference, see e.g. <https://blog.quarkslab.com/playing-with-the-windows-notification-facility-wnf.html>
+const STATE_NAME_XOR_KEY: u64 = 0x41C6_4E6D_A3BC_0074;
 
 /// Lifetime of a state name
 ///
@@ -169,12 +169,12 @@ impl TryFrom<StateNameDescriptor> for StateName {
             return Err(StateNameFromDescriptorError::InvalidUniqueId(descriptor.unique_id));
         }
 
-        let transparent_value = descriptor.version as u64
+        let transparent_value = u64::from(descriptor.version)
             + ((descriptor.lifetime as u64) << 4)
             + ((descriptor.data_scope as u64) << 6)
-            + ((descriptor.is_permanent as u64) << 10)
-            + ((descriptor.unique_id as u64) << 11)
-            + ((descriptor.owner_tag as u64) << 32);
+            + ((u64::from(descriptor.is_permanent)) << 10)
+            + ((u64::from(descriptor.unique_id)) << 11)
+            + ((u64::from(descriptor.owner_tag)) << 32);
 
         let opaque_value = transparent_value ^ STATE_NAME_XOR_KEY;
 
@@ -199,7 +199,7 @@ impl TryFrom<StateName> for StateNameDescriptor {
                 StateNameDescriptorFromStateNameError::InvalidDataScope(data_scope_value),
             )?,
             is_permanent: transparent_value & (1 << 10) != 0,
-            unique_id: ((transparent_value >> 11) & 0x001FFFFF) as u32,
+            unique_id: ((transparent_value >> 11) & 0x001F_FFFF) as u32,
             owner_tag: (transparent_value >> 32) as u32,
         })
     }
@@ -212,7 +212,7 @@ impl Display for StateName {
 }
 
 /// Error converting a [`StateNameDescriptor`] into a [`StateName`]
-#[derive(Debug, Error, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Error, Eq, PartialEq)]
 pub enum StateNameFromDescriptorError {
     #[error("invalid version: {0}")]
     InvalidVersion(u8),
@@ -222,7 +222,7 @@ pub enum StateNameFromDescriptorError {
 }
 
 /// Error converting a [`StateName`] into a [`StateNameDescriptor`]
-#[derive(Debug, Error, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Error, Eq, PartialEq)]
 pub enum StateNameDescriptorFromStateNameError {
     #[error("invalid data scope: {0}")]
     InvalidDataScope(u8),

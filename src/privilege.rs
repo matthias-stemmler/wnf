@@ -16,6 +16,9 @@ use crate::util::CWideString;
 ///
 /// This privilege is necessary for creating states with the [`StateNameLifetime::Permanent`] or
 /// [`StateNameLifetime::Persistent`] lifetimes.
+///
+/// # Errors
+/// Returns an error if checking the privilege fails
 pub fn can_create_permanent_shared_objects() -> io::Result<bool> {
     // SAFETY:
     // Calling this function is always safe

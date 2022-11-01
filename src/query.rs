@@ -21,6 +21,9 @@ where
     ///
     /// This returns the data of the state without a change stamp. In order to query both the data and the change
     /// stamp, use the [`query`](OwnedState::query) method.
+    ///
+    /// # Errors
+    /// Returns an error if querying fails, including the case that the queries data is not a valid `T`
     pub fn get(&self) -> io::Result<T> {
         self.raw.get()
     }
@@ -32,6 +35,9 @@ where
     ///
     /// This returns the data of the state together with its change stamp as a [`StampedData<T>`]. In order to
     /// only query the data, use the [`get`](OwnedState::get) method.
+    ///
+    /// # Errors
+    /// Returns an error if querying fails, including the case that the queries data is not a valid `T`
     pub fn query(&self) -> io::Result<StampedData<T>> {
         self.raw.query()
     }
@@ -48,6 +54,9 @@ where
     ///
     /// This returns the data of the state without a change stamp. In order to query both the data and the change
     /// stamp, use the [`query_boxed`](OwnedState::query_boxed) method.
+    ///
+    /// # Errors
+    /// Returns an error if querying fails, including the case that the queries data is not a valid `T`
     pub fn get_boxed(&self) -> io::Result<Box<T>> {
         self.raw.get_boxed()
     }
@@ -59,6 +68,9 @@ where
     ///
     /// This returns the data of the state together with its change stamp as a [`StampedData<Box<T>>`]. In order
     /// to only query the data, use the [`get_boxed`](OwnedState::get_boxed) method.
+    ///
+    /// # Errors
+    /// Returns an error if querying fails, including the case that the queries data is not a valid `T`
     pub fn query_boxed(&self) -> io::Result<StampedData<Box<T>>> {
         self.raw.query_boxed()
     }
@@ -69,6 +81,9 @@ where
     T: ?Sized,
 {
     /// Queries the change stamp of this [`OwnedState<T>`]
+    ///
+    /// # Errors
+    /// Returns an error if querying the change stamp fails
     pub fn change_stamp(&self) -> io::Result<ChangeStamp> {
         self.raw.change_stamp()
     }
@@ -85,6 +100,9 @@ where
     ///
     /// This returns the data of the state without a change stamp. In order to query both the data and the change
     /// stamp, use the [`query`](BorrowedState::query) method.
+    ///
+    /// # Errors
+    /// Returns an error if querying fails, including the case that the queries data is not a valid `T`
     pub fn get(self) -> io::Result<T> {
         self.raw.get()
     }
@@ -96,6 +114,9 @@ where
     ///
     /// This returns the data of the state together with its change stamp as a [`StampedData<T>`]. In order to
     /// only query the data, use the [`get`](BorrowedState::get) method.
+    ///
+    /// # Errors
+    /// Returns an error if querying fails, including the case that the queries data is not a valid `T`
     pub fn query(self) -> io::Result<StampedData<T>> {
         self.raw.query()
     }
@@ -112,6 +133,9 @@ where
     ///
     /// This returns the data of the state without a change stamp. In order to query both the data and the change
     /// stamp, use the [`query_boxed`](BorrowedState::query_boxed) method.
+    ///
+    /// # Errors
+    /// Returns an error if querying fails, including the case that the queries data is not a valid `T`
     pub fn get_boxed(self) -> io::Result<Box<T>> {
         self.raw.get_boxed()
     }
@@ -123,6 +147,9 @@ where
     ///
     /// This returns the data of the state together with its change stamp as a [`StampedData<Box<T>>`]. In order
     /// to only query the data, use the [`get_boxed`](BorrowedState::get_boxed) method.
+    ///
+    /// # Errors
+    /// Returns an error if querying fails, including the case that the queries data is not a valid `T`
     pub fn query_boxed(self) -> io::Result<StampedData<Box<T>>> {
         self.raw.query_boxed()
     }
@@ -133,6 +160,9 @@ where
     T: ?Sized,
 {
     /// Queries the change stamp of this [`BorrowedState<'a, T>`]
+    ///
+    /// # Errors
+    /// Returns an error if querying the change stamp fails
     pub fn change_stamp(self) -> io::Result<ChangeStamp> {
         self.raw.change_stamp()
     }

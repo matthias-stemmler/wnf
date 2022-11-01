@@ -307,7 +307,7 @@ pub trait AsState: private::Sealed {
     type Data: ?Sized;
 
     /// Borrows a value as a state
-    fn as_state(&self) -> BorrowedState<Self::Data>;
+    fn as_state(&self) -> BorrowedState<'_, Self::Data>;
 }
 
 impl<T> AsState for OwnedState<T>
@@ -316,7 +316,7 @@ where
 {
     type Data = T;
 
-    fn as_state(&self) -> BorrowedState<T> {
+    fn as_state(&self) -> BorrowedState<'_, T> {
         BorrowedState::from_raw(self.raw)
     }
 }
@@ -327,7 +327,7 @@ where
 {
     type Data = T;
 
-    fn as_state(&self) -> BorrowedState<T> {
+    fn as_state(&self) -> BorrowedState<'_, T> {
         *self
     }
 }

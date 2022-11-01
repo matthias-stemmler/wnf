@@ -67,16 +67,16 @@ where
     /// Calls this state listener
     ///
     /// The provided [`DataAccessor<T>`] can be used to obtain the state data at the time the update took place.
-    fn call(&mut self, accessor: DataAccessor<T>);
+    fn call(&mut self, accessor: DataAccessor<'_, T>);
 }
 
 impl<F, T> StateListener<T> for F
 where
-    F: FnMut(DataAccessor<T>),
+    F: FnMut(DataAccessor<'_, T>),
     T: ?Sized,
 {
-    fn call(&mut self, accessor: DataAccessor<T>) {
-        self(accessor)
+    fn call(&mut self, accessor: DataAccessor<'_, T>) {
+        self(accessor);
     }
 }
 
@@ -98,7 +98,10 @@ where
     /// in order to maintain memory safety, in the case of an error a value the size of a [`Mutex<Option<F>>`] is leaked
     /// on the heap. This should be fine in most cases, especially when `F` is small. Otherwise consider using a boxed
     /// closure.
-    pub fn subscribe<F>(&self, listener: F, last_seen_change_stamp: SeenChangeStamp) -> io::Result<Subscription<F>>
+    ///
+    /// # Errors
+    /// Returns an error if subscribing fails
+    pub fn subscribe<F>(&self, listener: F, last_seen_change_stamp: SeenChangeStamp) -> io::Result<Subscription<'_, F>>
     where
         F: StateListener<T> + Send + 'static,
     {
@@ -124,6 +127,9 @@ where
     /// in order to maintain memory safety, in the case of an error a value the size of a [`Mutex<Option<F>>`] is leaked
     /// on the heap. This should be fine in most cases, especially when `F` is small. Otherwise consider using a boxed
     /// closure.
+    ///
+    /// # Errors
+    /// Returns an error if subscribing fails
     pub fn subscribe<F>(&self, listener: F, last_seen_change_stamp: SeenChangeStamp) -> io::Result<Subscription<'a, F>>
     where
         F: StateListener<T> + Send + 'static,
@@ -381,7 +387,7 @@ where
     /// The lifetime parameter `'a` of the returned [`DataAccessor<'a, T>`] is the lifetime of the reference to this
     /// [`ScopedData<T>`], making sure the [`DataAccessor<'a, T>`] can only be used as long as this
     /// [`DataScope<T>`] is live.
-    fn accessor(&self) -> DataAccessor<T> {
+    const fn accessor(&self) -> DataAccessor<'_, T> {
         DataAccessor {
             data: *self,
             _marker: PhantomData,
@@ -422,7 +428,7 @@ where
     /// The change stamp returned by this method is the change stamp of the underlying state for the update that
     /// caused the listener call to which this [`DataAccessor<'a, T>`] was passed. Note that in contrast to
     /// [`OwnedState::change_stamp`] or [`BorrowedState::change_stamp`], this does not involve an OS call.
-    pub fn change_stamp(self) -> ChangeStamp {
+    pub const fn change_stamp(self) -> ChangeStamp {
         self.data.change_stamp
     }
 }
@@ -442,6 +448,9 @@ where
     /// The data returned by this method is the data of the underlying state for the update that caused the listener
     /// call to which this [`DataAccessor<'a, T>`] was passed. Note that in contrast to [`OwnedState::get`] or
     /// [`BorrowedState::get`], this does not involve an OS call.
+    ///
+    /// # Errors
+    /// Returns an error if querying fails, including the case that the queried data is not a valid `T`
     pub fn get(self) -> io::Result<T> {
         self.get_as()
     }
@@ -457,6 +466,9 @@ where
     /// The data returned by this method is the data of the underlying state for the update that caused the listener
     /// call to which this [`DataAccessor<'a, T>`] was passed. Note that in contrast to [`OwnedState::query`] or
     /// [`BorrowedState::query`], this does not involve an OS call.
+    ///
+    /// # Errors
+    /// Returns an error if querying fails, including the case that the queried data is not a valid `T`
     pub fn query(self) -> io::Result<StampedData<T>> {
         self.query_as()
     }
@@ -477,6 +489,9 @@ where
     /// The data returned by this method is the data of the underlying state for the update that caused the listener
     /// call to which this [`DataAccessor<'a, T>`] was passed. Note that in contrast to [`OwnedState::get_boxed`]
     /// or [`BorrowedState::get_boxed`], this does not involve an OS call.
+    ///
+    /// # Errors
+    /// Returns an error if querying fails, including the case that the queried data is not a valid `T`
     pub fn get_boxed(self) -> io::Result<Box<T>> {
         self.get_as()
     }
@@ -492,6 +507,9 @@ where
     /// The data returned by this method is the data of the underlying state for the update that caused the listener
     /// call to which this [`DataAccessor<'a, T>`] was passed. Note that in contrast to
     /// [`OwnedState::query_boxed`] or [`BorrowedState::query_boxed`], this does not involve an OS call.
+    ///
+    /// # Errors
+    /// Returns an error if querying fails, including the case that the queried data is not a valid `T`
     pub fn query_boxed(self) -> io::Result<StampedData<Box<T>>> {
         self.query_as()
     }
@@ -566,6 +584,9 @@ impl<F> Subscription<'_, F> {
     /// [`Subscription::forget`]), so there is usually no need to call this method. Its only purpose is to enable you
     /// to handle errors while unsubscribing. Note that the listener will not be called anymore after unsubscribing,
     /// even when there is an error.
+    ///
+    /// # Errors
+    /// Returns an error if unsubscribing fails
     pub fn unsubscribe(mut self) -> io::Result<()> {
         self.try_unsubscribe()
     }

@@ -81,7 +81,7 @@ pub enum CreatableStateLifetime {
 }
 
 impl CreatableStateLifetime {
-    fn persist_data(&self) -> bool {
+    fn persist_data(self) -> bool {
         matches!(self, Self::Permanent { persist_data: true })
     }
 }
@@ -99,6 +99,7 @@ impl From<CreatableStateLifetime> for StateNameLifetime {
 pub trait TryIntoSecurityDescriptor {
     type IntoSecurityDescriptor: Borrow<SecurityDescriptor>;
 
+    /// # Errors
     fn try_into_security_descriptor(self) -> io::Result<Self::IntoSecurityDescriptor>;
 }
 
@@ -153,6 +154,7 @@ impl StateCreation<UnspecifiedLifetime, UnspecifiedScope, UnspecifiedSecurityDes
 }
 
 impl<L, S, SD> StateCreation<L, S, SD> {
+    #[must_use]
     pub fn lifetime(self, lifetime: CreatableStateLifetime) -> StateCreation<CreatableStateLifetime, S, SD> {
         StateCreation {
             lifetime,
@@ -164,6 +166,7 @@ impl<L, S, SD> StateCreation<L, S, SD> {
         }
     }
 
+    #[must_use]
     pub fn scope(self, scope: DataScope) -> StateCreation<L, DataScope, SD> {
         StateCreation {
             scope,
@@ -175,6 +178,7 @@ impl<L, S, SD> StateCreation<L, S, SD> {
         }
     }
 
+    #[must_use]
     pub fn maximum_state_size(self, maximum_state_size: usize) -> StateCreation<L, S, SD> {
         StateCreation {
             maximum_state_size: Some(maximum_state_size),
@@ -182,6 +186,7 @@ impl<L, S, SD> StateCreation<L, S, SD> {
         }
     }
 
+    #[must_use]
     pub fn security_descriptor<NewSD>(self, security_descriptor: NewSD) -> StateCreation<L, S, NewSD>
     where
         NewSD: Borrow<SecurityDescriptor>,
@@ -196,6 +201,7 @@ impl<L, S, SD> StateCreation<L, S, SD> {
         }
     }
 
+    #[must_use]
     pub fn type_id(self, type_id: impl Into<GUID>) -> StateCreation<L, S, SD> {
         StateCreation {
             type_id: type_id.into().into(),
@@ -208,6 +214,7 @@ impl<SD> StateCreation<CreatableStateLifetime, DataScope, SD>
 where
     SD: TryIntoSecurityDescriptor,
 {
+    /// # Errors
     pub fn create_owned<T>(self) -> io::Result<OwnedState<T>>
     where
         T: ?Sized,
@@ -215,6 +222,7 @@ where
         self.create_raw().map(OwnedState::from_raw)
     }
 
+    /// # Errors
     pub fn create_static<T>(self) -> io::Result<BorrowedState<'static, T>>
     where
         T: ?Sized,
@@ -241,6 +249,7 @@ impl<T> OwnedState<T>
 where
     T: ?Sized,
 {
+    /// # Errors
     pub fn create_temporary() -> io::Result<Self> {
         StateCreation::new()
             .lifetime(CreatableStateLifetime::Temporary)
@@ -248,6 +257,7 @@ where
             .create_owned()
     }
 
+    /// # Errors
     pub fn delete(self) -> io::Result<()> {
         self.into_raw().delete()
     }
@@ -257,6 +267,7 @@ impl<T> BorrowedState<'static, T>
 where
     T: ?Sized,
 {
+    /// # Errors
     pub fn create_temporary() -> io::Result<Self> {
         StateCreation::new()
             .lifetime(CreatableStateLifetime::Temporary)
@@ -269,6 +280,7 @@ impl<T> BorrowedState<'_, T>
 where
     T: ?Sized,
 {
+    /// # Errors
     pub fn delete(self) -> io::Result<()> {
         self.raw.delete()
     }
@@ -290,7 +302,7 @@ where
 
         let name_lifetime = name_lifetime as u32;
         let data_scope = data_scope as u32;
-        let persist_data = persist_data as u8;
+        let persist_data: u8 = persist_data.into();
         let maximum_state_size = maximum_state_size as u32;
 
         let result = unsafe {

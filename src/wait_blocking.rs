@@ -14,6 +14,7 @@ impl<T> OwnedState<T>
 where
     T: ?Sized,
 {
+    /// # Errors
     pub fn wait_blocking(&self) -> io::Result<()> {
         self.raw.wait_blocking()
     }
@@ -23,6 +24,7 @@ impl<T> OwnedState<T>
 where
     T: Read<T>,
 {
+    /// # Errors
     pub fn wait_until_blocking<F>(&self, predicate: F) -> io::Result<T>
     where
         F: FnMut(&T) -> bool,
@@ -35,6 +37,7 @@ impl<T> OwnedState<T>
 where
     T: Read<Box<T>> + ?Sized,
 {
+    /// # Errors
     pub fn wait_until_boxed_blocking<F>(&self, predicate: F) -> io::Result<Box<T>>
     where
         F: FnMut(&T) -> bool,
@@ -47,6 +50,7 @@ impl<T> BorrowedState<'_, T>
 where
     T: ?Sized,
 {
+    /// # Errors
     pub fn wait_blocking(self) -> io::Result<()> {
         self.raw.wait_blocking()
     }
@@ -56,6 +60,7 @@ impl<T> BorrowedState<'_, T>
 where
     T: Read<T>,
 {
+    /// # Errors
     pub fn wait_until_blocking<F>(self, predicate: F) -> io::Result<T>
     where
         F: FnMut(&T) -> bool,
@@ -68,6 +73,7 @@ impl<T> BorrowedState<'_, T>
 where
     T: Read<Box<T>> + ?Sized,
 {
+    /// # Errors
     pub fn wait_until_boxed_blocking<F>(self, predicate: F) -> io::Result<Box<T>>
     where
         F: FnMut(&T) -> bool,
@@ -130,7 +136,7 @@ where
         let pair_for_subscription = Arc::clone(&pair);
 
         let subscription = self.subscribe(
-            move |accessor: DataAccessor<_>| {
+            move |accessor: DataAccessor<'_, _>| {
                 let (mutex, condvar) = &*pair_for_subscription;
                 *mutex.lock().unwrap() = Some(accessor.get_as());
                 condvar.notify_one();

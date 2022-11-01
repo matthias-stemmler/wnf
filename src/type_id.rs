@@ -18,6 +18,9 @@ pub struct GUID(windows::core::GUID);
 
 impl GUID {
     /// Creates a unique GUID value
+    ///
+    /// # Errors
+    /// Returns an error if creating the GUID fails
     pub fn new() -> io::Result<Self> {
         Ok(Self(windows::core::GUID::new()?))
     }

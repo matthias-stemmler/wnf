@@ -10,6 +10,7 @@ impl<T> OwnedState<T>
 where
     T: Read<T> + NoUninit,
 {
+    /// # Errors
     pub fn replace(&self, new_value: &T) -> io::Result<T> {
         self.raw.replace(new_value)
     }
@@ -19,6 +20,7 @@ impl<T> OwnedState<T>
 where
     T: Read<Box<T>> + NoUninit + ?Sized,
 {
+    /// # Errors
     pub fn replace_boxed(&self, new_value: &T) -> io::Result<Box<T>> {
         self.raw.replace_boxed(new_value)
     }
@@ -28,6 +30,7 @@ impl<T> BorrowedState<'_, T>
 where
     T: Read<T> + NoUninit,
 {
+    /// # Errors
     pub fn replace(self, new_value: &T) -> io::Result<T> {
         self.raw.replace(new_value)
     }
@@ -37,6 +40,7 @@ impl<T> BorrowedState<'_, T>
 where
     T: Read<Box<T>> + NoUninit + ?Sized,
 {
+    /// # Errors
     pub fn replace_boxed(self, new_value: &T) -> io::Result<Box<T>> {
         self.raw.replace_boxed(new_value)
     }

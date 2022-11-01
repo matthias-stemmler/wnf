@@ -17,7 +17,7 @@ impl<T> OwnedState<T>
 where
     T: ?Sized,
 {
-    pub fn wait_async(&self) -> Wait {
+    pub fn wait_async(&self) -> Wait<'_> {
         self.raw.wait_async()
     }
 }
@@ -26,7 +26,7 @@ impl<T> OwnedState<T>
 where
     T: Read<T>,
 {
-    pub fn wait_until_async<F>(&self, predicate: F) -> WaitUntil<T, F>
+    pub fn wait_until_async<F>(&self, predicate: F) -> WaitUntil<'_, T, F>
     where
         F: FnMut(&T) -> bool,
     {
@@ -38,7 +38,7 @@ impl<T> OwnedState<T>
 where
     T: Read<Box<T>> + ?Sized,
 {
-    pub fn wait_until_boxed_async<F>(&self, predicate: F) -> WaitUntilBoxed<T, F>
+    pub fn wait_until_boxed_async<F>(&self, predicate: F) -> WaitUntilBoxed<'_, T, F>
     where
         F: FnMut(&T) -> bool,
     {
@@ -328,7 +328,7 @@ where
     D: Send + 'static,
     T: Read<D> + ?Sized,
 {
-    fn call(&mut self, accessor: DataAccessor<T>) {
+    fn call(&mut self, accessor: DataAccessor<'_, T>) {
         let SharedState { result, ref waker } = &mut *self.shared_state.lock().unwrap();
         *result = Some(accessor.get_as());
         waker.wake_by_ref();

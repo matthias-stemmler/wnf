@@ -30,6 +30,9 @@ pub trait Read<D>: private::Sealed + Send + 'static {
     /// # Safety
     /// - `ptr` must be valid for reads of size `size`
     /// - The memory range of size `size` starting at `ptr` must be initialized
+    ///
+    /// # Errors
+    /// Returns an error if the data in the buffer is not a valid `D`
     unsafe fn from_buffer(ptr: *const c_void, size: usize) -> io::Result<D>;
 
     /// Tries to read a `D` by invoking a reader closure
@@ -43,6 +46,9 @@ pub trait Read<D>: private::Sealed + Send + 'static {
     ///
     /// When `reader(ptr, size)` returns `Ok((read_size, _))` with `read_size <= size`, then it must guarantee that the
     /// memory range of size `read_size` starting at `ptr` is initialized
+    ///
+    /// # Errors
+    /// Returns an error if `reader` fails or the read data is not a valid `D`
     unsafe fn from_reader<F, Meta>(reader: F) -> io::Result<(D, Meta)>
     where
         F: FnMut(*mut c_void, usize) -> io::Result<(usize, Meta)>;
@@ -84,13 +90,13 @@ where
         // - `ptr` is valid for reads of `T::Bits` by the safety condition and `size == mem::size_of::<T::Bits>()`
         // - `ptr` points to a valid `T::Bits` because the memory range is initialized (by the safety condition)
         //    and `T::Bits: AnyBitPattern`
-        let bits: T::Bits = ptr::read_unaligned(ptr.cast());
+        let bits: T::Bits = unsafe { ptr::read_unaligned(ptr.cast()) };
 
         if T::is_valid_bit_pattern(&bits) {
             // SAFETY: By the safety conditions of `CheckedBitPattern`,
             // - `T` has the same memory layout as `T::Bits`
             // - `bits` can be reinterpreted as a `T` because `T::is_valid_bit_pattern(&bits)` is `true`
-            Ok(*(&bits as *const T::Bits as *const T))
+            Ok(unsafe { *(&bits as *const T::Bits as *const T) })
         } else {
             Err(io::Error::new(ErrorKind::InvalidData, ReadError::InvalidBitPattern))
         }
@@ -118,13 +124,13 @@ where
         // SAFETY:
         // `bits.as_mut_ptr()` points to a valid `T::Bits` because the memory range is initialized (by the safety
         // condition and `size == mem::size_of::<T::Bits>()`) and `T::Bits: AnyBitPattern`
-        let bits = bits.assume_init();
+        let bits = unsafe { bits.assume_init() };
 
         if T::is_valid_bit_pattern(&bits) {
             // SAFETY: By the safety conditions of `CheckedBitPattern`,
             // - `T` has the same memory layout as `T::Bits`
             // - `bits` can be reinterpreted as a `T` because `T::is_valid_bit_pattern(&bits)` is `true`
-            let data = *(&bits as *const T::Bits as *const T);
+            let data = unsafe { *(&bits as *const T::Bits as *const T) };
             Ok((data, meta))
         } else {
             Err(io::Error::new(ErrorKind::InvalidData, ReadError::InvalidBitPattern))
@@ -152,13 +158,13 @@ where
             // SAFETY:
             // The all-zero byte pattern is a valid `T::Bits` because `T::Bits` is zero-sized
             // (or, alternatively, because `T::Bits: AnyBitPattern`)
-            Box::new(mem::zeroed())
+            unsafe { Box::new(mem::zeroed()) }
         } else {
             let layout = Layout::new::<T::Bits>();
 
             // SAFETY:
             // `layout` has non-zero size
-            let data = alloc::alloc(layout) as *mut T::Bits;
+            let data = unsafe { alloc::alloc(layout) as *mut T::Bits };
 
             // SAFETY:
             // - `ptr` is valid for reads of `mem::size_of::<T::Bits>()` by the safety condition and
@@ -168,14 +174,16 @@ where
             // - The source and destination regions don't overlap because the source region is within the bounds of a
             //   single allocated object (because `ptr` is valid for reads) while the destination region is a freshly
             //   allocated object
-            ptr::copy_nonoverlapping(ptr as *const u8, data as *mut u8, mem::size_of::<T::Bits>());
+            unsafe {
+                ptr::copy_nonoverlapping(ptr as *const u8, data as *mut u8, mem::size_of::<T::Bits>());
+            }
 
             // SAFETY:
             // - `data` was allocated with the global allocator using the layout of `T::Bits`
             // - `data` is not aliased
             // - `data` points to a valid `T::Bits` because the memory range is initialized (by the safety condition)
             //   and `T::Bits: AnyBitPattern`
-            Box::from_raw(data)
+            unsafe { Box::from_raw(data) }
         };
 
         if T::is_valid_bit_pattern(&bits) {
@@ -185,7 +193,7 @@ where
             // By the safety conditions of `CheckedBitPattern`,
             // - `T` has the same memory layout as `T::Bits`
             // - `bits` can be reinterpreted as a `T` because `T::is_valid_bit_pattern(&bits)` is `true`
-            Ok(Box::from_raw(Box::into_raw(bits) as *mut T))
+            Ok(unsafe { Box::from_raw(Box::into_raw(bits) as *mut T) })
         } else {
             Err(io::Error::new(ErrorKind::InvalidData, ReadError::InvalidBitPattern))
         }
@@ -203,14 +211,14 @@ where
 
             // SAFETY:
             // `layout` has non-zero size
-            let data = alloc::alloc(layout) as *mut MaybeUninit<T::Bits>;
+            let data = unsafe { alloc::alloc(layout) as *mut MaybeUninit<T::Bits> };
 
             // SAFETY:
             // - `data` was allocated with the global allocator using the layout of `T::Bits`, which is the same as the
             //   layout of `MaybeUninit<T::Bits>`
             // - `data` is not aliased
             // - `data` points to a valid `MaybeUninit<T::Bits>` because a `MaybeUninit<_>` is always valid
-            Box::from_raw(data)
+            unsafe { Box::from_raw(data) }
         };
 
         // The precondition of `reader` is satisfied because `bits.as_mut_ptr()` is valid for accesses of `T::Bits`
@@ -231,7 +239,7 @@ where
         // - `T::Bits` has the same memory layout as `MaybeUninit<T::Bits>`
         // - The box contains a valid `T::Bits` because the memory range is initialized (by the safety condition and
         //   `size == mem::size_of::<T::Bits>()`) and `T::Bits: AnyBitPattern`
-        let bits = Box::from_raw(Box::into_raw(bits) as *mut T::Bits);
+        let bits = unsafe { Box::from_raw(Box::into_raw(bits) as *mut T::Bits) };
 
         if T::is_valid_bit_pattern(&bits) {
             // SAFETY:
@@ -240,7 +248,7 @@ where
             // By the safety conditions of `CheckedBitPattern`,
             // - `T` has the same memory layout as `T::Bits`
             // - `bits` can be reinterpreted as a `T` because `T::is_valid_bit_pattern(&bits)` is `true`
-            let data = Box::from_raw(Box::into_raw(bits) as *mut T);
+            let data = unsafe { Box::from_raw(Box::into_raw(bits) as *mut T) };
             Ok((data, meta))
         } else {
             Err(io::Error::new(ErrorKind::InvalidData, ReadError::InvalidBitPattern))
@@ -288,13 +296,17 @@ where
         // - The source and destination regions don't overlap because the source region is within the bounds of a
         //   single allocated object (because `ptr` is valid for reads) while the destination region is a freshly
         //   allocated object
-        ptr::copy_nonoverlapping(ptr as *const u8, buffer.as_mut_ptr() as *mut u8, size);
+        unsafe {
+            ptr::copy_nonoverlapping(ptr as *const u8, buffer.as_mut_ptr() as *mut u8, size);
+        }
 
         // SAFETY:
         // - `len <= buffer.capacity()`
         // - The elements at `0..len` are valid `T::Bits` because the memory range is initialized (by the safety
         //   condition) and `T::Bits: AnyBitPattern`
-        buffer.set_len(len);
+        unsafe {
+            buffer.set_len(len);
+        }
 
         if buffer.iter().all(T::is_valid_bit_pattern) {
             let data = buffer.into_boxed_slice();
@@ -306,7 +318,7 @@ where
             // - `T` has the same memory layout as `T::Bits`
             // - all elements of `data` can be reinterpreted as `T` because `T::is_valid_bit_pattern` is `true` for each
             //   element
-            Ok(Box::from_raw(Box::into_raw(data) as *mut [T]))
+            Ok(unsafe { Box::from_raw(Box::into_raw(data) as *mut [T]) })
         } else {
             Err(io::Error::new(ErrorKind::InvalidData, ReadError::InvalidBitPattern))
         }
@@ -369,7 +381,9 @@ where
         // - `len <= buffer.capacity()`
         // - The elements at `0..len` are valid `T::Bits` because the memory range is initialized (by the safety
         //   condition and `size == len * mem::size_of::<T::Bits>()`) and `T::Bits: AnyBitPattern`
-        buffer.set_len(len);
+        unsafe {
+            buffer.set_len(len);
+        }
 
         if buffer.iter().all(T::is_valid_bit_pattern) {
             let data = buffer.into_boxed_slice();
@@ -381,7 +395,7 @@ where
             // - `T` has the same memory layout as `T::Bits`
             // - all elements of `data` can be reinterpreted as `T` because `T::is_valid_bit_pattern` is `true` for each
             //   element
-            let data = Box::from_raw(Box::into_raw(data) as *mut [T]);
+            let data = unsafe { Box::from_raw(Box::into_raw(data) as *mut [T]) };
 
             Ok((data, meta))
         } else {
@@ -391,7 +405,7 @@ where
 }
 
 /// Error reading state data
-#[derive(Debug, Error)]
+#[derive(Clone, Copy, Debug, Error)]
 pub enum ReadError {
     #[error("failed to read state data: data has wrong size (expected {expected}, got {actual})")]
     WrongSize { expected: usize, actual: usize },

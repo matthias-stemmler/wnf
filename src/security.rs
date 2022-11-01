@@ -70,6 +70,9 @@ impl BoxedSecurityDescriptor {
     /// - no System Access Control List (SACL)
     /// - a Discretionary Access Control List (`D` = DACL) with a single Access Control Entry (ACE) granting (`A`) the
     ///   `GENERIC_ALL` access right (`GA`) to `Everyone` (`WD` = World)
+    ///
+    /// # Errors
+    /// Returns an error if creating the security descriptor fails
     pub fn create_everyone_generic_all() -> io::Result<Self> {
         "D:(A;;GA;;;WD)".parse()
     }

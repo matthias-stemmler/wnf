@@ -19,6 +19,9 @@ where
     ///
     /// The update is performed regardless of the current change stamp of the state. In order to perform the update
     /// conditionally based on the change stamp, use the [`update`](OwnedState::update) method.
+    ///
+    /// # Errors
+    /// Returns an error if updating fails
     pub fn set(&self, data: &T) -> io::Result<()> {
         self.raw.set(data)
     }
@@ -30,6 +33,9 @@ where
     /// method returns `false`.
     ///
     /// In order to update the data without checking the change stamp, use the [`set`](OwnedState::set) method.
+    ///
+    /// # Errors
+    /// Returns an error if updating fails
     pub fn update(&self, data: &T, expected_change_stamp: ChangeStamp) -> io::Result<bool> {
         self.raw.update(data, expected_change_stamp)
     }
@@ -43,6 +49,9 @@ where
     ///
     /// The update is performed regardless of the current change stamp of the state. In order to perform the update
     /// conditionally based on the change stamp, use the [`update`](OwnedState::update) method.
+    ///
+    /// # Errors
+    /// Returns an error if updating fails
     pub fn set(self, data: &T) -> io::Result<()> {
         self.raw.set(data)
     }
@@ -54,6 +63,9 @@ where
     /// method returns `false`.
     ///
     /// In order to update the data without checking the change stamp, use the [`set`](OwnedState::set) method.
+    ///
+    /// # Errors
+    /// Returns an error if updating fails
     pub fn update(self, data: &T, expected_change_stamp: ChangeStamp) -> io::Result<bool> {
         self.raw.update(data, expected_change_stamp)
     }
@@ -90,7 +102,7 @@ where
     fn update_internal(self, data: &T, expected_change_stamp: Option<ChangeStamp>) -> NTSTATUS {
         let buffer_size = mem::size_of_val(data) as u32;
         let matching_change_stamp = expected_change_stamp.unwrap_or_default().into();
-        let check_stamp = expected_change_stamp.is_some() as u32;
+        let check_stamp: u32 = expected_change_stamp.is_some().into();
 
         // SAFETY:
         // - The pointer in the first argument points to a valid `u64` because it comes from a live reference

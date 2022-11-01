@@ -14,6 +14,7 @@ impl<T> OwnedState<T>
 where
     T: Read<T> + NoUninit,
 {
+    /// # Errors
     pub fn apply<D, F>(&self, transform: F) -> io::Result<D>
     where
         D: Borrow<T>,
@@ -22,6 +23,7 @@ where
         self.raw.apply(transform)
     }
 
+    /// # Errors
     pub fn try_apply<D, E, F>(&self, transform: F) -> io::Result<D>
     where
         D: Borrow<T>,
@@ -36,6 +38,7 @@ impl<T> OwnedState<T>
 where
     T: Read<Box<T>> + NoUninit + ?Sized,
 {
+    /// # Errors
     pub fn apply_boxed<D, F>(&self, transform: F) -> io::Result<D>
     where
         D: Borrow<T>,
@@ -44,6 +47,7 @@ where
         self.raw.apply_boxed(transform)
     }
 
+    /// # Errors
     pub fn try_apply_boxed<D, E, F>(&self, transform: F) -> io::Result<D>
     where
         D: Borrow<T>,
@@ -58,6 +62,7 @@ impl<T> BorrowedState<'_, T>
 where
     T: Read<T> + NoUninit,
 {
+    /// # Errors
     pub fn apply<D, F>(self, transform: F) -> io::Result<D>
     where
         D: Borrow<T>,
@@ -66,6 +71,7 @@ where
         self.raw.apply(transform)
     }
 
+    /// # Errors
     pub fn try_apply<D, E, F>(self, transform: F) -> io::Result<D>
     where
         D: Borrow<T>,
@@ -80,6 +86,7 @@ impl<T> BorrowedState<'_, T>
 where
     T: Read<Box<T>> + NoUninit + ?Sized,
 {
+    /// # Errors
     pub fn apply_boxed<D, F>(self, transform: F) -> io::Result<D>
     where
         D: Borrow<T>,
@@ -88,6 +95,7 @@ where
         self.raw.apply_boxed(transform)
     }
 
+    /// # Errors
     pub fn try_apply_boxed<D, E, F>(self, transform: F) -> io::Result<D>
     where
         D: Borrow<T>,
