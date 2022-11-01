@@ -1,6 +1,7 @@
 //! Types dealing with security descriptors
 
 use std::borrow::Borrow;
+use std::ffi::c_void;
 use std::fmt::{self, Debug, Formatter};
 use std::ops::Deref;
 use std::ptr::NonNull;
@@ -29,6 +30,13 @@ use crate::util::CWideString;
 #[repr(C)]
 pub struct SecurityDescriptor {
     _opaque: [u8; 0],
+}
+
+impl SecurityDescriptor {
+    /// Returns a mutable raw pointer to the security descriptor for use in FFI
+    pub(crate) fn as_ptr(&self) -> PSECURITY_DESCRIPTOR {
+        PSECURITY_DESCRIPTOR(self as *const Self as *mut c_void)
+    }
 }
 
 impl Debug for SecurityDescriptor {

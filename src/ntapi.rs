@@ -17,7 +17,10 @@
 
 use std::ffi::c_void;
 
-use windows::{core::GUID, Win32::Foundation::NTSTATUS};
+use windows::{
+    core::GUID,
+    Win32::{Foundation::NTSTATUS, Security::PSECURITY_DESCRIPTOR},
+};
 
 /// Target used for logging calls to NTAPI functions using the `tracing` crate
 pub(crate) const TRACING_TARGET: &str = "wnf::ntapi";
@@ -106,6 +109,37 @@ extern "system" {
     /// - This function is safe to call with a `subscription_handle` originating from a different thread
     pub(crate) fn RtlUnsubscribeWnfStateChangeNotification(subscription_handle: *mut c_void) -> NTSTATUS;
 
+    /// Creates a new WNF state
+    ///
+    /// # Arguments
+    /// - [out] `state_name`: Pointer to a `u64` buffer the state name will be written to
+    /// - [in] `name_lifetime`: The lifetime of the state
+    ///   At least the following values are valid:
+    ///   - `0`: "Well-known"
+    ///   - `1`: "Permanent"
+    ///   - `2`: "Persistent"
+    ///   - `3`: "Temporary"
+    /// - [in] `data_scope`: The data scope of the state
+    ///   At least the following values are valid:
+    ///   - `0`: "System"
+    ///   - `1`: "Session"
+    ///   - `2`: "User"
+    ///   - `3`: "Process"
+    ///   - `4`: "Machine"
+    ///   - `5`: "Physical Machine"
+    /// - [in] `persist_data`: Whether the state should have persistent data (`1`) or not (`0`)
+    /// - [in] `type_id`: Pointer to a GUID used as the type ID, can be a null pointer
+    /// - [in] `maximum_state_size`: The maximal allowed size of the state in bytes, must be between `0` and `0x1000`
+    ///        (inclusive)
+    /// - [in] `security_descriptor`: Pointer to a security descriptor
+    ///
+    /// # Returns
+    /// An `NTSTATUS` value that is `>= 0` on success and `< 0` on failure
+    ///
+    /// # Safety
+    /// - `state_name` must be valid for writes of `u64`
+    /// - `type_id` must either be a null pointer or point to a valid [`GUID`]
+    /// - `security_descriptor` must point to a valid security descriptor
     pub(crate) fn NtCreateWnfStateName(
         state_name: *mut u64,
         name_lifetime: u32,
@@ -113,9 +147,19 @@ extern "system" {
         persist_data: u8,
         type_id: *const GUID,
         maximum_state_size: u32,
-        security_descriptor: *mut c_void,
+        security_descriptor: PSECURITY_DESCRIPTOR,
     ) -> NTSTATUS;
 
+    /// Deletes a WNF state
+    ///
+    /// # Arguments
+    /// - [in] `state_name`: Pointer to the WNF state name
+    ///
+    /// # Returns
+    /// An `NTSTATUS` value that is `>= 0` on success and `< 0` on failure
+    ///
+    /// # Safety
+    /// - `state_name` must point to a valid `u64`
     pub(crate) fn NtDeleteWnfStateName(state_name: *const u64) -> NTSTATUS;
 
     /// Queries the data of a WNF state

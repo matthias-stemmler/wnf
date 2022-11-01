@@ -1,5 +1,4 @@
 use std::borrow::Borrow;
-use std::ffi::c_void;
 use std::io;
 
 use tracing::debug;
@@ -274,7 +273,7 @@ where
                 persist_data,
                 type_id.as_ptr(),
                 maximum_state_size,
-                security_descriptor.borrow() as *const SecurityDescriptor as *mut c_void,
+                security_descriptor.borrow().as_ptr(),
             )
         };
 
