@@ -88,8 +88,8 @@ where
 
         // SAFETY:
         // - `ptr` is valid for reads of `T::Bits` by the safety condition and `size == mem::size_of::<T::Bits>()`
-        // - `ptr` points to a valid `T::Bits` because the memory range is initialized (by the safety condition)
-        //    and `T::Bits: AnyBitPattern`
+        // - `ptr` points to a valid `T::Bits` because the memory range is initialized (by the safety condition) and
+        //   `T::Bits: AnyBitPattern`
         let bits: T::Bits = unsafe { ptr::read_unaligned(ptr.cast()) };
 
         if T::is_valid_bit_pattern(&bits) {
@@ -167,8 +167,8 @@ where
             let data = unsafe { alloc::alloc(layout) as *mut T::Bits };
 
             // SAFETY:
-            // - `ptr` is valid for reads of `mem::size_of::<T::Bits>()` by the safety condition and
-            //   `size == mem::size_of::<T::Bits>()`
+            // - `ptr` is valid for reads of `mem::size_of::<T::Bits>()` by the safety condition and `size ==
+            //   mem::size_of::<T::Bits>()`
             // - `data` is valid for writes of `mem::size_of::<T::Bits>()` because it was allocated with that size
             // - Both `ptr` and `data` are trivially properly aligned as `mem::align_of::<u8>() == 1`
             // - The source and destination regions don't overlap because the source region is within the bounds of a
@@ -290,12 +290,12 @@ where
 
         // SAFETY:
         // - `ptr` is valid for reads of size `size` by the safety condition
-        // - `buffer.as_mut_ptr()` is valid for writes of size `size` because
-        //   `buffer.capacity() * mem::size_of::<T::Bits>() == size`
+        // - `buffer.as_mut_ptr()` is valid for writes of size `size` because `buffer.capacity() *
+        //   mem::size_of::<T::Bits>() == size`
         // - Both `ptr` and `buffer.as_mut_ptr()` are trivially properly aligned as `mem::align_of::<u8>() == 1`
-        // - The source and destination regions don't overlap because the source region is within the bounds of a
-        //   single allocated object (because `ptr` is valid for reads) while the destination region is a freshly
-        //   allocated object
+        // - The source and destination regions don't overlap because the source region is within the bounds of a single
+        //   allocated object (because `ptr` is valid for reads) while the destination region is a freshly allocated
+        //   object
         unsafe {
             ptr::copy_nonoverlapping(ptr as *const u8, buffer.as_mut_ptr() as *mut u8, size);
         }
@@ -433,9 +433,8 @@ mod private {
 mod tests {
     use std::cmp::min;
 
-    use crate::AnyBitPattern;
-
     use super::*;
+    use crate::AnyBitPattern;
 
     #[test]
     fn opaque_data_from_buffer() {

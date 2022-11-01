@@ -1,6 +1,5 @@
 use tracing::info;
 use tracing_subscriber::filter::LevelFilter;
-
 use wnf::{BorrowedState, StateName, StateNameDescriptor};
 
 const WNF_PO_ENERGY_SAVER_OVERRIDE: u64 = 0x41c6013da3bc3075;

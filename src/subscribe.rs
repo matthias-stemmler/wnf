@@ -529,8 +529,8 @@ where
     {
         // SAFETY:
         // - `self` was obtained from a `ScopedData<T>` through `ScopedData::accessor`, which ties the lifetime
-        //   parameter `'a` of `DataAccessor<'a, T>` to the lifetime of the `ScopedData<T>`, so the
-        //   `ScopedData<T>` is still live
+        //   parameter `'a` of `DataAccessor<'a, T>` to the lifetime of the `ScopedData<T>`, so the `ScopedData<T>` is
+        //   still live
         // - `self.data` is a copy of this `ScopedData<T>`, which was created through `ScopedData::new`
         // - The safety conditions of `ScopedData::new` then imply those of `T::from_buffer`
         unsafe { T::from_buffer(self.data.buffer, self.data.buffer_size) }
@@ -610,7 +610,7 @@ impl<F> Subscription<'_, F> {
             // - `inner.subscription_handle` was returned from a successful call to
             //   `RtlSubscribeWnfStateChangeNotification`
             // - `RtlUnsubscribeWnfStateChangeNotification` has not been called with `inner.subscription_handle` before
-            //    because it is only held in `inner` and `inner` is dropped afterwards
+            //   because it is only held in `inner` and `inner` is dropped afterwards
             let result = unsafe { ntapi::RtlUnsubscribeWnfStateChangeNotification(inner.subscription_handle) };
 
             debug!(

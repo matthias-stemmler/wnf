@@ -32,8 +32,8 @@ pub enum StateNameLifetime {
 
     /// Lifetime of a "permanent"  state name
     ///
-    /// A state name with this lifetime can be created and deleted through the WNF API at any time, but is never deleted
-    /// automatically.
+    /// A state name with this lifetime can be created and deleted through the WNF API at any time, but is never
+    /// deleted automatically.
     ///
     /// Creating a state name with this lifetime requires the `SeCreatePermanentPrivilege` privilege.
     ///
@@ -48,9 +48,9 @@ pub enum StateNameLifetime {
     ///
     /// Creating a state name with this lifetime requires the `SeCreatePermanentPrivilege` privilege.
     ///
-    /// The name "persistent" is meant in relation to a temporary state name because it is persisted beyond the lifetime
-    /// of the process it was created from. The alternative name "volatile" is meant in relation to a permanent state
-    /// name because it is deleted on system reboot.
+    /// The name "persistent" is meant in relation to a temporary state name because it is persisted beyond the
+    /// lifetime of the process it was created from. The alternative name "volatile" is meant in relation to a
+    /// permanent state name because it is deleted on system reboot.
     ///
     /// It is persisted in the Windows registry under the key
     /// `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\VolatileNotifications`
@@ -92,8 +92,8 @@ pub enum DataScope {
 
     /// "Physical Machine" data scope
     ///
-    /// This is only mentioned by some reverse engineering resources, not all of them. However, there exist (well-known)
-    /// state names with this data scope.
+    /// This is only mentioned by some reverse engineering resources, not all of them. However, there exist
+    /// (well-known) state names with this data scope.
     PhysicalMachine = 5,
 }
 

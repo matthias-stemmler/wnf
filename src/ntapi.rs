@@ -17,10 +17,9 @@
 
 use std::ffi::c_void;
 
-use windows::{
-    core::GUID,
-    Win32::{Foundation::NTSTATUS, Security::PSECURITY_DESCRIPTOR},
-};
+use windows::core::GUID;
+use windows::Win32::Foundation::NTSTATUS;
+use windows::Win32::Security::PSECURITY_DESCRIPTOR;
 
 /// Target used for logging calls to NTAPI functions using the `tracing` crate
 pub(crate) const TRACING_TARGET: &str = "wnf::ntapi";
@@ -102,10 +101,9 @@ extern "system" {
     /// - `RtlUnsubscribeWnfStateChangeNotification` must not have been called with `subscription_handle` before
     ///
     /// # Assumptions
-    /// - If `subscription_handle` was returned from a successful call of
-    ///   `RtlSubscribeWnfStateChangeNotification(_, _, _, callback, callback_context, _, _, _)`, where
-    ///   `callback_context` is unique among all such calls, and this function succeeds, then `callback` is not called
-    ///   with `callback_context` anymore.
+    /// - If `subscription_handle` was returned from a successful call of `RtlSubscribeWnfStateChangeNotification(_, _,
+    ///   _, callback, callback_context, _, _, _)`, where `callback_context` is unique among all such calls, and this
+    ///   function succeeds, then `callback` is not called with `callback_context` anymore.
     /// - This function is safe to call with a `subscription_handle` originating from a different thread
     pub(crate) fn RtlUnsubscribeWnfStateChangeNotification(subscription_handle: *mut c_void) -> NTSTATUS;
 
@@ -113,14 +111,12 @@ extern "system" {
     ///
     /// # Arguments
     /// - [out] `state_name`: Pointer to a `u64` buffer the state name will be written to
-    /// - [in] `name_lifetime`: The lifetime of the state
-    ///   At least the following values are valid:
+    /// - [in] `name_lifetime`: The lifetime of the state; at least the following values are valid:
     ///   - `0`: "Well-known"
     ///   - `1`: "Permanent"
     ///   - `2`: "Persistent"
     ///   - `3`: "Temporary"
-    /// - [in] `data_scope`: The data scope of the state
-    ///   At least the following values are valid:
+    /// - [in] `data_scope`: The data scope of the state; at least the following values are valid:
     ///   - `0`: "System"
     ///   - `1`: "Session"
     ///   - `2`: "User"
@@ -130,7 +126,7 @@ extern "system" {
     /// - [in] `persist_data`: Whether the state should have persistent data (`1`) or not (`0`)
     /// - [in] `type_id`: Pointer to a GUID used as the type ID, can be a null pointer
     /// - [in] `maximum_state_size`: The maximal allowed size of the state in bytes, must be between `0` and `0x1000`
-    ///        (inclusive)
+    ///   (inclusive)
     /// - [in] `security_descriptor`: Pointer to a security descriptor
     ///
     /// # Returns
@@ -203,8 +199,7 @@ extern "system" {
     ///
     /// # Arguments
     /// - [in] `state_name`: Pointer to the state name
-    /// - [in] `name_info_class`: Tag of the class of information to obtain
-    ///   At least the following values are valid:
+    /// - [in] `name_info_class`: Tag of the class of information to obtain; at least the following values are valid:
     ///   - `0`: "State name exist"
     ///   - `1`: "Subscribers present"
     ///   - `2`: "Is quiescent"
@@ -235,11 +230,10 @@ extern "system" {
     /// - [in] `buffer_size`: Size of the buffer in bytes
     /// - [in] `type_id`: Pointer to a GUID used as the type ID, can be a null pointer
     /// - [in] `explicit_scope`: Irrelevant, can be a null pointer
-    /// - [in] `matching_change_stamp`: The expected current change stamp of the state
-    ///   (only relevant if `check_stamp` is `1`)
-    /// - [in] `check_stamp`:
-    ///   `1` if the update should only be performed if the current change stamp equals `matching_change_stamp`,
-    ///   `0` if the update should be performed regardless of the current change stamp
+    /// - [in] `matching_change_stamp`: The expected current change stamp of the state (only relevant if `check_stamp`
+    ///   is `1`)
+    /// - [in] `check_stamp`: `1` if the update should only be performed if the current change stamp equals
+    ///   `matching_change_stamp`, `0` if the update should be performed regardless of the current change stamp
     ///
     /// # Returns
     /// An `NTSTATUS` value that is `>= 0` on success and `< 0` on failure

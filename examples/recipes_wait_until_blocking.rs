@@ -5,7 +5,6 @@ use std::time::Duration;
 use tracing::info;
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::fmt::format::FmtSpan;
-
 use wnf::OwnedState;
 
 fn main() {

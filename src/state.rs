@@ -286,7 +286,7 @@ where
 ///
 /// impl<S> StateWrapper<S>
 /// where
-///     S: AsState<Data = u32>
+///     S: AsState<Data = u32>,
 /// {
 ///     fn add(&self, delta: u32) -> io::Result<()> {
 ///         let state = self.state.as_state();

@@ -1,4 +1,5 @@
 use std::time::Duration;
+
 use wnf::{AsState, DataAccessor, OpaqueData, OwnedState, SeenChangeStamp};
 
 #[test]

@@ -2,7 +2,6 @@ use std::io::{self, Read};
 
 use tracing::info;
 use tracing_subscriber::filter::LevelFilter;
-
 use wnf::{CreatableStateLifetime, DataScope, StateCreation, StateNameDescriptor};
 
 fn main() {

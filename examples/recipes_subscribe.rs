@@ -1,7 +1,6 @@
 use tracing::info;
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::fmt::format::FmtSpan;
-
 use wnf::{DataAccessor, OwnedState, SeenChangeStamp};
 
 const LAST_DATA: u32 = 10;

@@ -5,12 +5,11 @@ use std::io;
 
 use tracing::debug;
 
-use crate::ntapi;
 use crate::security::SecurityDescriptor;
 use crate::state::{BorrowedState, OwnedState, RawState};
 use crate::state_name::{DataScope, StateName, StateNameLifetime};
 use crate::type_id::{TypeId, GUID};
-use crate::BoxedSecurityDescriptor;
+use crate::{ntapi, BoxedSecurityDescriptor};
 
 /// The maximum size of a state in bytes
 ///
@@ -71,8 +70,8 @@ impl UnspecifiedSecurityDescriptor {
 /// This is different from a [`StateNameLifetime`] in two ways:
 /// - It does not include an equivalent of the [`StateNameLifetime::WellKnown`] lifetime because states with that
 ///   lifetime are provisioned with the system and cannot be created.
-/// - The [`CreatableStateLifetime::Permanent`] option comes with a `persist_data` flag because that flag only
-///   applies to the [`StateNameLifetime::Permant`] (and [`StateNameLifetime::WellKnown`]) lifetimes.
+/// - The [`CreatableStateLifetime::Permanent`] option comes with a `persist_data` flag because that flag only applies
+///   to the [`StateNameLifetime::Permant`] (and [`StateNameLifetime::WellKnown`]) lifetimes.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum CreatableStateLifetime {
     Permanent { persist_data: bool },

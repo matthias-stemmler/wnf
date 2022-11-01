@@ -1,6 +1,5 @@
 use tracing::info;
 use tracing_subscriber::filter::LevelFilter;
-
 use wnf::OwnedState;
 
 fn main() {

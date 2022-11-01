@@ -1,5 +1,6 @@
-use crossbeam_channel::RecvTimeoutError;
 use std::time::Duration;
+
+use crossbeam_channel::RecvTimeoutError;
 use wnf::{ChangeStamp, DataAccessor, OwnedState, SeenChangeStamp};
 
 #[test]
