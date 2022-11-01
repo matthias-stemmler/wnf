@@ -1,8 +1,8 @@
-use wnf::OwnedWnfState;
+use wnf::OwnedState;
 
 #[test]
 fn get_by_value() {
-    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
+    let state = OwnedState::<u32>::create_temporary().unwrap();
 
     let value = 0x12345678;
     state.set(&value).unwrap();
@@ -13,7 +13,7 @@ fn get_by_value() {
 
 #[test]
 fn get_boxed() {
-    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
+    let state = OwnedState::<u32>::create_temporary().unwrap();
 
     let value = 0x12345678;
     state.set(&value).unwrap();
@@ -24,7 +24,7 @@ fn get_boxed() {
 
 #[test]
 fn get_slice() {
-    let state = OwnedWnfState::<[u32]>::create_temporary().unwrap();
+    let state = OwnedState::<[u32]>::create_temporary().unwrap();
 
     let values = [0x12345678, 0xABCDEF01, 0x23456789];
     state.set(values.as_slice()).unwrap();

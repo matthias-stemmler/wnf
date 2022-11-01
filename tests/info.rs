@@ -1,11 +1,11 @@
 use wnf::{
-    BorrowedWnfState, OwnedWnfState, WnfDataAccessor, WnfDataScope, WnfSeenChangeStamp, WnfStateName,
-    WnfStateNameDescriptor, WnfStateNameLifetime,
+    BorrowedState, DataAccessor, DataScope, OwnedState, SeenChangeStamp, StateName, StateNameDescriptor,
+    StateNameLifetime,
 };
 
 #[test]
 fn exists() {
-    let state = OwnedWnfState::<()>::create_temporary().unwrap();
+    let state = OwnedState::<()>::create_temporary().unwrap();
 
     let exists = state.exists().unwrap();
 
@@ -14,11 +14,11 @@ fn exists() {
 
 #[test]
 fn not_exists() {
-    let state = BorrowedWnfState::<()>::from_state_name(
-        WnfStateName::try_from(WnfStateNameDescriptor {
+    let state = BorrowedState::<()>::from_state_name(
+        StateName::try_from(StateNameDescriptor {
             version: 1,
-            lifetime: WnfStateNameLifetime::Temporary,
-            data_scope: WnfDataScope::Machine,
+            lifetime: StateNameLifetime::Temporary,
+            data_scope: DataScope::Machine,
             is_permanent: false,
             unique_id: 0,
             owner_tag: 1, // this must be `0` for non-well-known state names, so such a state name cannot exist
@@ -33,12 +33,10 @@ fn not_exists() {
 
 #[test]
 fn subscribers_present() {
-    let state = OwnedWnfState::<()>::create_temporary().unwrap();
+    let state = OwnedState::<()>::create_temporary().unwrap();
     assert!(!state.subscribers_present().unwrap());
 
-    let subscription = state
-        .subscribe(|_: WnfDataAccessor<_>| {}, WnfSeenChangeStamp::None)
-        .unwrap();
+    let subscription = state.subscribe(|_: DataAccessor<_>| {}, SeenChangeStamp::None).unwrap();
     assert!(state.subscribers_present().unwrap());
 
     subscription.unsubscribe().unwrap();
@@ -47,15 +45,15 @@ fn subscribers_present() {
 
 #[test]
 fn is_quiescent() {
-    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
+    let state = OwnedState::<u32>::create_temporary().unwrap();
     let (tx, rx) = crossbeam_channel::unbounded();
 
     let subscription = state
         .subscribe(
-            move |_: WnfDataAccessor<_>| {
+            move |_: DataAccessor<_>| {
                 let _ = rx.recv();
             },
-            WnfSeenChangeStamp::None,
+            SeenChangeStamp::None,
         )
         .unwrap();
 

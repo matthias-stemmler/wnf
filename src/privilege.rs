@@ -14,8 +14,8 @@ use crate::util::CWideString;
 /// Returns whether the `SeCreatePermanentPrivilege` privilege is enabled in the access token associated with the
 /// current process
 ///
-/// This privilege is necessary for creating WNF states with the [`WnfStateNameLifetime::Permanent`] or
-/// [`WnfStateNameLifetime::Persistent`] lifetimes.
+/// This privilege is necessary for creating states with the [`StateNameLifetime::Permanent`] or
+/// [`StateNameLifetime::Persistent`] lifetimes.
 pub fn can_create_permanent_shared_objects() -> io::Result<bool> {
     // SAFETY:
     // Calling this function is always safe

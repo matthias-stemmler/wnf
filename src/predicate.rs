@@ -1,11 +1,11 @@
-//! Types dealing with predicates on WNF state data
+//! Types dealing with predicates on state data
 
 #![deny(unsafe_code)]
 
 /// A stage at which a predicate is evaluated
 ///
-/// When evaluating a predicate on WNF state data, the predicate can be evaluated both initially, i.e. before
-/// subscribing to changes of the WNF state data, or when the WNF state data is changed.
+/// When evaluating a predicate on state data, the predicate can be evaluated both initially, i.e. before
+/// subscribing to changes of the state data, or when the state data is changed.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub(crate) enum PredicateStage {
     /// The predicate is evaluated initially
@@ -15,7 +15,7 @@ pub(crate) enum PredicateStage {
     Changed,
 }
 
-/// A predicate on WNF state data
+/// A predicate on state data
 pub(crate) trait Predicate<T>
 where
     T: ?Sized,
@@ -35,7 +35,7 @@ where
     }
 }
 
-/// A special predicate that evaluates to `false` initially, but to `true` when the WNF state data is changed,
+/// A special predicate that evaluates to `false` initially, but to `true` when the state data is changed,
 /// regardless of the actual data
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct ChangedPredicate;

@@ -4,13 +4,13 @@ use std::borrow::Borrow;
 use std::io;
 use std::sync::{Arc, Condvar, Mutex};
 
-use crate::data::WnfOpaqueData;
+use crate::data::OpaqueData;
 use crate::predicate::{ChangedPredicate, Predicate, PredicateStage};
-use crate::read::WnfRead;
-use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
-use crate::subscribe::{WnfDataAccessor, WnfSeenChangeStamp};
+use crate::read::Read;
+use crate::state::{BorrowedState, OwnedState, RawState};
+use crate::subscribe::{DataAccessor, SeenChangeStamp};
 
-impl<T> OwnedWnfState<T>
+impl<T> OwnedState<T>
 where
     T: ?Sized,
 {
@@ -19,9 +19,9 @@ where
     }
 }
 
-impl<T> OwnedWnfState<T>
+impl<T> OwnedState<T>
 where
-    T: WnfRead<T>,
+    T: Read<T>,
 {
     pub fn wait_until_blocking<F>(&self, predicate: F) -> io::Result<T>
     where
@@ -31,9 +31,9 @@ where
     }
 }
 
-impl<T> OwnedWnfState<T>
+impl<T> OwnedState<T>
 where
-    T: WnfRead<Box<T>> + ?Sized,
+    T: Read<Box<T>> + ?Sized,
 {
     pub fn wait_until_boxed_blocking<F>(&self, predicate: F) -> io::Result<Box<T>>
     where
@@ -43,7 +43,7 @@ where
     }
 }
 
-impl<T> BorrowedWnfState<'_, T>
+impl<T> BorrowedState<'_, T>
 where
     T: ?Sized,
 {
@@ -52,9 +52,9 @@ where
     }
 }
 
-impl<T> BorrowedWnfState<'_, T>
+impl<T> BorrowedState<'_, T>
 where
-    T: WnfRead<T>,
+    T: Read<T>,
 {
     pub fn wait_until_blocking<F>(self, predicate: F) -> io::Result<T>
     where
@@ -64,9 +64,9 @@ where
     }
 }
 
-impl<T> BorrowedWnfState<'_, T>
+impl<T> BorrowedState<'_, T>
 where
-    T: WnfRead<Box<T>> + ?Sized,
+    T: Read<Box<T>> + ?Sized,
 {
     pub fn wait_until_boxed_blocking<F>(self, predicate: F) -> io::Result<Box<T>>
     where
@@ -76,19 +76,19 @@ where
     }
 }
 
-impl<T> RawWnfState<T>
+impl<T> RawState<T>
 where
     T: ?Sized,
 {
     fn wait_blocking(self) -> io::Result<()> {
-        let _: WnfOpaqueData = self.cast().wait_until_blocking_internal(ChangedPredicate)?;
+        let _: OpaqueData = self.cast().wait_until_blocking_internal(ChangedPredicate)?;
         Ok(())
     }
 }
 
-impl<T> RawWnfState<T>
+impl<T> RawState<T>
 where
-    T: WnfRead<T>,
+    T: Read<T>,
 {
     fn wait_until_blocking<F>(self, predicate: F) -> io::Result<T>
     where
@@ -98,9 +98,9 @@ where
     }
 }
 
-impl<T> RawWnfState<T>
+impl<T> RawState<T>
 where
-    T: WnfRead<Box<T>> + ?Sized,
+    T: Read<Box<T>> + ?Sized,
 {
     fn wait_until_boxed_blocking<F>(self, predicate: F) -> io::Result<Box<T>>
     where
@@ -110,7 +110,7 @@ where
     }
 }
 
-impl<T> RawWnfState<T>
+impl<T> RawState<T>
 where
     T: ?Sized,
 {
@@ -118,7 +118,7 @@ where
     where
         D: Borrow<T> + Send + 'static,
         F: Predicate<T>,
-        T: WnfRead<D>,
+        T: Read<D>,
     {
         let (data, change_stamp) = self.query_as()?.into_data_change_stamp();
 
@@ -130,12 +130,12 @@ where
         let pair_for_subscription = Arc::clone(&pair);
 
         let subscription = self.subscribe(
-            move |accessor: WnfDataAccessor<_>| {
+            move |accessor: DataAccessor<_>| {
                 let (mutex, condvar) = &*pair_for_subscription;
                 *mutex.lock().unwrap() = Some(accessor.get_as());
                 condvar.notify_one();
             },
-            WnfSeenChangeStamp::Value(change_stamp),
+            SeenChangeStamp::Value(change_stamp),
         )?;
 
         let (mutex, condvar) = &*pair;

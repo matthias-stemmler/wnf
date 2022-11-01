@@ -1,192 +1,192 @@
-//! Methods for querying WNF state data
+//! Methods for querying state data
 
 use std::{io, ptr};
 
 use tracing::debug;
 use windows::Win32::Foundation::STATUS_BUFFER_TOO_SMALL;
 
-use crate::data::{WnfChangeStamp, WnfOpaqueData, WnfStampedData};
+use crate::data::{ChangeStamp, OpaqueData, StampedData};
 use crate::ntapi;
-use crate::read::WnfRead;
-use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
+use crate::read::Read;
+use crate::state::{BorrowedState, OwnedState, RawState};
 
-impl<T> OwnedWnfState<T>
+impl<T> OwnedState<T>
 where
-    T: WnfRead<T>,
+    T: Read<T>,
 {
-    /// Queries the data of this [`OwnedWnfState<T>`]
+    /// Queries the data of this [`OwnedState<T>`]
     ///
     /// This produces an owned `T` on the stack and hence requires `T: Sized`. In order to produce a `Box<T>` for
-    /// `T: ?Sized`, use the [`get_boxed`](OwnedWnfState::get_boxed) method.
+    /// `T: ?Sized`, use the [`get_boxed`](OwnedState::get_boxed) method.
     ///
-    /// This returns the data of the WNF state without a change stamp. In order to query both the data and the change
-    /// stamp, use the [`query`](OwnedWnfState::query) method.
+    /// This returns the data of the state without a change stamp. In order to query both the data and the change
+    /// stamp, use the [`query`](OwnedState::query) method.
     pub fn get(&self) -> io::Result<T> {
         self.raw.get()
     }
 
-    /// Queries the data of this [`OwnedWnfState<T>`] together with its change stamp
+    /// Queries the data of this [`OwnedState<T>`] together with its change stamp
     ///
     /// This produces an owned `T` on the stack and hence requires `T: Sized`. In order to produce a `Box<T>` for
-    /// `T: ?Sized`, use the [`query_boxed`](OwnedWnfState::query_boxed) method.
+    /// `T: ?Sized`, use the [`query_boxed`](OwnedState::query_boxed) method.
     ///
-    /// This returns the data of the WNF state together with its change stamp as a [`WnfStampedData<T>`]. In order to
-    /// only query the data, use the [`get`](OwnedWnfState::get) method.
-    pub fn query(&self) -> io::Result<WnfStampedData<T>> {
+    /// This returns the data of the state together with its change stamp as a [`StampedData<T>`]. In order to
+    /// only query the data, use the [`get`](OwnedState::get) method.
+    pub fn query(&self) -> io::Result<StampedData<T>> {
         self.raw.query()
     }
 }
 
-impl<T> OwnedWnfState<T>
+impl<T> OwnedState<T>
 where
-    T: WnfRead<Box<T>> + ?Sized,
+    T: Read<Box<T>> + ?Sized,
 {
-    /// Queries the data of this [`OwnedWnfState<T>`] as a box
+    /// Queries the data of this [`OwnedState<T>`] as a box
     ///
     /// This produces a [`Box<T>`]. In order to produce an owned `T` on the stack (requiring `T: Sized`), use the
-    /// [`get`](OwnedWnfState::get) method.
+    /// [`get`](OwnedState::get) method.
     ///
-    /// This returns the data of the WNF state without a change stamp. In order to query both the data and the change
-    /// stamp, use the [`query_boxed`](OwnedWnfState::query_boxed) method.
+    /// This returns the data of the state without a change stamp. In order to query both the data and the change
+    /// stamp, use the [`query_boxed`](OwnedState::query_boxed) method.
     pub fn get_boxed(&self) -> io::Result<Box<T>> {
         self.raw.get_boxed()
     }
 
-    /// Queries the data of this [`OwnedWnfState<T>`] as a box together with its change stamp
+    /// Queries the data of this [`OwnedState<T>`] as a box together with its change stamp
     ///
     /// This produces a [`Box<T>`]. In order to produce an owned `T` on the stack (requiring `T: Sized`), use the
-    /// [`query`](OwnedWnfState::query) method.
+    /// [`query`](OwnedState::query) method.
     ///
-    /// This returns the data of the WNF state together with its change stamp as a [`WnfStampedData<Box<T>>`]. In order
-    /// to only query the data, use the [`get_boxed`](OwnedWnfState::get_boxed) method.
-    pub fn query_boxed(&self) -> io::Result<WnfStampedData<Box<T>>> {
+    /// This returns the data of the state together with its change stamp as a [`StampedData<Box<T>>`]. In order
+    /// to only query the data, use the [`get_boxed`](OwnedState::get_boxed) method.
+    pub fn query_boxed(&self) -> io::Result<StampedData<Box<T>>> {
         self.raw.query_boxed()
     }
 }
 
-impl<T> OwnedWnfState<T>
+impl<T> OwnedState<T>
 where
     T: ?Sized,
 {
-    /// Queries the change stamp of this [`OwnedWnfState<T>`]
-    pub fn change_stamp(&self) -> io::Result<WnfChangeStamp> {
+    /// Queries the change stamp of this [`OwnedState<T>`]
+    pub fn change_stamp(&self) -> io::Result<ChangeStamp> {
         self.raw.change_stamp()
     }
 }
 
-impl<T> BorrowedWnfState<'_, T>
+impl<T> BorrowedState<'_, T>
 where
-    T: WnfRead<T>,
+    T: Read<T>,
 {
-    /// Queries the data of this [`BorrowedWnfState<'a, T>`]
+    /// Queries the data of this [`BorrowedState<'a, T>`]
     ///
     /// This produces an owned `T` on the stack and hence requires `T: Sized`. In order to produce a `Box<T>` for
-    /// `T: ?Sized`, use the [`get_boxed`](BorrowedWnfState::get_boxed) method.
+    /// `T: ?Sized`, use the [`get_boxed`](BorrowedState::get_boxed) method.
     ///
-    /// This returns the data of the WNF state without a change stamp. In order to query both the data and the change
-    /// stamp, use the [`query`](BorrowedWnfState::query) method.
+    /// This returns the data of the state without a change stamp. In order to query both the data and the change
+    /// stamp, use the [`query`](BorrowedState::query) method.
     pub fn get(self) -> io::Result<T> {
         self.raw.get()
     }
 
-    /// Queries the data of this [`BorrowedWnfState<'a, T>`] together with its change stamp
+    /// Queries the data of this [`BorrowedState<'a, T>`] together with its change stamp
     ///
     /// This produces an owned `T` on the stack and hence requires `T: Sized`. In order to produce a `Box<T>` for
-    /// `T: ?Sized`, use the [`query_boxed`](BorrowedWnfState::query_boxed) method.
+    /// `T: ?Sized`, use the [`query_boxed`](BorrowedState::query_boxed) method.
     ///
-    /// This returns the data of the WNF state together with its change stamp as a [`WnfStampedData<T>`]. In order to
-    /// only query the data, use the [`get`](BorrowedWnfState::get) method.
-    pub fn query(self) -> io::Result<WnfStampedData<T>> {
+    /// This returns the data of the state together with its change stamp as a [`StampedData<T>`]. In order to
+    /// only query the data, use the [`get`](BorrowedState::get) method.
+    pub fn query(self) -> io::Result<StampedData<T>> {
         self.raw.query()
     }
 }
 
-impl<T> BorrowedWnfState<'_, T>
+impl<T> BorrowedState<'_, T>
 where
-    T: WnfRead<Box<T>> + ?Sized,
+    T: Read<Box<T>> + ?Sized,
 {
-    /// Queries the data of this [`BorrowedWnfState<'a, T>`] as a box
+    /// Queries the data of this [`BorrowedState<'a, T>`] as a box
     ///
     /// This produces a [`Box<T>`]. In order to produce an owned `T` on the stack (requiring `T: Sized`), use the
-    /// [`get`](BorrowedWnfState::get) method.
+    /// [`get`](BorrowedState::get) method.
     ///
-    /// This returns the data of the WNF state without a change stamp. In order to query both the data and the change
-    /// stamp, use the [`query_boxed`](BorrowedWnfState::query_boxed) method.
+    /// This returns the data of the state without a change stamp. In order to query both the data and the change
+    /// stamp, use the [`query_boxed`](BorrowedState::query_boxed) method.
     pub fn get_boxed(self) -> io::Result<Box<T>> {
         self.raw.get_boxed()
     }
 
-    /// Queries the data of this [`BorrowedWnfState<'a, T>`] as a box together with its change stamp
+    /// Queries the data of this [`BorrowedState<'a, T>`] as a box together with its change stamp
     ///
     /// This produces a [`Box<T>`]. In order to produce an owned `T` on the stack (requiring `T: Sized`), use the
-    /// [`query`](BorrowedWnfState::query) method.
+    /// [`query`](BorrowedState::query) method.
     ///
-    /// This returns the data of the WNF state together with its change stamp as a [`WnfStampedData<Box<T>>`]. In order
-    /// to only query the data, use the [`get_boxed`](BorrowedWnfState::get_boxed) method.
-    pub fn query_boxed(self) -> io::Result<WnfStampedData<Box<T>>> {
+    /// This returns the data of the state together with its change stamp as a [`StampedData<Box<T>>`]. In order
+    /// to only query the data, use the [`get_boxed`](BorrowedState::get_boxed) method.
+    pub fn query_boxed(self) -> io::Result<StampedData<Box<T>>> {
         self.raw.query_boxed()
     }
 }
 
-impl<T> BorrowedWnfState<'_, T>
+impl<T> BorrowedState<'_, T>
 where
     T: ?Sized,
 {
-    /// Queries the change stamp of this [`BorrowedWnfState<'a, T>`]
-    pub fn change_stamp(self) -> io::Result<WnfChangeStamp> {
+    /// Queries the change stamp of this [`BorrowedState<'a, T>`]
+    pub fn change_stamp(self) -> io::Result<ChangeStamp> {
         self.raw.change_stamp()
     }
 }
 
-impl<T> RawWnfState<T>
+impl<T> RawState<T>
 where
-    T: WnfRead<T>,
+    T: Read<T>,
 {
-    /// Queries the data of this [`RawWnfState<T>`]
+    /// Queries the data of this [`RawState<T>`]
     fn get(self) -> io::Result<T> {
-        self.query().map(WnfStampedData::into_data)
+        self.query().map(StampedData::into_data)
     }
 
-    /// Queries the data of this [`RawWnfState<T>`] together with its change stamp
-    fn query(self) -> io::Result<WnfStampedData<T>> {
+    /// Queries the data of this [`RawState<T>`] together with its change stamp
+    fn query(self) -> io::Result<StampedData<T>> {
         self.query_as()
     }
 }
 
-impl<T> RawWnfState<T>
+impl<T> RawState<T>
 where
-    T: WnfRead<Box<T>> + ?Sized,
+    T: Read<Box<T>> + ?Sized,
 {
-    /// Queries the data of this [`RawWnfState<T>`] as a box
+    /// Queries the data of this [`RawState<T>`] as a box
     fn get_boxed(self) -> io::Result<Box<T>> {
-        self.query_boxed().map(WnfStampedData::into_data)
+        self.query_boxed().map(StampedData::into_data)
     }
 
-    /// Queries the data of this [`RawWnfState<T>`] as a box together with its change stamp
-    fn query_boxed(self) -> io::Result<WnfStampedData<Box<T>>> {
+    /// Queries the data of this [`RawState<T>`] as a box together with its change stamp
+    fn query_boxed(self) -> io::Result<StampedData<Box<T>>> {
         self.query_as()
     }
 }
 
-impl<T> RawWnfState<T>
+impl<T> RawState<T>
 where
     T: ?Sized,
 {
-    /// Queries the change stamp of this [`RawWnfState<T>`]
-    pub(crate) fn change_stamp(self) -> io::Result<WnfChangeStamp> {
-        Ok(self.cast::<WnfOpaqueData>().query()?.change_stamp())
+    /// Queries the change stamp of this [`RawState<T>`]
+    pub(crate) fn change_stamp(self) -> io::Result<ChangeStamp> {
+        Ok(self.cast::<OpaqueData>().query()?.change_stamp())
     }
 
-    /// Queries the data of this [`RawWnfState<T>`] as a value of type `D`
+    /// Queries the data of this [`RawState<T>`] as a value of type `D`
     ///
     /// If `T: Sized`, then `D` can be either `T` or `Box<T>`.
     /// If `T: !Sized`, then `D` must be `Box<T>`.
-    pub(crate) fn query_as<D>(self) -> io::Result<WnfStampedData<D>>
+    pub(crate) fn query_as<D>(self) -> io::Result<StampedData<D>>
     where
-        T: WnfRead<D>,
+        T: Read<D>,
     {
         let reader = |ptr, size| {
-            let mut change_stamp = WnfChangeStamp::default();
+            let mut change_stamp = ChangeStamp::default();
             let mut read_size = size as u32;
 
             // SAFETY:
@@ -196,7 +196,7 @@ where
             // - The pointer in the fourth argument is valid for writes of `u32` because it comes from a live mutable
             //   reference
             // - The pointer in the fifth argument is valid for writes of `read_size` by the precondition of `reader`
-            //   (see `WnfRead::from_reader`) and `read_size == size`
+            //   (see `Read::from_reader`) and `read_size == size`
             // - The pointer in the sixth argument points to a valid `u32` because it comes from a live reference
             // - The pointer in the sixth argument is valid for writes of `u32` because it comes from a live mutable
             //   reference

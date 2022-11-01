@@ -6,7 +6,7 @@ use tracing::info;
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::fmt::format::FmtSpan;
 
-use wnf::OwnedWnfState;
+use wnf::OwnedState;
 
 fn main() {
     tracing_subscriber::fmt()
@@ -15,16 +15,16 @@ fn main() {
         .with_thread_ids(true)
         .init();
 
-    let state = Arc::new(OwnedWnfState::<[u32]>::create_temporary().expect("Failed to create temporary WNF state"));
+    let state = Arc::new(OwnedState::<[u32]>::create_temporary().expect("Failed to create temporary state"));
     let state2 = Arc::clone(&state);
 
-    state.set(&[]).expect("Failed to update WNF state data");
+    state.set(&[]).expect("Failed to update state data");
 
     let handle = thread::spawn(move || {
         info!("Waiting ...");
         let data = state2
             .wait_until_boxed_blocking(|data| data.len() > 1)
-            .expect("Failed to wait for WNF state update");
+            .expect("Failed to wait for state update");
         info!(data = ?data, "State updated");
     });
 
@@ -36,7 +36,7 @@ fn main() {
                 vec.push(i);
                 vec.into_boxed_slice()
             })
-            .expect("Failed to update WNF state data");
+            .expect("Failed to update state data");
     }
 
     handle.join().expect("Failed to join thread");

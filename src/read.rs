@@ -1,4 +1,4 @@
-//! Reading types from WNF state data
+//! Reading types from state data
 
 use std::alloc::Layout;
 use std::ffi::c_void;
@@ -10,19 +10,19 @@ use std::{alloc, io, mem, ptr};
 use thiserror::Error;
 
 use crate::bytes::CheckedBitPattern;
-use crate::data::WnfOpaqueData;
+use crate::data::OpaqueData;
 
-/// Trait for types that can be read from WNF state data
+/// Trait for types that can be read from state data
 ///
-/// A type `T` implements [`WnfRead<D>`] if the data of a WNF state of type `T` (i.e., an
-/// [`OwnedWnfState<T>`](crate::state::OwnedWnfState) or a [`BorrowedWnfState<'_, T>`](crate::state::BorrowedWnfState))
+/// A type `T` implements [`Read<D>`] if the data of a state of type `T` (i.e., an
+/// [`OwnedState<T>`](crate::state::OwnedState) or a [`BorrowedState<'_, T>`](crate::state::BorrowedState))
 /// can be read as an instance of type `D`, where `D` is either `T` or [`Box<T>`].
 ///
 /// This is used to abstract over types that either implement [`CheckedBitPattern`] themselves or are of the form `[T]`
 /// where `T` implements [`CheckedBitPattern`].
 ///
 /// This trait is sealed and cannot be implemented outside of `wnf`.
-pub trait WnfRead<D>: private::Sealed + Send + 'static {
+pub trait Read<D>: private::Sealed + Send + 'static {
     /// Tries to read a `D` from a preallocated buffer
     ///
     /// The buffer starts at `ptr` and is `size` bytes long.
@@ -48,24 +48,24 @@ pub trait WnfRead<D>: private::Sealed + Send + 'static {
         F: FnMut(*mut c_void, usize) -> io::Result<(usize, Meta)>;
 }
 
-impl WnfRead<WnfOpaqueData> for WnfOpaqueData {
-    unsafe fn from_buffer(_: *const c_void, _: usize) -> io::Result<WnfOpaqueData> {
-        // We just produce a `WnfOpaqueData`, ignoring the buffer
-        Ok(WnfOpaqueData::new())
+impl Read<OpaqueData> for OpaqueData {
+    unsafe fn from_buffer(_: *const c_void, _: usize) -> io::Result<OpaqueData> {
+        // We just produce a `OpaqueData`, ignoring the buffer
+        Ok(OpaqueData::new())
     }
 
-    unsafe fn from_reader<F, Meta>(mut reader: F) -> io::Result<(WnfOpaqueData, Meta)>
+    unsafe fn from_reader<F, Meta>(mut reader: F) -> io::Result<(OpaqueData, Meta)>
     where
         F: FnMut(*mut c_void, usize) -> io::Result<(usize, Meta)>,
     {
         // We have to invoke the reader in order to obtain the metadata
         // The precondition of `reader` is satisfied because `NonNull::dangling()` is valid for zero-size accesses
         let (_, meta) = reader(NonNull::dangling().as_ptr(), 0)?;
-        Ok((WnfOpaqueData::new(), meta))
+        Ok((OpaqueData::new(), meta))
     }
 }
 
-impl<T> WnfRead<T> for T
+impl<T> Read<T> for T
 where
     T: CheckedBitPattern,
 {
@@ -73,7 +73,7 @@ where
         if size != mem::size_of::<T::Bits>() {
             return Err(io::Error::new(
                 ErrorKind::InvalidData,
-                WnfReadError::WrongSize {
+                ReadError::WrongSize {
                     expected: mem::size_of::<T::Bits>(),
                     actual: size,
                 },
@@ -92,7 +92,7 @@ where
             // - `bits` can be reinterpreted as a `T` because `T::is_valid_bit_pattern(&bits)` is `true`
             Ok(*(&bits as *const T::Bits as *const T))
         } else {
-            Err(io::Error::new(ErrorKind::InvalidData, WnfReadError::InvalidBitPattern))
+            Err(io::Error::new(ErrorKind::InvalidData, ReadError::InvalidBitPattern))
         }
     }
 
@@ -108,7 +108,7 @@ where
         if size != mem::size_of::<T::Bits>() {
             return Err(io::Error::new(
                 ErrorKind::InvalidData,
-                WnfReadError::WrongSize {
+                ReadError::WrongSize {
                     expected: mem::size_of::<T::Bits>(),
                     actual: size,
                 },
@@ -127,12 +127,12 @@ where
             let data = *(&bits as *const T::Bits as *const T);
             Ok((data, meta))
         } else {
-            Err(io::Error::new(ErrorKind::InvalidData, WnfReadError::InvalidBitPattern))
+            Err(io::Error::new(ErrorKind::InvalidData, ReadError::InvalidBitPattern))
         }
     }
 }
 
-impl<T> WnfRead<Box<T>> for T
+impl<T> Read<Box<T>> for T
 where
     T: CheckedBitPattern,
 {
@@ -140,7 +140,7 @@ where
         if size != mem::size_of::<T::Bits>() {
             return Err(io::Error::new(
                 ErrorKind::InvalidData,
-                WnfReadError::WrongSize {
+                ReadError::WrongSize {
                     expected: mem::size_of::<T::Bits>(),
                     actual: size,
                 },
@@ -187,7 +187,7 @@ where
             // - `bits` can be reinterpreted as a `T` because `T::is_valid_bit_pattern(&bits)` is `true`
             Ok(Box::from_raw(Box::into_raw(bits) as *mut T))
         } else {
-            Err(io::Error::new(ErrorKind::InvalidData, WnfReadError::InvalidBitPattern))
+            Err(io::Error::new(ErrorKind::InvalidData, ReadError::InvalidBitPattern))
         }
     }
 
@@ -219,7 +219,7 @@ where
         if size != mem::size_of::<T::Bits>() {
             return Err(io::Error::new(
                 ErrorKind::InvalidData,
-                WnfReadError::WrongSize {
+                ReadError::WrongSize {
                     expected: mem::size_of::<T::Bits>(),
                     actual: size,
                 },
@@ -243,12 +243,12 @@ where
             let data = Box::from_raw(Box::into_raw(bits) as *mut T);
             Ok((data, meta))
         } else {
-            Err(io::Error::new(ErrorKind::InvalidData, WnfReadError::InvalidBitPattern))
+            Err(io::Error::new(ErrorKind::InvalidData, ReadError::InvalidBitPattern))
         }
     }
 }
 
-impl<T> WnfRead<Box<[T]>> for [T]
+impl<T> Read<Box<[T]>> for [T]
 where
     T: CheckedBitPattern,
 {
@@ -259,7 +259,7 @@ where
             } else {
                 Err(io::Error::new(
                     ErrorKind::InvalidData,
-                    WnfReadError::WrongSize {
+                    ReadError::WrongSize {
                         expected: 0,
                         actual: size,
                     },
@@ -270,7 +270,7 @@ where
         if size % mem::size_of::<T::Bits>() != 0 {
             return Err(io::Error::new(
                 ErrorKind::InvalidData,
-                WnfReadError::WrongSizeMultiple {
+                ReadError::WrongSizeMultiple {
                     expected_modulus: mem::size_of::<T::Bits>(),
                     actual: size,
                 },
@@ -308,7 +308,7 @@ where
             //   element
             Ok(Box::from_raw(Box::into_raw(data) as *mut [T]))
         } else {
-            Err(io::Error::new(ErrorKind::InvalidData, WnfReadError::InvalidBitPattern))
+            Err(io::Error::new(ErrorKind::InvalidData, ReadError::InvalidBitPattern))
         }
     }
 
@@ -318,9 +318,9 @@ where
     {
         let mut buffer: Vec<T::Bits> = Vec::new();
 
-        // We need to loop to deal with race conditions caused by the WNF state data growing larger after we determine
+        // We need to loop to deal with race conditions caused by the state data growing larger after we determine
         // its size but before we perform the actual read. This is guaranteed to terminate because we only reiterate
-        // when the new size is strictly larger than the old one and there is an upper bound to the size of a WNF state
+        // when the new size is strictly larger than the old one and there is an upper bound to the size of a state
         let (len, meta) = loop {
             // The precondition of `reader` is satisfied because `buffer.as_mut_ptr()` is valid for accesses of
             // `T::Bits`
@@ -336,7 +336,7 @@ where
             if mem::size_of::<T::Bits>() == 0 {
                 return Err(io::Error::new(
                     ErrorKind::InvalidData,
-                    WnfReadError::WrongSize {
+                    ReadError::WrongSize {
                         expected: 0,
                         actual: size,
                     },
@@ -346,7 +346,7 @@ where
             if size % mem::size_of::<T::Bits>() != 0 {
                 return Err(io::Error::new(
                     ErrorKind::InvalidData,
-                    WnfReadError::WrongSizeMultiple {
+                    ReadError::WrongSizeMultiple {
                         expected_modulus: mem::size_of::<T::Bits>(),
                         actual: size,
                     },
@@ -385,23 +385,23 @@ where
 
             Ok((data, meta))
         } else {
-            Err(io::Error::new(ErrorKind::InvalidData, WnfReadError::InvalidBitPattern))
+            Err(io::Error::new(ErrorKind::InvalidData, ReadError::InvalidBitPattern))
         }
     }
 }
 
-/// Error reading WNF state data
+/// Error reading state data
 #[derive(Debug, Error)]
-pub enum WnfReadError {
-    #[error("failed to read WNF state data: data has wrong size (expected {expected}, got {actual})")]
+pub enum ReadError {
+    #[error("failed to read state data: data has wrong size (expected {expected}, got {actual})")]
     WrongSize { expected: usize, actual: usize },
 
     #[error(
-        "failed to read WNF state data: data has wrong size (expected a multiple of {expected_modulus}, got {actual})"
+        "failed to read state data: data has wrong size (expected a multiple of {expected_modulus}, got {actual})"
     )]
     WrongSizeMultiple { expected_modulus: usize, actual: usize },
 
-    #[error("failed to read WNF state data: data has invalid bit pattern")]
+    #[error("failed to read state data: data has invalid bit pattern")]
     InvalidBitPattern,
 }
 
@@ -410,7 +410,7 @@ mod private {
 
     pub trait Sealed {}
 
-    impl Sealed for WnfOpaqueData {}
+    impl Sealed for OpaqueData {}
     impl<T> Sealed for T where T: CheckedBitPattern {}
     impl<T> Sealed for [T] where T: CheckedBitPattern {}
 }
@@ -430,7 +430,7 @@ mod tests {
 
         // SAFETY:
         // - `ptr` and `size` come from a preallocated buffer
-        let result = unsafe { WnfOpaqueData::from_buffer(ptr, size) };
+        let result = unsafe { OpaqueData::from_buffer(ptr, size) };
 
         assert!(result.is_ok());
     }
@@ -438,7 +438,7 @@ mod tests {
     #[test]
     fn opaque_data_from_reader() {
         // SAFETY: See `reader`
-        let result = unsafe { WnfOpaqueData::from_reader(reader(&[0xFF; 2], "Meta")) };
+        let result = unsafe { OpaqueData::from_reader(reader(&[0xFF; 2], "Meta")) };
 
         assert!(matches!(result, Ok((_, "Meta"))));
     }
@@ -467,7 +467,7 @@ mod tests {
         assert_eq!(err.kind(), ErrorKind::InvalidData);
         assert_eq!(
             err.to_string(),
-            "failed to read WNF state data: data has wrong size (expected 0, got 2)"
+            "failed to read state data: data has wrong size (expected 0, got 2)"
         );
     }
 
@@ -484,7 +484,7 @@ mod tests {
         assert_eq!(err.kind(), ErrorKind::InvalidData);
         assert_eq!(
             err.to_string(),
-            "failed to read WNF state data: data has invalid bit pattern"
+            "failed to read state data: data has invalid bit pattern"
         );
     }
 
@@ -506,7 +506,7 @@ mod tests {
         assert_eq!(err.kind(), ErrorKind::InvalidData);
         assert_eq!(
             err.to_string(),
-            "failed to read WNF state data: data has wrong size (expected 0, got 2)"
+            "failed to read state data: data has wrong size (expected 0, got 2)"
         );
     }
 
@@ -521,7 +521,7 @@ mod tests {
         assert_eq!(err.kind(), ErrorKind::InvalidData);
         assert_eq!(
             err.to_string(),
-            "failed to read WNF state data: data has invalid bit pattern"
+            "failed to read state data: data has invalid bit pattern"
         );
     }
 
@@ -568,7 +568,7 @@ mod tests {
         assert_eq!(err.kind(), ErrorKind::InvalidData);
         assert_eq!(
             err.to_string(),
-            "failed to read WNF state data: data has wrong size (expected 0, got 2)"
+            "failed to read state data: data has wrong size (expected 0, got 2)"
         );
     }
 
@@ -591,7 +591,7 @@ mod tests {
         assert_eq!(err.kind(), ErrorKind::InvalidData);
         assert_eq!(
             err.to_string(),
-            "failed to read WNF state data: data has wrong size (expected 0, got 2)"
+            "failed to read state data: data has wrong size (expected 0, got 2)"
         );
     }
 
@@ -621,7 +621,7 @@ mod tests {
         assert_eq!(err.kind(), ErrorKind::InvalidData);
         assert_eq!(
             err.to_string(),
-            "failed to read WNF state data: data has wrong size (expected 4, got 2)"
+            "failed to read state data: data has wrong size (expected 4, got 2)"
         );
     }
 
@@ -639,7 +639,7 @@ mod tests {
         assert_eq!(err.kind(), ErrorKind::InvalidData);
         assert_eq!(
             err.to_string(),
-            "failed to read WNF state data: data has invalid bit pattern"
+            "failed to read state data: data has invalid bit pattern"
         );
     }
 
@@ -663,7 +663,7 @@ mod tests {
         assert_eq!(err.kind(), ErrorKind::InvalidData);
         assert_eq!(
             err.to_string(),
-            "failed to read WNF state data: data has wrong size (expected 4, got 2)"
+            "failed to read state data: data has wrong size (expected 4, got 2)"
         );
     }
 
@@ -678,7 +678,7 @@ mod tests {
         assert_eq!(err.kind(), ErrorKind::InvalidData);
         assert_eq!(
             err.to_string(),
-            "failed to read WNF state data: data has invalid bit pattern"
+            "failed to read state data: data has invalid bit pattern"
         );
     }
 
@@ -740,7 +740,7 @@ mod tests {
         assert_eq!(err.kind(), ErrorKind::InvalidData);
         assert_eq!(
             err.to_string(),
-            "failed to read WNF state data: data has wrong size (expected a multiple of 8, got 4)"
+            "failed to read state data: data has wrong size (expected a multiple of 8, got 4)"
         );
     }
 
@@ -758,7 +758,7 @@ mod tests {
         assert_eq!(err.kind(), ErrorKind::InvalidData);
         assert_eq!(
             err.to_string(),
-            "failed to read WNF state data: data has invalid bit pattern"
+            "failed to read state data: data has invalid bit pattern"
         );
     }
 
@@ -799,7 +799,7 @@ mod tests {
         assert_eq!(err.kind(), ErrorKind::InvalidData);
         assert_eq!(
             err.to_string(),
-            "failed to read WNF state data: data has wrong size (expected a multiple of 8, got 4)"
+            "failed to read state data: data has wrong size (expected a multiple of 8, got 4)"
         );
     }
 
@@ -814,7 +814,7 @@ mod tests {
         assert_eq!(err.kind(), ErrorKind::InvalidData);
         assert_eq!(
             err.to_string(),
-            "failed to read WNF state data: data has invalid bit pattern"
+            "failed to read state data: data has invalid bit pattern"
         );
     }
 

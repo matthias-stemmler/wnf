@@ -1,4 +1,4 @@
-//! Methods for subscribing to WNF state changes
+//! Methods for subscribing to state changes
 
 use std::ffi::c_void;
 use std::fmt::{Debug, Formatter};
@@ -11,19 +11,19 @@ use tracing::{debug, trace_span};
 use windows::core::GUID;
 use windows::Win32::Foundation::{NTSTATUS, STATUS_SUCCESS};
 
-use crate::data::{WnfChangeStamp, WnfStampedData};
+use crate::data::{ChangeStamp, StampedData};
 use crate::ntapi;
-use crate::read::WnfRead;
-use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
-use crate::state_name::WnfStateName;
+use crate::read::Read;
+use crate::state::{BorrowedState, OwnedState, RawState};
+use crate::state_name::StateName;
 
 /// The change stamp that a state listener has last seen
 ///
-/// The [`OwnedWnfState::subscribe`] and [`BorrowedWnfState::subscribe`] methods expect an argument of this type to
+/// The [`OwnedState::subscribe`] and [`BorrowedState::subscribe`] methods expect an argument of this type to
 /// indicate what change stamp of the state the listener has last seen. The listener will then only be notified about
 /// updates with a (strictly) larger change stamp, i.e. updates that happen after the one it has last seen.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
-pub enum WnfSeenChangeStamp {
+pub enum SeenChangeStamp {
     /// Indicates that a listener has not seen any change stamp
     ///
     /// When subscribing with this value, the listener will be notified once about the current data of the state (only
@@ -51,107 +51,99 @@ pub enum WnfSeenChangeStamp {
     /// updates regardless of the passed value.
     ///
     /// This is most useful if you have queried the state data before and are already holding a change stamp.
-    Value(WnfChangeStamp),
+    Value(ChangeStamp),
 }
 
-/// Types capable of listening to WNF state updates
+/// Types capable of listening to state updates
 ///
 /// Note that there is a blanket implementation of this trait for all closure types
-/// `F: FnMut(WnfDataAccessor<T>)`, so you usually don't need to implement this trait for your own types. It is useful,
-/// however, if you need a WNF state listener whose type you can name explicitly. Since closure types are anonymous, you
-/// can instead define your own type and implement [`WnfStateListener<T>`] for it.
-pub trait WnfStateListener<T>
+/// `F: FnMut(DataAccessor<T>)`, so you usually don't need to implement this trait for your own types. It is useful,
+/// however, if you need a state listener whose type you can name explicitly. Since closure types are anonymous, you
+/// can instead define your own type and implement [`StateListener<T>`] for it.
+pub trait StateListener<T>
 where
     T: ?Sized,
 {
-    /// Calls this WNF state listener
+    /// Calls this state listener
     ///
-    /// The provided [`WnfDataAccessor<T>`] can be used to obtain the state data at the time the update took place.
-    fn call(&mut self, accessor: WnfDataAccessor<T>);
+    /// The provided [`DataAccessor<T>`] can be used to obtain the state data at the time the update took place.
+    fn call(&mut self, accessor: DataAccessor<T>);
 }
 
-impl<F, T> WnfStateListener<T> for F
+impl<F, T> StateListener<T> for F
 where
-    F: FnMut(WnfDataAccessor<T>),
+    F: FnMut(DataAccessor<T>),
     T: ?Sized,
 {
-    fn call(&mut self, accessor: WnfDataAccessor<T>) {
+    fn call(&mut self, accessor: DataAccessor<T>) {
         self(accessor)
     }
 }
 
-impl<T> OwnedWnfState<T>
+impl<T> OwnedState<T>
 where
     T: ?Sized,
 {
-    /// Subscribes the given state listener to this [`OwnedWnfState<T>`]
+    /// Subscribes the given state listener to this [`OwnedState<T>`]
     ///
     /// The `last_seen_change_stamp` argument can be used to indicate what change stamp of the state you have last seen,
-    /// which has an impact on which state updates the listener is notified about. See [`WnfSeenChangeStamp`] for the
+    /// which has an impact on which state updates the listener is notified about. See [`SeenChangeStamp`] for the
     /// available options.
     ///
-    /// Note that the listener is automatically unsubscribed when the returned [`WnfSubscription<'a, F>`] is dropped. In
+    /// Note that the listener is automatically unsubscribed when the returned [`Subscription<'a, F>`] is dropped. In
     /// this case, errors while unsubscribing are silently ignored. If you want to handle them explicitly, use the
-    /// [`WnfSubscription::unsubscribe`] method, which returns an [`io::Result<()>`].
+    /// [`Subscription::unsubscribe`] method, which returns an [`io::Result<()>`].
     ///
     /// In any case, the listener will not be called anymore after unsubscribing, even when there is an error. However,
     /// in order to maintain memory safety, in the case of an error a value the size of a [`Mutex<Option<F>>`] is leaked
     /// on the heap. This should be fine in most cases, especially when `F` is small. Otherwise consider using a boxed
     /// closure.
-    pub fn subscribe<F>(
-        &self,
-        listener: F,
-        last_seen_change_stamp: WnfSeenChangeStamp,
-    ) -> io::Result<WnfSubscription<F>>
+    pub fn subscribe<F>(&self, listener: F, last_seen_change_stamp: SeenChangeStamp) -> io::Result<Subscription<F>>
     where
-        F: WnfStateListener<T> + Send + 'static,
+        F: StateListener<T> + Send + 'static,
     {
         self.raw.subscribe(listener, last_seen_change_stamp)
     }
 }
 
-impl<'a, T> BorrowedWnfState<'a, T>
+impl<'a, T> BorrowedState<'a, T>
 where
     T: ?Sized,
 {
-    /// Subscribes the given state listener to this [`BorrowedWnfState<'a, T>`]
+    /// Subscribes the given state listener to this [`BorrowedState<'a, T>`]
     ///
     /// The `last_seen_change_stamp` argument can be used to indicate what change stamp of the state you have last seen,
-    /// which has an impact on which state updates the listener is notified about. See [`WnfSeenChangeStamp`] for the
+    /// which has an impact on which state updates the listener is notified about. See [`SeenChangeStamp`] for the
     /// available options.
     ///
-    /// Note that the listener is automatically unsubscribed when the returned [`WnfSubscription<'a, F>`] is dropped. In
+    /// Note that the listener is automatically unsubscribed when the returned [`Subscription<'a, F>`] is dropped. In
     /// this case, errors while unsubscribing are silently ignored. If you want to handle them explicitly, use the
-    /// [`WnfSubscription::unsubscribe`] method, which returns an [`io::Result<()>`].
+    /// [`Subscription::unsubscribe`] method, which returns an [`io::Result<()>`].
     ///
     /// In any case, the listener will not be called anymore after unsubscribing, even when there is an error. However,
     /// in order to maintain memory safety, in the case of an error a value the size of a [`Mutex<Option<F>>`] is leaked
     /// on the heap. This should be fine in most cases, especially when `F` is small. Otherwise consider using a boxed
     /// closure.
-    pub fn subscribe<F>(
-        &self,
-        listener: F,
-        last_seen_change_stamp: WnfSeenChangeStamp,
-    ) -> io::Result<WnfSubscription<'a, F>>
+    pub fn subscribe<F>(&self, listener: F, last_seen_change_stamp: SeenChangeStamp) -> io::Result<Subscription<'a, F>>
     where
-        F: WnfStateListener<T> + Send + 'static,
+        F: StateListener<T> + Send + 'static,
     {
         self.raw.subscribe(listener, last_seen_change_stamp)
     }
 }
 
-impl<T> RawWnfState<T>
+impl<T> RawState<T>
 where
     T: ?Sized,
 {
-    /// Subscribes the given WNF state listener to this [`RawWnfState<T>`].
+    /// Subscribes the given state listener to this [`RawState<T>`].
     pub(crate) fn subscribe<'a, F>(
         &self,
         listener: F,
-        last_seen_change_stamp: WnfSeenChangeStamp,
-    ) -> io::Result<WnfSubscription<'a, F>>
+        last_seen_change_stamp: SeenChangeStamp,
+    ) -> io::Result<Subscription<'a, F>>
     where
-        F: WnfStateListener<T> + Send + 'static,
+        F: StateListener<T> + Send + 'static,
     {
         extern "system" fn callback<F, T>(
             state_name: u64,
@@ -162,14 +154,14 @@ where
             buffer_size: u32,
         ) -> NTSTATUS
         where
-            F: WnfStateListener<T> + Send + 'static,
+            F: StateListener<T> + Send + 'static,
             T: ?Sized,
         {
             let _ = panic::catch_unwind(|| {
                 let span = trace_span!(
                     target: ntapi::TRACING_TARGET,
                     "WnfUserCallback",
-                    input.state_name = %WnfStateName::from_opaque_value(state_name),
+                    input.state_name = %StateName::from_opaque_value(state_name),
                     input.change_stamp = change_stamp,
                     input.buffer_size = buffer_size
                 );
@@ -178,7 +170,7 @@ where
                 // SAFETY:
                 // (1) By the assumption on `RtlSubscribeWnfStateChangeNotification`, `context` is the pointer passed in
                 // the fifth argument of some successful call to that function. Let `subscription_handle` be the
-                // subscription handle returned from that call. Then `context` points to a `WnfSubscriptionContext<F>`
+                // subscription handle returned from that call. Then `context` points to a `SubscriptionContext<F>`
                 // holding this `subscription_handle`.
                 //
                 // (2) By
@@ -191,30 +183,30 @@ where
                 //     yet, or
                 // (b) all calls to `RtlUnsubscribeWnfStateChangeNotification` with `subscription_handle` have failed
                 //
-                // From (1), it follows that the `WnfSubscriptionContext<F>` was not dropped in the `subscribe` method
-                // but returned wrapped in a `WnfSubscription<'a, F>`.
+                // From (1), it follows that the `SubscriptionContext<F>` was not dropped in the `subscribe` method
+                // but returned wrapped in a `Subscription<'a, F>`.
                 //
-                // In case (a) we know that the `WnfSubscription<'a, F>` has not been dropped because dropping it would
+                // In case (a) we know that the `Subscription<'a, F>` has not been dropped because dropping it would
                 // have called `RtlUnsubscribeWnfStateChangeNotification` with `subscription_handle`. Hence the
-                // `WnfSubscriptionContext<F>` hasn't been dropped either.
+                // `SubscriptionContext<F>` hasn't been dropped either.
                 //
-                // In case (b) the `WnfSubscription<'a, F>` has been dropped but the `WnfSubscriptionContext<F>` it
+                // In case (b) the `Subscription<'a, F>` has been dropped but the `SubscriptionContext<F>` it
                 // contains has been leaked (see comment below).
                 //
-                // In any case, `context` points to a valid `WnfSubscriptionContext<F>`.
+                // In any case, `context` points to a valid `SubscriptionContext<F>`.
                 //
-                // (3) We may be on a different thread than the one that created the `WnfSubscriptionContext<F>`, but
-                // `F: Send` implies `WnfSubscriptionContext<F>: Send`.
+                // (3) We may be on a different thread than the one that created the `SubscriptionContext<F>`, but
+                // `F: Send` implies `SubscriptionContext<F>: Send`.
                 //
                 // (4) `F` outlives the lifetime of the produced reference because `F: 'static`.
-                let context: &WnfSubscriptionContext<F> = unsafe { &*context.cast() };
+                let context: &SubscriptionContext<F> = unsafe { &*context.cast() };
 
                 // SAFETY:
                 // - By the assumption on `RtlSubscribeWnfStateChangeNotification`, the assumption on `WnfUserCallback`
                 //   is satisfied
                 // - As `data` is dropped before `callback` returns, the assumption on `WnfUserCallback` then implies
-                //   the safety conditions of `WnfScopedData::new`
-                let data = unsafe { WnfScopedData::new(buffer, buffer_size as usize, change_stamp.into()) };
+                //   the safety conditions of `ScopedData::new`
+                let data = unsafe { ScopedData::new(buffer, buffer_size as usize, change_stamp.into()) };
 
                 context.with_listener(|listener| {
                     listener.call(data.accessor());
@@ -225,13 +217,13 @@ where
         }
 
         let change_stamp = match last_seen_change_stamp {
-            WnfSeenChangeStamp::None => WnfChangeStamp::initial(),
-            WnfSeenChangeStamp::Current => self.change_stamp()?,
-            WnfSeenChangeStamp::Value(value) => value,
+            SeenChangeStamp::None => ChangeStamp::initial(),
+            SeenChangeStamp::Current => self.change_stamp()?,
+            SeenChangeStamp::Value(value) => value,
         };
 
         let mut subscription_handle = ptr::null_mut();
-        let context = Box::new(WnfSubscriptionContext::new(listener));
+        let context = Box::new(SubscriptionContext::new(listener));
 
         // SAFETY:
         // - The pointer in the first argument is valid for writes of `*mut c_void` because it comes from a live mutable
@@ -246,7 +238,7 @@ where
                 self.state_name.opaque_value(),
                 change_stamp.into(),
                 callback::<F, T>,
-                &*context as *const WnfSubscriptionContext<F> as *mut c_void,
+                &*context as *const SubscriptionContext<F> as *mut c_void,
                 self.type_id.as_ptr(),
                 0,
                 0,
@@ -254,7 +246,7 @@ where
         };
 
         if result.is_ok() {
-            let subscription = WnfSubscription::new(context, subscription_handle);
+            let subscription = Subscription::new(context, subscription_handle);
 
             debug!(
                 target: ntapi::TRACING_TARGET,
@@ -284,24 +276,24 @@ where
 
 /// Handle to state data passed to state listeners
 ///
-/// Listeners receive a [`WnfDataAccessor<'a, T>`] in their [`WnfStateListener::call`] method. It can be used to obtain
+/// Listeners receive a [`DataAccessor<'a, T>`] in their [`StateListener::call`] method. It can be used to obtain
 /// the state data at the time the update took place.
 ///
-/// The lifetime parameter `'a` ties a [`WnfDataAccessor<'a, T>`] to the lifetime of the state data, which is only valid
+/// The lifetime parameter `'a` ties a [`DataAccessor<'a, T>`] to the lifetime of the state data, which is only valid
 /// within the scope of the call to the listener.
-pub struct WnfDataAccessor<'a, T>
+pub struct DataAccessor<'a, T>
 where
     T: ?Sized,
 {
-    data: WnfScopedData<T>,
+    data: ScopedData<T>,
     _marker: PhantomData<&'a ()>,
 }
 
 // We cannot derive this because that would impose an unnecessary trait bound `T: Copy`
-impl<T> Copy for WnfDataAccessor<'_, T> where T: ?Sized {}
+impl<T> Copy for DataAccessor<'_, T> where T: ?Sized {}
 
 // We cannot derive this because that would impose an unnecessary trait bound `T: Clone`
-impl<T> Clone for WnfDataAccessor<'_, T>
+impl<T> Clone for DataAccessor<'_, T>
 where
     T: ?Sized,
 {
@@ -311,38 +303,38 @@ where
 }
 
 // We cannot derive this because that would impose an unnecessary trait bound `T: Debug`
-impl<T> Debug for WnfDataAccessor<'_, T>
+impl<T> Debug for DataAccessor<'_, T>
 where
     T: ?Sized,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("WnfDataAccessor").field("data", &self.data).finish()
+        f.debug_struct("DataAccessor").field("data", &self.data).finish()
     }
 }
 
 /// State data that is only valid within a certain scope
 ///
-/// This is used to tie the lifetime `'a` of a [`WnfDataAccessor<'a, T>`] to the scope of a call to the listener.
-/// This is not to be confused with [`WnfDataScope`].
-struct WnfScopedData<T>
+/// This is used to tie the lifetime `'a` of a [`DataAccessor<'a, T>`] to the scope of a call to the listener.
+/// This is not to be confused with [`DataScope`].
+struct ScopedData<T>
 where
     T: ?Sized,
 {
     buffer: *const c_void,
     buffer_size: usize,
-    change_stamp: WnfChangeStamp,
+    change_stamp: ChangeStamp,
     _marker: PhantomData<fn() -> T>,
 }
 
 // SAFETY:
 // The `buffer` pointer is only used for reading data, which is safe to do from any thread
-unsafe impl<T> Send for WnfScopedData<T> where T: ?Sized {}
+unsafe impl<T> Send for ScopedData<T> where T: ?Sized {}
 
 // We cannot derive this because that would impose an unnecessary trait bound `T: Copy`
-impl<T> Copy for WnfScopedData<T> where T: ?Sized {}
+impl<T> Copy for ScopedData<T> where T: ?Sized {}
 
 // We cannot derive this because that would impose an unnecessary trait bound `T: Clone`
-impl<T> Clone for WnfScopedData<T>
+impl<T> Clone for ScopedData<T>
 where
     T: ?Sized,
 {
@@ -352,12 +344,12 @@ where
 }
 
 // We cannot derive this because that would impose an unnecessary trait bound `T: Debug`
-impl<T> Debug for WnfScopedData<T>
+impl<T> Debug for ScopedData<T>
 where
     T: ?Sized,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("WnfScopedData")
+        f.debug_struct("ScopedData")
             .field("buffer", &self.buffer)
             .field("buffer_size", &self.buffer_size)
             .field("change_stamp", &self.change_stamp)
@@ -365,17 +357,17 @@ where
     }
 }
 
-impl<T> WnfScopedData<T>
+impl<T> ScopedData<T>
 where
     T: ?Sized,
 {
-    /// Creates a new [`WnfScopedData<T>`] with the given `buffer`, `buffer_size` and `change_stamp`.
+    /// Creates a new [`ScopedData<T>`] with the given `buffer`, `buffer_size` and `change_stamp`.
     ///
     /// # Safety
-    /// As long as the instance of [`WnfScopedData<T>`] is live:
+    /// As long as the instance of [`ScopedData<T>`] is live:
     /// - `buffer` must be valid for reads of size `buffer_size`
     /// - the memory range of size `buffer_size` starting at `buffer` must be initialized
-    unsafe fn new(buffer: *const c_void, buffer_size: usize, change_stamp: WnfChangeStamp) -> Self {
+    unsafe fn new(buffer: *const c_void, buffer_size: usize, change_stamp: ChangeStamp) -> Self {
         Self {
             buffer,
             buffer_size,
@@ -384,24 +376,24 @@ where
         }
     }
 
-    /// Obtains a [`WnfDataAccessor<'a, T>`] for this [`WnfScopedData<T>`].
+    /// Obtains a [`DataAccessor<'a, T>`] for this [`ScopedData<T>`].
     ///
-    /// The lifetime parameter `'a` of the returned [`WnfDataAccessor<'a, T>`] is the lifetime of the reference to this
-    /// [`WnfScopedData<T>`], making sure the [`WnfDataAccessor<'a, T>`] can only be used as long as this
-    /// [`WnfDataScope<T>`] is live.
-    fn accessor(&self) -> WnfDataAccessor<T> {
-        WnfDataAccessor {
+    /// The lifetime parameter `'a` of the returned [`DataAccessor<'a, T>`] is the lifetime of the reference to this
+    /// [`ScopedData<T>`], making sure the [`DataAccessor<'a, T>`] can only be used as long as this
+    /// [`DataScope<T>`] is live.
+    fn accessor(&self) -> DataAccessor<T> {
+        DataAccessor {
             data: *self,
             _marker: PhantomData,
         }
     }
 
-    /// Casts the data type of this [`WnfScopedData<T>`] to a different type `U`
+    /// Casts the data type of this [`ScopedData<T>`] to a different type `U`
     ///
-    /// The returned [`WnfScopedData<U>`] represents the same underlying data, but treats them as being of a different
+    /// The returned [`ScopedData<U>`] represents the same underlying data, but treats them as being of a different
     /// type `U`.
-    fn cast<U>(self) -> WnfScopedData<U> {
-        WnfScopedData {
+    fn cast<U>(self) -> ScopedData<U> {
+        ScopedData {
             buffer: self.buffer,
             buffer_size: self.buffer_size,
             change_stamp: self.change_stamp,
@@ -410,180 +402,180 @@ where
     }
 }
 
-impl<'a, T> WnfDataAccessor<'a, T>
+impl<'a, T> DataAccessor<'a, T>
 where
     T: ?Sized,
 {
-    /// Casts the data type of this [`WnfDataAccessor<'a, T>`] to a different type `U`
+    /// Casts the data type of this [`DataAccessor<'a, T>`] to a different type `U`
     ///
-    /// The returned [`WnfDataAccessor<'a, U>`] represents the same underlying data, but treats them as being of a
+    /// The returned [`DataAccessor<'a, U>`] represents the same underlying data, but treats them as being of a
     /// different type `U`.
-    pub fn cast<U>(self) -> WnfDataAccessor<'a, U> {
-        WnfDataAccessor {
+    pub fn cast<U>(self) -> DataAccessor<'a, U> {
+        DataAccessor {
             data: self.data.cast(),
             _marker: PhantomData,
         }
     }
 
-    /// Queries the change stamp of this [`WnfDataAccessor<'a, T>`]
+    /// Queries the change stamp of this [`DataAccessor<'a, T>`]
     ///
-    /// The change stamp returned by this method is the change stamp of the underlying WNF state for the update that
-    /// caused the listener call to which this [`WnfDataAccessor<'a, T>`] was passed. Note that in contrast to
-    /// [`OwnedWnfState::change_stamp`] or [`BorrowedWnfState::change_stamp`], this does not involve an OS call.
-    pub fn change_stamp(self) -> WnfChangeStamp {
+    /// The change stamp returned by this method is the change stamp of the underlying state for the update that
+    /// caused the listener call to which this [`DataAccessor<'a, T>`] was passed. Note that in contrast to
+    /// [`OwnedState::change_stamp`] or [`BorrowedState::change_stamp`], this does not involve an OS call.
+    pub fn change_stamp(self) -> ChangeStamp {
         self.data.change_stamp
     }
 }
 
-impl<T> WnfDataAccessor<'_, T>
+impl<T> DataAccessor<'_, T>
 where
-    T: WnfRead<T>,
+    T: Read<T>,
 {
-    /// Queries the data of this [`WnfDataAccessor<'a, T>`]
+    /// Queries the data of this [`DataAccessor<'a, T>`]
     ///
     /// This produces an owned `T` on the stack and hence requires `T: Sized`. In order to produce a `Box<T>` for
-    /// `T: ?Sized`, use the [`get_boxed`](WnfDataAccessor::get_boxed) method.
+    /// `T: ?Sized`, use the [`get_boxed`](DataAccessor::get_boxed) method.
     ///
     /// This returns the data of the accessor without a change stamp. In order to query both the data and the change
-    /// stamp, use the [`query`](WnfDataAccessor::query) method.
+    /// stamp, use the [`query`](DataAccessor::query) method.
     ///
-    /// The data returned by this method is the data of the underlying WNF state for the update that caused the listener
-    /// call to which this [`WnfDataAccessor<'a, T>`] was passed. Note that in contrast to [`OwnedWnfState::get`] or
-    /// [`BorrowedWnfState::get`], this does not involve an OS call.
+    /// The data returned by this method is the data of the underlying state for the update that caused the listener
+    /// call to which this [`DataAccessor<'a, T>`] was passed. Note that in contrast to [`OwnedState::get`] or
+    /// [`BorrowedState::get`], this does not involve an OS call.
     pub fn get(self) -> io::Result<T> {
         self.get_as()
     }
 
-    /// Queries the data of this [`WnfDataAccessor<'a, T>`] together with its change stamp
+    /// Queries the data of this [`DataAccessor<'a, T>`] together with its change stamp
     ///
     /// This produces an owned `T` on the stack and hence requires `T: Sized`. In order to produce a `Box<T>` for
-    /// `T: ?Sized`, use the [`query_boxed`](WnfDataAccessor::query_boxed) method.
+    /// `T: ?Sized`, use the [`query_boxed`](DataAccessor::query_boxed) method.
     ///
-    /// This returns the data of the accessor together with its change stamp as a [`WnfStampedData<T>`]. In order to
-    /// only query the data, use the [`get`](WnfDataAccessor::get) method.
+    /// This returns the data of the accessor together with its change stamp as a [`StampedData<T>`]. In order to
+    /// only query the data, use the [`get`](DataAccessor::get) method.
     ///
-    /// The data returned by this method is the data of the underlying WNF state for the update that caused the listener
-    /// call to which this [`WnfDataAccessor<'a, T>`] was passed. Note that in contrast to [`OwnedWnfState::query`] or
-    /// [`BorrowedWnfState::query`], this does not involve an OS call.
-    pub fn query(self) -> io::Result<WnfStampedData<T>> {
+    /// The data returned by this method is the data of the underlying state for the update that caused the listener
+    /// call to which this [`DataAccessor<'a, T>`] was passed. Note that in contrast to [`OwnedState::query`] or
+    /// [`BorrowedState::query`], this does not involve an OS call.
+    pub fn query(self) -> io::Result<StampedData<T>> {
         self.query_as()
     }
 }
 
-impl<T> WnfDataAccessor<'_, T>
+impl<T> DataAccessor<'_, T>
 where
-    T: WnfRead<Box<T>> + ?Sized,
+    T: Read<Box<T>> + ?Sized,
 {
-    /// Queries the data of this [`WnfDataAccessor<'a, T>`] as a box
+    /// Queries the data of this [`DataAccessor<'a, T>`] as a box
     ///
     /// This produces a [`Box<T>`]. In order to produce an owned `T` on the stack (requiring `T: Sized`), use the
-    /// [`get`](WnfDataAccessor::get) method.
+    /// [`get`](DataAccessor::get) method.
     ///
     /// This returns the data of the accessor without a change stamp. In order to query both the data and the change
-    /// stamp, use the [`query_boxed`](WnfDataAccessor::query_boxed) method.
+    /// stamp, use the [`query_boxed`](DataAccessor::query_boxed) method.
     ///
-    /// The data returned by this method is the data of the underlying WNF state for the update that caused the listener
-    /// call to which this [`WnfDataAccessor<'a, T>`] was passed. Note that in contrast to [`OwnedWnfState::get_boxed`]
-    /// or [`BorrowedWnfState::get_boxed`], this does not involve an OS call.
+    /// The data returned by this method is the data of the underlying state for the update that caused the listener
+    /// call to which this [`DataAccessor<'a, T>`] was passed. Note that in contrast to [`OwnedState::get_boxed`]
+    /// or [`BorrowedState::get_boxed`], this does not involve an OS call.
     pub fn get_boxed(self) -> io::Result<Box<T>> {
         self.get_as()
     }
 
-    /// Queries the data of this [`WnfDataAccessor<'a, T>`] as a box together with its change stamp
+    /// Queries the data of this [`DataAccessor<'a, T>`] as a box together with its change stamp
     ///
     /// This produces a [`Box<T>`]. In order to produce an owned `T` on the stack (requiring `T: Sized`), use the
-    /// [`query`](WnfDataAccessor::query) method.
+    /// [`query`](DataAccessor::query) method.
     ///
-    /// This returns the data of the accessor together with its change stamp as a [`WnfStampedData<Box<T>>`]. In order
-    /// to only query the data, use the [`get_boxed`](OwnedWnfState::get_boxed) method.
+    /// This returns the data of the accessor together with its change stamp as a [`StampedData<Box<T>>`]. In order
+    /// to only query the data, use the [`get_boxed`](OwnedState::get_boxed) method.
     ///
-    /// The data returned by this method is the data of the underlying WNF state for the update that caused the listener
-    /// call to which this [`WnfDataAccessor<'a, T>`] was passed. Note that in contrast to
-    /// [`OwnedWnfState::query_boxed`] or [`BorrowedWnfState::query_boxed`], this does not involve an OS call.
-    pub fn query_boxed(self) -> io::Result<WnfStampedData<Box<T>>> {
+    /// The data returned by this method is the data of the underlying state for the update that caused the listener
+    /// call to which this [`DataAccessor<'a, T>`] was passed. Note that in contrast to
+    /// [`OwnedState::query_boxed`] or [`BorrowedState::query_boxed`], this does not involve an OS call.
+    pub fn query_boxed(self) -> io::Result<StampedData<Box<T>>> {
         self.query_as()
     }
 }
 
-impl<T> WnfDataAccessor<'_, T>
+impl<T> DataAccessor<'_, T>
 where
     T: ?Sized,
 {
-    /// Queries the data of this [`WnfDataAccessor<'a, T>`] as a value of type `D` without a change stamp
+    /// Queries the data of this [`DataAccessor<'a, T>`] as a value of type `D` without a change stamp
     ///
     /// If `T: Sized`, then `D` can be either `T` or `Box<T>`.
     /// If `T: !Sized`, then `D` must be `Box<T>`.
     pub(crate) fn get_as<D>(self) -> io::Result<D>
     where
-        T: WnfRead<D>,
+        T: Read<D>,
     {
         // SAFETY:
-        // - `self` was obtained from a `WnfScopedData<T>` through `WnfScopedData::accessor`, which ties the lifetime
-        //   parameter `'a` of `WnfDataAccessor<'a, T>` to the lifetime of the `WnfScopedData<T>`, so the
-        //   `WnfScopedData<T>` is still live
-        // - `self.data` is a copy of this `WnfScopedData<T>`, which was created through `WnfScopedData::new`
-        // - The safety conditions of `WnfScopedData::new` then imply those of `T::from_buffer`
+        // - `self` was obtained from a `ScopedData<T>` through `ScopedData::accessor`, which ties the lifetime
+        //   parameter `'a` of `DataAccessor<'a, T>` to the lifetime of the `ScopedData<T>`, so the
+        //   `ScopedData<T>` is still live
+        // - `self.data` is a copy of this `ScopedData<T>`, which was created through `ScopedData::new`
+        // - The safety conditions of `ScopedData::new` then imply those of `T::from_buffer`
         unsafe { T::from_buffer(self.data.buffer, self.data.buffer_size) }
     }
 
-    /// Queries the data of this [`WnfDataAccessor<'a, T>`] as a value of type `D` together with its change stamp
+    /// Queries the data of this [`DataAccessor<'a, T>`] as a value of type `D` together with its change stamp
     ///
     /// If `T: Sized`, then `D` can be either `T` or `Box<T>`.
     /// If `T: !Sized`, then `D` must be `Box<T>`.
-    pub(crate) fn query_as<D>(self) -> io::Result<WnfStampedData<D>>
+    pub(crate) fn query_as<D>(self) -> io::Result<StampedData<D>>
     where
-        T: WnfRead<D>,
+        T: Read<D>,
     {
-        Ok(WnfStampedData::from_data_change_stamp(
+        Ok(StampedData::from_data_change_stamp(
             self.get_as()?,
             self.data.change_stamp,
         ))
     }
 }
 
-/// A subscription of a listener to updates of a WNF state
+/// A subscription of a listener to updates of a state
 ///
-/// This is returned from [`OwnedWnfState::subscribe`] and [`BorrowedWnfState::subscribe`].
+/// This is returned from [`OwnedState::subscribe`] and [`BorrowedState::subscribe`].
 ///
-/// Note that the listener is automatically unsubscribed when the [`WnfSubscription<'a, F>`] is dropped. In
+/// Note that the listener is automatically unsubscribed when the [`Subscription<'a, F>`] is dropped. In
 /// this case, errors while unsubscribing are silently ignored. If you want to handle them explicitly, use the
-/// [`WnfSubscription::unsubscribe`] method, which returns an [`io::Result<()>`]. Note that the listener will not be
+/// [`Subscription::unsubscribe`] method, which returns an [`io::Result<()>`]. Note that the listener will not be
 /// called anymore after unsubscribing, even when there is an error.
 ///
-/// If you want to keep the subscription for as long as the process is running and the WNF state exists, use the
-/// [`WnfSubscription::forget`] method.
-#[must_use = "a `WnfSubscription` is unsubscribed immediately if it is not used"]
-pub struct WnfSubscription<'a, F> {
-    inner: Option<WnfSubscriptionInner<F>>,
+/// If you want to keep the subscription for as long as the process is running and the state exists, use the
+/// [`Subscription::forget`] method.
+#[must_use = "a `Subscription` is unsubscribed immediately if it is not used"]
+pub struct Subscription<'a, F> {
+    inner: Option<SubscriptionInner<F>>,
     _marker: PhantomData<&'a ()>,
 }
 
-impl<F> WnfSubscription<'_, F> {
-    /// Forgets this [`WnfSubscription<'_, F>`], effectively keeping it forever
+impl<F> Subscription<'_, F> {
+    /// Forgets this [`Subscription<'_, F>`], effectively keeping it forever
     ///
-    /// When a [`WnfSubscription<'a, F>`] is dropped, the listener is unsubscribed. You can avoid this behavior by
-    /// calling this method. It consumes the [`WnfSubscription<'a, F>`] without dropping it, effectively keeping the
-    /// subscription for as long as the process is running and the WNF state exists.
+    /// When a [`Subscription<'a, F>`] is dropped, the listener is unsubscribed. You can avoid this behavior by
+    /// calling this method. It consumes the [`Subscription<'a, F>`] without dropping it, effectively keeping the
+    /// subscription for as long as the process is running and the state exists.
     pub fn forget(self) {
         mem::forget(self);
     }
 
-    /// Unsubscribes the listener for thie [`WnfSubscription<'a, F>`]
+    /// Unsubscribes the listener for thie [`Subscription<'a, F>`]
     ///
-    /// This happens automatically when the [`WnfSubscription<'a, F>`] is dropped (unless you call
-    /// [`WnfSubscription::forget`]), so there is usually no need to call this method. Its only purpose is to enable you
+    /// This happens automatically when the [`Subscription<'a, F>`] is dropped (unless you call
+    /// [`Subscription::forget`]), so there is usually no need to call this method. Its only purpose is to enable you
     /// to handle errors while unsubscribing. Note that the listener will not be called anymore after unsubscribing,
     /// even when there is an error.
     pub fn unsubscribe(mut self) -> io::Result<()> {
         self.try_unsubscribe()
     }
 
-    /// Creates a new [`WnfSubscription<'a, F>`] from the given context and subscription handle
+    /// Creates a new [`Subscription<'a, F>`] from the given context and subscription handle
     ///
     /// Note that the lifetime `'a` is inferred at the call site.
-    fn new(context: Box<WnfSubscriptionContext<F>>, subscription_handle: *mut c_void) -> Self {
+    fn new(context: Box<SubscriptionContext<F>>, subscription_handle: *mut c_void) -> Self {
         Self {
-            inner: Some(WnfSubscriptionInner {
+            inner: Some(SubscriptionInner {
                 context: ManuallyDrop::new(context),
                 subscription_handle,
             }),
@@ -611,7 +603,7 @@ impl<F> WnfSubscription<'_, F> {
                 ManuallyDrop::into_inner(inner.context);
             } else {
                 // In case of an error, we do not call `ManuallyDrop::into_inner`, leaking the
-                // `Box<WnfSubscriptionContext<F>>`
+                // `Box<SubscriptionContext<F>>`
                 inner.context.clear();
             }
 
@@ -622,16 +614,16 @@ impl<F> WnfSubscription<'_, F> {
     }
 }
 
-impl<F> Drop for WnfSubscription<'_, F> {
+impl<F> Drop for Subscription<'_, F> {
     fn drop(&mut self) {
         let _ = self.try_unsubscribe();
     }
 }
 
 // We cannot derive this because that would impose an unnecessary trait bound `F: Debug`
-impl<F> Debug for WnfSubscription<'_, F> {
+impl<F> Debug for Subscription<'_, F> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("WnfSubscription")
+        f.debug_struct("Subscription")
             .field(
                 "subscription_handle",
                 &self.inner.as_ref().map(|inner| inner.subscription_handle),
@@ -640,29 +632,29 @@ impl<F> Debug for WnfSubscription<'_, F> {
     }
 }
 
-/// The inner value of a [`WnfSubscription<'a, F>`]
+/// The inner value of a [`Subscription<'a, F>`]
 ///
-/// Unlike [`WnfSubscription<'a, F>`], this does not have a lifetime and is not optional.
-struct WnfSubscriptionInner<F> {
-    context: ManuallyDrop<Box<WnfSubscriptionContext<F>>>,
+/// Unlike [`Subscription<'a, F>`], this does not have a lifetime and is not optional.
+struct SubscriptionInner<F> {
+    context: ManuallyDrop<Box<SubscriptionContext<F>>>,
     subscription_handle: *mut c_void,
 }
 
 // SAFETY:
 // By the assumptions on `RtlUnsubscribeWnfStateChangeNotification`, it is safe to call it with a `subscription_handle`
 // originating from a different thread
-unsafe impl<F> Send for WnfSubscriptionInner<F> where F: Send {}
+unsafe impl<F> Send for SubscriptionInner<F> where F: Send {}
 
 // We cannot derive this because that would impose an unnecessary trait bound `F: Debug`
-impl<F> Debug for WnfSubscriptionInner<F> {
+impl<F> Debug for SubscriptionInner<F> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("WnfSubscriptionInner")
+        f.debug_struct("SubscriptionInner")
             .field("subscription_handle", &self.subscription_handle)
             .finish()
     }
 }
 
-/// The context of a WNF subscription
+/// The context of a subscription
 ///
 /// This will be leaked on the heap in case unsubscribing fails.
 ///
@@ -673,16 +665,16 @@ impl<F> Debug for WnfSubscriptionInner<F> {
 ///
 /// Note that case 2) does not actually happen in practice because the WNF API runs all listener within a process
 /// sequentially on a single thread. However, we don't have to assume this because we need the mutex for case 1) anyway.
-struct WnfSubscriptionContext<F>(Mutex<Option<F>>);
+struct SubscriptionContext<F>(Mutex<Option<F>>);
 
 // We cannot derive this because that would impose an unnecessary trait bound `F: Debug`
-impl<F> Debug for WnfSubscriptionContext<F> {
+impl<F> Debug for SubscriptionContext<F> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("WnfSubscriptionContext").field(&"..").finish()
+        f.debug_tuple("SubscriptionContext").field(&"..").finish()
     }
 }
 
-impl<F> WnfSubscriptionContext<F> {
+impl<F> SubscriptionContext<F> {
     /// Creates a new context from the given listener
     fn new(listener: F) -> Self {
         Self(Mutex::new(Some(listener)))

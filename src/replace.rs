@@ -3,70 +3,70 @@
 use std::io;
 
 use crate::bytes::NoUninit;
-use crate::read::WnfRead;
-use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
+use crate::read::Read;
+use crate::state::{BorrowedState, OwnedState, RawState};
 
-impl<T> OwnedWnfState<T>
+impl<T> OwnedState<T>
 where
-    T: WnfRead<T> + NoUninit,
+    T: Read<T> + NoUninit,
 {
     pub fn replace(&self, new_value: &T) -> io::Result<T> {
         self.raw.replace(new_value)
     }
 }
 
-impl<T> OwnedWnfState<T>
+impl<T> OwnedState<T>
 where
-    T: WnfRead<Box<T>> + NoUninit + ?Sized,
+    T: Read<Box<T>> + NoUninit + ?Sized,
 {
     pub fn replace_boxed(&self, new_value: &T) -> io::Result<Box<T>> {
         self.raw.replace_boxed(new_value)
     }
 }
 
-impl<T> BorrowedWnfState<'_, T>
+impl<T> BorrowedState<'_, T>
 where
-    T: WnfRead<T> + NoUninit,
+    T: Read<T> + NoUninit,
 {
     pub fn replace(self, new_value: &T) -> io::Result<T> {
         self.raw.replace(new_value)
     }
 }
 
-impl<T> BorrowedWnfState<'_, T>
+impl<T> BorrowedState<'_, T>
 where
-    T: WnfRead<Box<T>> + NoUninit + ?Sized,
+    T: Read<Box<T>> + NoUninit + ?Sized,
 {
     pub fn replace_boxed(self, new_value: &T) -> io::Result<Box<T>> {
         self.raw.replace_boxed(new_value)
     }
 }
 
-impl<T> RawWnfState<T>
+impl<T> RawState<T>
 where
-    T: WnfRead<T> + NoUninit,
+    T: Read<T> + NoUninit,
 {
     fn replace(self, new_value: &T) -> io::Result<T> {
         self.replace_as(new_value)
     }
 }
 
-impl<T> RawWnfState<T>
+impl<T> RawState<T>
 where
-    T: WnfRead<Box<T>> + NoUninit + ?Sized,
+    T: Read<Box<T>> + NoUninit + ?Sized,
 {
     fn replace_boxed(self, new_value: &T) -> io::Result<Box<T>> {
         self.replace_as(new_value)
     }
 }
 
-impl<T> RawWnfState<T>
+impl<T> RawState<T>
 where
     T: ?Sized,
 {
     fn replace_as<D>(self, new_value: &T) -> io::Result<D>
     where
-        T: WnfRead<D> + NoUninit,
+        T: Read<D> + NoUninit,
     {
         let mut old_value = None;
         self.apply_as(|value| {

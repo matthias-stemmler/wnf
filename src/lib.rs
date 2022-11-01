@@ -11,20 +11,20 @@ compile_error!("The `wnf` crate supports Windows only");
 extern crate num_derive;
 
 pub use bytes::*;
-pub use data::{WnfChangeStamp, WnfOpaqueData, WnfStampedData};
+pub use data::{ChangeStamp, OpaqueData, StampedData};
 pub use manage::{
-    TryIntoSecurityDescriptor, UnspecifiedLifetime, UnspecifiedScope, UnspecifiedSecurityDescriptor,
-    WnfCreatableStateLifetime, WnfStateCreation, MAXIMUM_STATE_SIZE,
+    CreatableStateLifetime, StateCreation, TryIntoSecurityDescriptor, UnspecifiedLifetime, UnspecifiedScope,
+    UnspecifiedSecurityDescriptor, MAXIMUM_STATE_SIZE,
 };
 pub use privilege::can_create_permanent_shared_objects;
-pub use read::{WnfRead, WnfReadError};
+pub use read::{Read, ReadError};
 pub use security::{BoxedSecurityDescriptor, SecurityDescriptor};
-pub use state::{AsWnfState, BorrowedWnfState, OwnedWnfState};
+pub use state::{AsState, BorrowedState, OwnedState};
 pub use state_name::{
-    WnfDataScope, WnfStateName, WnfStateNameDescriptor, WnfStateNameDescriptorFromStateNameError,
-    WnfStateNameFromDescriptorError, WnfStateNameLifetime,
+    DataScope, StateName, StateNameDescriptor, StateNameDescriptorFromStateNameError, StateNameFromDescriptorError,
+    StateNameLifetime,
 };
-pub use subscribe::{WnfDataAccessor, WnfSeenChangeStamp, WnfStateListener, WnfSubscription};
+pub use subscribe::{DataAccessor, SeenChangeStamp, StateListener, Subscription};
 pub use type_id::GUID;
 
 mod apply;

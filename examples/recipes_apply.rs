@@ -4,13 +4,13 @@ use std::thread;
 use tracing::info;
 use tracing_subscriber::filter::LevelFilter;
 
-use wnf::OwnedWnfState;
+use wnf::OwnedState;
 
 fn main() {
     tracing_subscriber::fmt().with_max_level(LevelFilter::DEBUG).init();
 
-    let state = Arc::new(OwnedWnfState::<u32>::create_temporary().expect("Failed to create temporary WNF state"));
-    state.set(&0).expect("Failed to set WNF state data");
+    let state = Arc::new(OwnedState::<u32>::create_temporary().expect("Failed to create temporary state"));
+    state.set(&0).expect("Failed to set state data");
 
     let mut handles = Vec::new();
 
@@ -21,7 +21,7 @@ fn main() {
             for _ in 0..5 {
                 state
                     .apply(|v| v + 1)
-                    .expect("Failed to apply transformation to WNF state data");
+                    .expect("Failed to apply transformation to state data");
             }
         }));
     }
@@ -30,6 +30,6 @@ fn main() {
         handle.join().expect("Failed to join thread");
     }
 
-    let data = state.get().expect("Failed to get WNF state data");
+    let data = state.get().expect("Failed to get state data");
     info!(data);
 }

@@ -1,4 +1,4 @@
-//! Methods for updating WNF state data
+//! Methods for updating state data
 
 use std::ffi::c_void;
 use std::{io, mem, ptr};
@@ -7,76 +7,76 @@ use tracing::debug;
 use windows::Win32::Foundation::{NTSTATUS, STATUS_UNSUCCESSFUL};
 
 use crate::bytes::NoUninit;
-use crate::data::WnfChangeStamp;
+use crate::data::ChangeStamp;
 use crate::ntapi;
-use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
+use crate::state::{BorrowedState, OwnedState, RawState};
 
-impl<T> OwnedWnfState<T>
+impl<T> OwnedState<T>
 where
     T: NoUninit + ?Sized,
 {
-    /// Updates the data of this WNF state with the given value
+    /// Updates the data of this state with the given value
     ///
-    /// The update is performed regardless of the current change stamp of the WNF state. In order to perform the update
-    /// conditionally based on the change stamp, use the [`update`](OwnedWnfState::update) method.
+    /// The update is performed regardless of the current change stamp of the state. In order to perform the update
+    /// conditionally based on the change stamp, use the [`update`](OwnedState::update) method.
     pub fn set(&self, data: &T) -> io::Result<()> {
         self.raw.set(data)
     }
 
-    /// Updates the data of this WNF state with the given value
+    /// Updates the data of this state with the given value
     ///
-    /// The update is only performed if the change stamp of the WNF state before the update matches the given
+    /// The update is only performed if the change stamp of the state before the update matches the given
     /// `expected_change_stamp`. In this case, the method returns `true`. Otherwise, the update is not performed and the
     /// method returns `false`.
     ///
-    /// In order to update the data without checking the change stamp, use the [`set`](OwnedWnfState::set) method.
-    pub fn update(&self, data: &T, expected_change_stamp: WnfChangeStamp) -> io::Result<bool> {
+    /// In order to update the data without checking the change stamp, use the [`set`](OwnedState::set) method.
+    pub fn update(&self, data: &T, expected_change_stamp: ChangeStamp) -> io::Result<bool> {
         self.raw.update(data, expected_change_stamp)
     }
 }
 
-impl<T> BorrowedWnfState<'_, T>
+impl<T> BorrowedState<'_, T>
 where
     T: NoUninit + ?Sized,
 {
-    /// Updates the data of this WNF state with the given value
+    /// Updates the data of this state with the given value
     ///
-    /// The update is performed regardless of the current change stamp of the WNF state. In order to perform the update
-    /// conditionally based on the change stamp, use the [`update`](OwnedWnfState::update) method.
+    /// The update is performed regardless of the current change stamp of the state. In order to perform the update
+    /// conditionally based on the change stamp, use the [`update`](OwnedState::update) method.
     pub fn set(self, data: &T) -> io::Result<()> {
         self.raw.set(data)
     }
 
-    /// Updates the data of this WNF state with the given value
+    /// Updates the data of this state with the given value
     ///
-    /// The update is only performed if the change stamp of the WNF state before the update matches the given
+    /// The update is only performed if the change stamp of the state before the update matches the given
     /// `expected_change_stamp`. In this case, the method returns `true`. Otherwise, the update is not performed and the
     /// method returns `false`.
     ///
-    /// In order to update the data without checking the change stamp, use the [`set`](OwnedWnfState::set) method.
-    pub fn update(self, data: &T, expected_change_stamp: WnfChangeStamp) -> io::Result<bool> {
+    /// In order to update the data without checking the change stamp, use the [`set`](OwnedState::set) method.
+    pub fn update(self, data: &T, expected_change_stamp: ChangeStamp) -> io::Result<bool> {
         self.raw.update(data, expected_change_stamp)
     }
 }
 
-impl<T> RawWnfState<T>
+impl<T> RawState<T>
 where
     T: NoUninit + ?Sized,
 {
-    /// Updates the data of this WNF state with the given value
+    /// Updates the data of this state with the given value
     ///
-    /// The update is performed regardless of the current change stamp of the WNF state.
+    /// The update is performed regardless of the current change stamp of the state.
     fn set(self, data: &T) -> io::Result<()> {
         self.update_internal(data, None).ok()?;
         Ok(())
     }
 
-    /// Updates the data of this WNF state with the given value
+    /// Updates the data of this state with the given value
     ///
-    /// The update is only performed if the change stamp of the WNF state before the update matches the given
+    /// The update is only performed if the change stamp of the state before the update matches the given
     /// `expected_change_stamp`. In this case, the method returns `true`. Otherwise, the update is not performed and the
     /// method returns `false`.
-    pub(crate) fn update(self, data: &T, expected_change_stamp: WnfChangeStamp) -> io::Result<bool> {
+    pub(crate) fn update(self, data: &T, expected_change_stamp: ChangeStamp) -> io::Result<bool> {
         let result = self.update_internal(data, Some(expected_change_stamp));
 
         Ok(if result == STATUS_UNSUCCESSFUL {
@@ -87,7 +87,7 @@ where
         })
     }
 
-    fn update_internal(self, data: &T, expected_change_stamp: Option<WnfChangeStamp>) -> NTSTATUS {
+    fn update_internal(self, data: &T, expected_change_stamp: Option<ChangeStamp>) -> NTSTATUS {
         let buffer_size = mem::size_of_val(data) as u32;
         let matching_change_stamp = expected_change_stamp.unwrap_or_default().into();
         let check_stamp = expected_change_stamp.is_some() as u32;

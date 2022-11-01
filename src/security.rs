@@ -19,7 +19,7 @@ use crate::util::CWideString;
 /// Since the layout of security descriptors is unstable, this is an *opaque type*, meaning it is only meant to be used
 /// behind a reference or pointer.
 ///
-/// Creating a new WNF state requires providing a security descriptor. See [`WnfStateCreation::security_descriptor`] for
+/// Creating a new state requires providing a security descriptor. See [`StateCreation::security_descriptor`] for
 /// details on how to do that.
 ///
 /// See RFC [1861-extern-types](https://rust-lang.github.io/rfcs/1861-extern-types.html) for some background on opaque
@@ -62,7 +62,7 @@ pub struct BoxedSecurityDescriptor {
 impl BoxedSecurityDescriptor {
     /// Creates a security descriptor granting `GENERIC_ALL` access to `Everyone`
     ///
-    /// This is the security descriptor used by default when creating WNF states.
+    /// This is the security descriptor used by default when creating states.
     ///
     /// The created security descriptor corresponds to the Security Descriptor String `D:(A;;GA;;;WD)`, meaning it has:
     /// - no owner

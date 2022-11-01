@@ -1,10 +1,10 @@
 use crossbeam_channel::RecvTimeoutError;
 use std::time::Duration;
-use wnf::{OwnedWnfState, WnfChangeStamp, WnfDataAccessor, WnfSeenChangeStamp};
+use wnf::{ChangeStamp, DataAccessor, OwnedState, SeenChangeStamp};
 
 #[test]
 fn subscribe() {
-    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
+    let state = OwnedState::<u32>::create_temporary().unwrap();
 
     let (tx, rx) = crossbeam_channel::unbounded();
     let mut subscriptions = Vec::new();
@@ -16,10 +16,10 @@ fn subscribe() {
         subscriptions.push(
             state
                 .subscribe(
-                    move |accessor: WnfDataAccessor<_>| {
+                    move |accessor: DataAccessor<_>| {
                         tx.send(accessor.query().unwrap()).unwrap();
                     },
-                    WnfSeenChangeStamp::None,
+                    SeenChangeStamp::None,
                 )
                 .unwrap(),
         )
@@ -37,7 +37,7 @@ fn subscribe() {
                 .into_data_change_stamp();
 
             assert_eq!(data, i);
-            assert_eq!(change_stamp, WnfChangeStamp::from(i));
+            assert_eq!(change_stamp, ChangeStamp::from(i));
         }
     }
 
@@ -53,7 +53,7 @@ fn subscribe() {
 
 #[test]
 fn subscribe_boxed() {
-    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
+    let state = OwnedState::<u32>::create_temporary().unwrap();
 
     let (tx, rx) = crossbeam_channel::unbounded();
     let mut subscriptions = Vec::new();
@@ -65,10 +65,10 @@ fn subscribe_boxed() {
         subscriptions.push(
             state
                 .subscribe(
-                    move |accessor: WnfDataAccessor<_>| {
+                    move |accessor: DataAccessor<_>| {
                         tx.send(accessor.query_boxed().unwrap()).unwrap();
                     },
-                    WnfSeenChangeStamp::None,
+                    SeenChangeStamp::None,
                 )
                 .unwrap(),
         )
@@ -86,7 +86,7 @@ fn subscribe_boxed() {
                 .into_data_change_stamp();
 
             assert_eq!(*data, i);
-            assert_eq!(change_stamp, WnfChangeStamp::from(i));
+            assert_eq!(change_stamp, ChangeStamp::from(i));
         }
     }
 
@@ -102,7 +102,7 @@ fn subscribe_boxed() {
 
 #[test]
 fn subscribe_slice() {
-    let state = OwnedWnfState::<[u32]>::create_temporary().unwrap();
+    let state = OwnedState::<[u32]>::create_temporary().unwrap();
 
     let (tx, rx) = crossbeam_channel::unbounded();
     let mut subscriptions = Vec::new();
@@ -114,10 +114,10 @@ fn subscribe_slice() {
         subscriptions.push(
             state
                 .subscribe(
-                    move |accessor: WnfDataAccessor<_>| {
+                    move |accessor: DataAccessor<_>| {
                         tx.send(accessor.query_boxed().unwrap()).unwrap();
                     },
-                    WnfSeenChangeStamp::Current,
+                    SeenChangeStamp::Current,
                 )
                 .unwrap(),
         )
@@ -135,7 +135,7 @@ fn subscribe_slice() {
                 .into_data_change_stamp();
 
             assert_eq!(*data, [i, i]);
-            assert_eq!(change_stamp, WnfChangeStamp::from(i));
+            assert_eq!(change_stamp, ChangeStamp::from(i));
         }
     }
 
@@ -151,27 +151,27 @@ fn subscribe_slice() {
 
 #[test]
 fn subscribe_with_last_seen_change_stamp_none() {
-    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
+    let state = OwnedState::<u32>::create_temporary().unwrap();
     state.set(&0).unwrap();
 
     let (tx, rx) = crossbeam_channel::unbounded();
 
     let subscription = state
         .subscribe(
-            move |accessor: WnfDataAccessor<_>| {
+            move |accessor: DataAccessor<_>| {
                 tx.send(accessor.change_stamp()).unwrap();
             },
-            WnfSeenChangeStamp::None,
+            SeenChangeStamp::None,
         )
         .unwrap();
 
     let change_stamp = rx.recv_timeout(Duration::from_secs(1)).unwrap();
-    assert_eq!(change_stamp, WnfChangeStamp::from(1));
+    assert_eq!(change_stamp, ChangeStamp::from(1));
 
     for i in 1..3 {
         state.set(&i).unwrap();
         let change_stamp = rx.recv_timeout(Duration::from_secs(1)).unwrap();
-        assert_eq!(change_stamp, WnfChangeStamp::from(i + 1));
+        assert_eq!(change_stamp, ChangeStamp::from(i + 1));
     }
 
     subscription.unsubscribe().unwrap();
@@ -184,24 +184,24 @@ fn subscribe_with_last_seen_change_stamp_none() {
 
 #[test]
 fn subscribe_with_last_seen_change_stamp_current() {
-    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
+    let state = OwnedState::<u32>::create_temporary().unwrap();
     state.set(&0).unwrap();
 
     let (tx, rx) = crossbeam_channel::unbounded();
 
     let subscription = state
         .subscribe(
-            move |accessor: WnfDataAccessor<_>| {
+            move |accessor: DataAccessor<_>| {
                 tx.send(accessor.change_stamp()).unwrap();
             },
-            WnfSeenChangeStamp::Current,
+            SeenChangeStamp::Current,
         )
         .unwrap();
 
     for i in 1..3 {
         state.set(&i).unwrap();
         let change_stamp = rx.recv_timeout(Duration::from_secs(1)).unwrap();
-        assert_eq!(change_stamp, WnfChangeStamp::from(i + 1));
+        assert_eq!(change_stamp, ChangeStamp::from(i + 1));
     }
 
     subscription.unsubscribe().unwrap();
@@ -214,17 +214,17 @@ fn subscribe_with_last_seen_change_stamp_current() {
 
 #[test]
 fn subscribe_with_last_seen_change_stamp_value() {
-    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
+    let state = OwnedState::<u32>::create_temporary().unwrap();
     state.set(&0).unwrap();
 
     let (tx, rx) = crossbeam_channel::unbounded();
 
     let subscription = state
         .subscribe(
-            move |accessor: WnfDataAccessor<_>| {
+            move |accessor: DataAccessor<_>| {
                 tx.send(accessor.change_stamp()).unwrap();
             },
-            WnfSeenChangeStamp::Value(WnfChangeStamp::from(2)),
+            SeenChangeStamp::Value(ChangeStamp::from(2)),
         )
         .unwrap();
 
@@ -233,7 +233,7 @@ fn subscribe_with_last_seen_change_stamp_value() {
     }
 
     let change_stamp = rx.recv_timeout(Duration::from_secs(1)).unwrap();
-    assert_eq!(change_stamp, WnfChangeStamp::from(3));
+    assert_eq!(change_stamp, ChangeStamp::from(3));
 
     subscription.unsubscribe().unwrap();
 

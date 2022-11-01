@@ -1,4 +1,4 @@
-//! Methods for creating and deleting WNF states
+//! Methods for creating and deleting states
 
 use std::borrow::Borrow;
 use std::io;
@@ -7,22 +7,22 @@ use tracing::debug;
 
 use crate::ntapi;
 use crate::security::SecurityDescriptor;
-use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
-use crate::state_name::{WnfDataScope, WnfStateName, WnfStateNameLifetime};
+use crate::state::{BorrowedState, OwnedState, RawState};
+use crate::state_name::{DataScope, StateName, StateNameLifetime};
 use crate::type_id::{TypeId, GUID};
 use crate::BoxedSecurityDescriptor;
 
-/// The maximum size of a WNF state in bytes
+/// The maximum size of a state in bytes
 ///
-/// The maximum size of a WNF state can be specified upon creation of the state and can be anything between `0` and
+/// The maximum size of a state can be specified upon creation of the state and can be anything between `0` and
 /// `4KB`, which is the value of this constant. It is also used as the default value when the maximum state size is not
 /// specified.
 pub const MAXIMUM_STATE_SIZE: usize = 0x1000;
 
-/// Marker type for an unspecified lifetime when creating a WNF state
+/// Marker type for an unspecified lifetime when creating a state
 ///
-/// The lifetime of a WNF state must be specified upon its creation. When creating a WNF state via a
-/// [`WnfStateCreation`], this is used as a type parameter to indicate that the lifetime has not been specified yet.
+/// The lifetime of a state must be specified upon its creation. When creating a state via a
+/// [`StateCreation`], this is used as a type parameter to indicate that the lifetime has not been specified yet.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct UnspecifiedLifetime {
     _private: (),
@@ -34,9 +34,9 @@ impl UnspecifiedLifetime {
     }
 }
 
-/// Marker type for an unspecified scope when creating a WNF state
+/// Marker type for an unspecified scope when creating a state
 ///
-/// The scope of a WNF state must be specified upon its creation. When creating a WNF state via a [`WnfStateCreation`],
+/// The scope of a state must be specified upon its creation. When creating a state via a [`StateCreation`],
 /// this is used as a type parameter to indicate that the scope has not been specified yet.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct UnspecifiedScope {
@@ -49,10 +49,10 @@ impl UnspecifiedScope {
     }
 }
 
-/// Marker type for an unspecified security descriptor when creating a WNF state
+/// Marker type for an unspecified security descriptor when creating a state
 ///
-/// The security descriptor of a WNF state can optionally be specified upon its creation. When creating a WNF state via
-/// a [`WnfStateCreation`], this is used as a type parameter to indicate that no security descriptor has been specified.
+/// The security descriptor of a state can optionally be specified upon its creation. When creating a state via
+/// a [`StateCreation`], this is used as a type parameter to indicate that no security descriptor has been specified.
 /// In this case, a default security descriptor (see [`BoxedSecurityDescriptor::create_everyone_generic_all`]) will be
 /// used.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -66,32 +66,32 @@ impl UnspecifiedSecurityDescriptor {
     }
 }
 
-/// The lifetime of a WNF state when specified upon creation
+/// The lifetime of a state when specified upon creation
 ///
-/// This is different from a [`WnfStateNameLifetime`] in two ways:
-/// - It does not include an equivalent of the [`WnfStateNameLifetime::WellKnown`] lifetime because states with that
+/// This is different from a [`StateNameLifetime`] in two ways:
+/// - It does not include an equivalent of the [`StateNameLifetime::WellKnown`] lifetime because states with that
 ///   lifetime are provisioned with the system and cannot be created.
-/// - The [`WnfCreatableStateLifetime::Permanent`] option comes with a `persist_data` flag because that flag only
-///   applies to the [`WnfStateNameLifetime::Permant`] (and [`WnfStateNameLifetime::WellKnown`]) lifetimes.
+/// - The [`CreatableStateLifetime::Permanent`] option comes with a `persist_data` flag because that flag only
+///   applies to the [`StateNameLifetime::Permant`] (and [`StateNameLifetime::WellKnown`]) lifetimes.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum WnfCreatableStateLifetime {
+pub enum CreatableStateLifetime {
     Permanent { persist_data: bool },
     Persistent,
     Temporary,
 }
 
-impl WnfCreatableStateLifetime {
+impl CreatableStateLifetime {
     fn persist_data(&self) -> bool {
         matches!(self, Self::Permanent { persist_data: true })
     }
 }
 
-impl From<WnfCreatableStateLifetime> for WnfStateNameLifetime {
-    fn from(lifetime: WnfCreatableStateLifetime) -> Self {
+impl From<CreatableStateLifetime> for StateNameLifetime {
+    fn from(lifetime: CreatableStateLifetime) -> Self {
         match lifetime {
-            WnfCreatableStateLifetime::Permanent { .. } => WnfStateNameLifetime::Permanent,
-            WnfCreatableStateLifetime::Persistent => WnfStateNameLifetime::Persistent,
-            WnfCreatableStateLifetime::Temporary => WnfStateNameLifetime::Temporary,
+            CreatableStateLifetime::Permanent { .. } => StateNameLifetime::Permanent,
+            CreatableStateLifetime::Persistent => StateNameLifetime::Persistent,
+            CreatableStateLifetime::Temporary => StateNameLifetime::Temporary,
         }
     }
 }
@@ -122,7 +122,7 @@ impl TryIntoSecurityDescriptor for UnspecifiedSecurityDescriptor {
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct WnfStateCreation<L, S, SD> {
+pub struct StateCreation<L, S, SD> {
     // mandatory fields
     lifetime: L,
     scope: S,
@@ -133,7 +133,7 @@ pub struct WnfStateCreation<L, S, SD> {
     type_id: TypeId,
 }
 
-impl Default for WnfStateCreation<UnspecifiedLifetime, UnspecifiedScope, UnspecifiedSecurityDescriptor> {
+impl Default for StateCreation<UnspecifiedLifetime, UnspecifiedScope, UnspecifiedSecurityDescriptor> {
     fn default() -> Self {
         Self {
             lifetime: UnspecifiedLifetime::new(),
@@ -146,15 +146,15 @@ impl Default for WnfStateCreation<UnspecifiedLifetime, UnspecifiedScope, Unspeci
     }
 }
 
-impl WnfStateCreation<UnspecifiedLifetime, UnspecifiedScope, UnspecifiedSecurityDescriptor> {
+impl StateCreation<UnspecifiedLifetime, UnspecifiedScope, UnspecifiedSecurityDescriptor> {
     pub fn new() -> Self {
         Self::default()
     }
 }
 
-impl<L, S, SD> WnfStateCreation<L, S, SD> {
-    pub fn lifetime(self, lifetime: WnfCreatableStateLifetime) -> WnfStateCreation<WnfCreatableStateLifetime, S, SD> {
-        WnfStateCreation {
+impl<L, S, SD> StateCreation<L, S, SD> {
+    pub fn lifetime(self, lifetime: CreatableStateLifetime) -> StateCreation<CreatableStateLifetime, S, SD> {
+        StateCreation {
             lifetime,
 
             scope: self.scope,
@@ -164,8 +164,8 @@ impl<L, S, SD> WnfStateCreation<L, S, SD> {
         }
     }
 
-    pub fn scope(self, scope: WnfDataScope) -> WnfStateCreation<L, WnfDataScope, SD> {
-        WnfStateCreation {
+    pub fn scope(self, scope: DataScope) -> StateCreation<L, DataScope, SD> {
+        StateCreation {
             scope,
 
             lifetime: self.lifetime,
@@ -175,18 +175,18 @@ impl<L, S, SD> WnfStateCreation<L, S, SD> {
         }
     }
 
-    pub fn maximum_state_size(self, maximum_state_size: usize) -> WnfStateCreation<L, S, SD> {
-        WnfStateCreation {
+    pub fn maximum_state_size(self, maximum_state_size: usize) -> StateCreation<L, S, SD> {
+        StateCreation {
             maximum_state_size: Some(maximum_state_size),
             ..self
         }
     }
 
-    pub fn security_descriptor<NewSD>(self, security_descriptor: NewSD) -> WnfStateCreation<L, S, NewSD>
+    pub fn security_descriptor<NewSD>(self, security_descriptor: NewSD) -> StateCreation<L, S, NewSD>
     where
         NewSD: Borrow<SecurityDescriptor>,
     {
-        WnfStateCreation {
+        StateCreation {
             security_descriptor,
 
             lifetime: self.lifetime,
@@ -196,37 +196,37 @@ impl<L, S, SD> WnfStateCreation<L, S, SD> {
         }
     }
 
-    pub fn type_id(self, type_id: impl Into<GUID>) -> WnfStateCreation<L, S, SD> {
-        WnfStateCreation {
+    pub fn type_id(self, type_id: impl Into<GUID>) -> StateCreation<L, S, SD> {
+        StateCreation {
             type_id: type_id.into().into(),
             ..self
         }
     }
 }
 
-impl<SD> WnfStateCreation<WnfCreatableStateLifetime, WnfDataScope, SD>
+impl<SD> StateCreation<CreatableStateLifetime, DataScope, SD>
 where
     SD: TryIntoSecurityDescriptor,
 {
-    pub fn create_owned<T>(self) -> io::Result<OwnedWnfState<T>>
+    pub fn create_owned<T>(self) -> io::Result<OwnedState<T>>
     where
         T: ?Sized,
     {
-        self.create_raw().map(OwnedWnfState::from_raw)
+        self.create_raw().map(OwnedState::from_raw)
     }
 
-    pub fn create_static<T>(self) -> io::Result<BorrowedWnfState<'static, T>>
+    pub fn create_static<T>(self) -> io::Result<BorrowedState<'static, T>>
     where
         T: ?Sized,
     {
-        self.create_raw().map(BorrowedWnfState::from_raw)
+        self.create_raw().map(BorrowedState::from_raw)
     }
 
-    fn create_raw<T>(self) -> io::Result<RawWnfState<T>>
+    fn create_raw<T>(self) -> io::Result<RawState<T>>
     where
         T: ?Sized,
     {
-        RawWnfState::create(
+        RawState::create(
             self.lifetime.into(),
             self.scope,
             self.lifetime.persist_data(),
@@ -237,14 +237,14 @@ where
     }
 }
 
-impl<T> OwnedWnfState<T>
+impl<T> OwnedState<T>
 where
     T: ?Sized,
 {
     pub fn create_temporary() -> io::Result<Self> {
-        WnfStateCreation::new()
-            .lifetime(WnfCreatableStateLifetime::Temporary)
-            .scope(WnfDataScope::Machine)
+        StateCreation::new()
+            .lifetime(CreatableStateLifetime::Temporary)
+            .scope(DataScope::Machine)
             .create_owned()
     }
 
@@ -253,19 +253,19 @@ where
     }
 }
 
-impl<T> BorrowedWnfState<'static, T>
+impl<T> BorrowedState<'static, T>
 where
     T: ?Sized,
 {
     pub fn create_temporary() -> io::Result<Self> {
-        WnfStateCreation::new()
-            .lifetime(WnfCreatableStateLifetime::Temporary)
-            .scope(WnfDataScope::Machine)
+        StateCreation::new()
+            .lifetime(CreatableStateLifetime::Temporary)
+            .scope(DataScope::Machine)
             .create_static()
     }
 }
 
-impl<T> BorrowedWnfState<'_, T>
+impl<T> BorrowedState<'_, T>
 where
     T: ?Sized,
 {
@@ -274,13 +274,13 @@ where
     }
 }
 
-impl<T> RawWnfState<T>
+impl<T> RawState<T>
 where
     T: ?Sized,
 {
     fn create(
-        name_lifetime: WnfStateNameLifetime,
-        data_scope: WnfDataScope,
+        name_lifetime: StateNameLifetime,
+        data_scope: DataScope,
         persist_data: bool,
         type_id: TypeId,
         maximum_state_size: usize,
@@ -306,7 +306,7 @@ where
         };
 
         if result.is_ok() {
-            let state_name = WnfStateName::from_opaque_value(opaque_value);
+            let state_name = StateName::from_opaque_value(opaque_value);
 
             debug!(
                 target: ntapi::TRACING_TARGET,

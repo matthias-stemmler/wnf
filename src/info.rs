@@ -1,4 +1,4 @@
-//! Methods for obtaining information on WNF states
+//! Methods for obtaining information on states
 
 use std::ffi::c_void;
 use std::{io, mem, ptr};
@@ -6,12 +6,12 @@ use std::{io, mem, ptr};
 use tracing::debug;
 
 use crate::ntapi;
-use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
+use crate::state::{BorrowedState, OwnedState, RawState};
 
-/// Different classes of information on a WNF state
+/// Different classes of information on a state
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[repr(u32)]
-enum WnfNameInfoClass {
+enum NameInfoClass {
     /// Whether a state with a given name exists
     StateNameExist = 0,
 
@@ -22,70 +22,70 @@ enum WnfNameInfoClass {
     IsQuiescent = 2,
 }
 
-impl<T> OwnedWnfState<T>
+impl<T> OwnedState<T>
 where
     T: ?Sized,
 {
-    /// Returns whether a WNF state with the name represented by this [`OwnedWnfState<T>`] exists
+    /// Returns whether a state with the name represented by this [`OwnedState<T>`] exists
     pub fn exists(&self) -> io::Result<bool> {
         self.raw.exists()
     }
 
-    /// Returns whether this [`OwnedWnfState<T>`] has at least one subscriber
+    /// Returns whether this [`OwnedState<T>`] has at least one subscriber
     pub fn subscribers_present(&self) -> io::Result<bool> {
         self.raw.subscribers_present()
     }
 
-    /// Returns whether this [`OwnedWnfState<T>`] is "quiescent", i.e. none of the listeners subscribed to it are
+    /// Returns whether this [`OwnedState<T>`] is "quiescent", i.e. none of the listeners subscribed to it are
     /// currently running
     pub fn is_quiescent(&self) -> io::Result<bool> {
         self.raw.is_quiescent()
     }
 }
 
-impl<T> BorrowedWnfState<'_, T>
+impl<T> BorrowedState<'_, T>
 where
     T: ?Sized,
 {
-    /// Returns whether a WNF state with the name represented by this [`BorrowedWnfState<'a, T>`] exists
+    /// Returns whether a state with the name represented by this [`BorrowedState<'a, T>`] exists
     pub fn exists(self) -> io::Result<bool> {
         self.raw.exists()
     }
 
-    /// Returns whether this [`BorrowedWnfState<'a, T>`] has at least one subscriber
+    /// Returns whether this [`BorrowedState<'a, T>`] has at least one subscriber
     pub fn subscribers_present(self) -> io::Result<bool> {
         self.raw.subscribers_present()
     }
 
-    /// Returns whether this [`BorrowedWnfState<'a, T>`] is "quiescent", i.e. none of the listeners subscribed to it are
+    /// Returns whether this [`BorrowedState<'a, T>`] is "quiescent", i.e. none of the listeners subscribed to it are
     /// currently running
     pub fn is_quiescent(self) -> io::Result<bool> {
         self.raw.is_quiescent()
     }
 }
 
-impl<T> RawWnfState<T>
+impl<T> RawState<T>
 where
     T: ?Sized,
 {
-    /// Returns whether a WNF state with the name represented by this [`RawWnfState<T>`] exists
+    /// Returns whether a state with the name represented by this [`RawState<T>`] exists
     fn exists(self) -> io::Result<bool> {
-        self.info_internal(WnfNameInfoClass::StateNameExist)
+        self.info_internal(NameInfoClass::StateNameExist)
     }
 
-    /// Returns whether this [`RawWnfState<T>`] has at least one subscriber
+    /// Returns whether this [`RawState<T>`] has at least one subscriber
     fn subscribers_present(self) -> io::Result<bool> {
-        self.info_internal(WnfNameInfoClass::SubscribersPresent)
+        self.info_internal(NameInfoClass::SubscribersPresent)
     }
 
-    /// Returns whether this [`RawWnfState<T>`] is "quiescent", i.e. none of the listeners subscribed to it are
+    /// Returns whether this [`RawState<T>`] is "quiescent", i.e. none of the listeners subscribed to it are
     /// currently running
     fn is_quiescent(self) -> io::Result<bool> {
-        self.info_internal(WnfNameInfoClass::IsQuiescent)
+        self.info_internal(NameInfoClass::IsQuiescent)
     }
 
     /// Returns the flag containing the information of the given class
-    fn info_internal(self, name_info_class: WnfNameInfoClass) -> io::Result<bool> {
+    fn info_internal(self, name_info_class: NameInfoClass) -> io::Result<bool> {
         let mut buffer = u32::MAX;
         let name_info_class = name_info_class as u32;
 

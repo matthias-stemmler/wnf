@@ -2,7 +2,7 @@ use std::ffi::OsString;
 use std::io::{stdin, Read};
 use std::os::windows::ffi::OsStringExt;
 
-use wnf::{BorrowedWnfState, WnfDataAccessor, WnfSeenChangeStamp, WnfStateListener, WnfStateName, WnfSubscription};
+use wnf::{BorrowedState, DataAccessor, SeenChangeStamp, StateListener, StateName, Subscription};
 
 const WNF_SHEL_DESKTOP_APPLICATION_STARTED: u64 = 0x0D83063EA3BE5075;
 const WNF_SHEL_DESKTOP_APPLICATION_TERMINATED: u64 = 0x0D83063EA3BE5875;
@@ -21,25 +21,25 @@ fn main() {
     stdin().read(&mut [0u8]).unwrap();
 }
 
-fn subscribe<F>(state_name: impl Into<WnfStateName>, listener: F) -> WnfSubscription<'static, ApplicationListener<F>>
+fn subscribe<F>(state_name: impl Into<StateName>, listener: F) -> Subscription<'static, ApplicationListener<F>>
 where
     F: FnMut(u32, &str) + Send + 'static,
 {
-    BorrowedWnfState::from_state_name(state_name.into())
-        .subscribe(ApplicationListener(listener), WnfSeenChangeStamp::Current)
-        .expect("Failed to subscribe to WNF state changes")
+    BorrowedState::from_state_name(state_name.into())
+        .subscribe(ApplicationListener(listener), SeenChangeStamp::Current)
+        .expect("Failed to subscribe to state changes")
 }
 
 struct ApplicationListener<F>(F);
 
-impl<F> WnfStateListener<[u16]> for ApplicationListener<F>
+impl<F> StateListener<[u16]> for ApplicationListener<F>
 where
     F: FnMut(u32, &str) + Send + 'static,
 {
-    fn call(&mut self, accessor: WnfDataAccessor<[u16]>) {
+    fn call(&mut self, accessor: DataAccessor<[u16]>) {
         let (data, change_stamp) = accessor
             .query_boxed()
-            .expect("Failed to query WNF state data")
+            .expect("Failed to query state data")
             .into_data_change_stamp();
 
         if let Some(application) = OsString::from_wide(&data).to_string_lossy().strip_prefix("e:") {

@@ -3,31 +3,31 @@ use std::io::{self, Read};
 use tracing::info;
 use tracing_subscriber::filter::LevelFilter;
 
-use wnf::{WnfCreatableStateLifetime, WnfDataScope, WnfStateCreation, WnfStateNameDescriptor};
+use wnf::{CreatableStateLifetime, DataScope, StateCreation, StateNameDescriptor};
 
 fn main() {
     devutils::ensure_running_as_system().expect("Failed to run as system");
 
     tracing_subscriber::fmt().with_max_level(LevelFilter::DEBUG).init();
 
-    let state = WnfStateCreation::new()
-        .lifetime(WnfCreatableStateLifetime::Permanent { persist_data: true })
-        .scope(WnfDataScope::Machine)
+    let state = StateCreation::new()
+        .lifetime(CreatableStateLifetime::Permanent { persist_data: true })
+        .scope(DataScope::Machine)
         .type_id("1d942789-c358-46fc-a75d-2947c7a8fefa")
         .create_static()
-        .expect("Failed to create WNF state");
+        .expect("Failed to create state");
 
-    let exists = state.exists().expect("Failed to determine if WNF state name exists");
+    let exists = state.exists().expect("Failed to determine if state name exists");
     info!(exists);
 
-    let descriptor: WnfStateNameDescriptor = state
+    let descriptor: StateNameDescriptor = state
         .state_name()
         .try_into()
         .expect("Failed to convert state name into descriptor");
     info!(?descriptor);
 
-    state.set(&0x11223344).expect("Failed to set WNF state data");
-    let data = state.get().expect("Failed to get WNF state data");
+    state.set(&0x11223344).expect("Failed to set state data");
+    let data = state.get().expect("Failed to get state data");
     info!(data = %format!("{data:#10x}"));
 
     info!(
@@ -44,8 +44,8 @@ fn main() {
 
     io::stdin().read(&mut [0u8]).unwrap();
 
-    state.delete().expect("Failed to delete WNF state");
+    state.delete().expect("Failed to delete state");
 
-    let exists = state.exists().expect("Failed to determine if WNF state name exists");
+    let exists = state.exists().expect("Failed to determine if state name exists");
     info!(exists);
 }

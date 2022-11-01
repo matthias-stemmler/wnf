@@ -25,14 +25,14 @@ use windows::{
 /// Target used for logging calls to NTAPI functions using the `tracing` crate
 pub(crate) const TRACING_TARGET: &str = "wnf::ntapi";
 
-/// A callback function for a WNF state subscription
+/// A callback function for a state subscription
 ///
 /// # Arguments
-/// - [in] `state_name`: The WNF state name
-/// - [in] `change_stamp`: The current change stamp of the WNF state
+/// - [in] `state_name`: The state name
+/// - [in] `change_stamp`: The current change stamp of the state
 /// - [in] `type_id`: Pointer to a GUID used as the type ID, may be a null pointer
 /// - [in] `context`: Opaque pointer to arbitrary context data passed to `RtlSubscribeWnfStateChangeNotification`
-/// - [in] `buffer`: Pointer to a buffer containing the current data of the WNF state
+/// - [in] `buffer`: Pointer to a buffer containing the current data of the state
 /// - [in] `buffer_size`: Size of the buffer in bytes
 ///
 /// # Returns
@@ -53,11 +53,11 @@ pub(crate) type WnfUserCallback = extern "system" fn(
 
 #[link(name = "ntdll")]
 extern "system" {
-    /// Subscribes to updates of a WNF state
+    /// Subscribes to updates of a state
     ///
     /// # Arguments
     /// - [out] `subscription_handle`: Pointer to a `*mut c_void` buffer the subscription handle will be written to
-    /// - [in] `state_name`: The WNF state name
+    /// - [in] `state_name`: The state name
     /// - [in] `change_stamp`: The change stamp the listener has last seen
     /// - [in] `callback`: Pointer to a callback function to be called on state updates
     /// - [in] `callback_context`: Opaque pointer to arbitrary context data that is passed on to the callback
@@ -88,7 +88,7 @@ extern "system" {
         unknown: u32,
     ) -> NTSTATUS;
 
-    /// Unsubscribes from updates of a WNF state
+    /// Unsubscribes from updates of a state
     ///
     /// # Arguments
     /// - [in] `subscription_handle`: The subscription handle to unsubscribe
@@ -109,7 +109,7 @@ extern "system" {
     /// - This function is safe to call with a `subscription_handle` originating from a different thread
     pub(crate) fn RtlUnsubscribeWnfStateChangeNotification(subscription_handle: *mut c_void) -> NTSTATUS;
 
-    /// Creates a new WNF state
+    /// Creates a new state
     ///
     /// # Arguments
     /// - [out] `state_name`: Pointer to a `u64` buffer the state name will be written to
@@ -150,10 +150,10 @@ extern "system" {
         security_descriptor: PSECURITY_DESCRIPTOR,
     ) -> NTSTATUS;
 
-    /// Deletes a WNF state
+    /// Deletes a state
     ///
     /// # Arguments
-    /// - [in] `state_name`: Pointer to the WNF state name
+    /// - [in] `state_name`: Pointer to the state name
     ///
     /// # Returns
     /// An `NTSTATUS` value that is `>= 0` on success and `< 0` on failure
@@ -162,10 +162,10 @@ extern "system" {
     /// - `state_name` must point to a valid `u64`
     pub(crate) fn NtDeleteWnfStateName(state_name: *const u64) -> NTSTATUS;
 
-    /// Queries the data of a WNF state
+    /// Queries the data of a state
     ///
     /// # Arguments
-    /// - [in] `state_name`: Pointer to the WNF state name
+    /// - [in] `state_name`: Pointer to the state name
     /// - [in] `type_id`: Pointer to a GUID used as the type ID, can be a null pointer
     /// - [in] `explicit_scope`: Irrelevant, can be a null pointer
     /// - [out] `change_stamp`: Pointer to a `u32` buffer the change stamp will be written to
@@ -196,13 +196,13 @@ extern "system" {
         buffer_size: *mut u32,
     ) -> NTSTATUS;
 
-    /// Queries information about a WNF state name
+    /// Queries information about a state name
     ///
     /// The information is written into a 4-byte buffer and is always a boolean value, where `0` means `false` and `1`
     /// means `true`.
     ///
     /// # Arguments
-    /// - [in] `state_name`: Pointer to the WNF state name
+    /// - [in] `state_name`: Pointer to the state name
     /// - [in] `name_info_class`: Tag of the class of information to obtain
     ///   At least the following values are valid:
     ///   - `0`: "State name exist"
@@ -227,10 +227,10 @@ extern "system" {
         buffer_size: u32,
     ) -> NTSTATUS;
 
-    /// Updates the data of a WNF state
+    /// Updates the data of a state
     ///
     /// # Arguments
-    /// - [in] `state_name`: Pointer to the WNF state name
+    /// - [in] `state_name`: Pointer to the state name
     /// - [in] `buffer`: Pointer to a buffer the data will be read from
     /// - [in] `buffer_size`: Size of the buffer in bytes
     /// - [in] `type_id`: Pointer to a GUID used as the type ID, can be a null pointer

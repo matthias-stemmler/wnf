@@ -1,4 +1,4 @@
-//! Dealing with WNF state names and their properties
+//! Dealing with state names and their properties
 
 #![deny(unsafe_code)]
 
@@ -8,20 +8,20 @@ use std::fmt::{Display, Formatter};
 use num_traits::FromPrimitive;
 use thiserror::Error;
 
-/// This is the magic number used by WNF to convert between the opaque value of a WNF state name and its corresponding
+/// This is the magic number used by WNF to convert between the opaque value of a state name and its corresponding
 /// transparent value that contains information about the state name encoded into its bits.
 ///
 /// For reference, see e.g. [https://blog.quarkslab.com/playing-with-the-windows-notification-facility-wnf.html]
 const STATE_NAME_XOR_KEY: u64 = 0x41C64E6DA3BC0074;
 
-/// Lifetime of a WNF state name
+/// Lifetime of a state name
 ///
-/// This property of a WNF state name controls at what point in time the corresponding WNF state is automatically
+/// This property of a state name controls at what point in time the corresponding state is automatically
 /// deleted as well as if and how the state name is persisted.
 #[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, PartialEq)]
 #[repr(u8)]
-pub enum WnfStateNameLifetime {
-    /// Lifetime of a "well-known" WNF state name
+pub enum StateNameLifetime {
+    /// Lifetime of a "well-known" state name
     ///
     /// A state name with this lifetime cannot be created or deleted through the WNF API, but instead is provisioned
     /// with the system. It lives forever.
@@ -30,7 +30,7 @@ pub enum WnfStateNameLifetime {
     /// `HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Notifications`
     WellKnown = 0,
 
-    /// Lifetime of a "permanent" WNF state name
+    /// Lifetime of a "permanent"  state name
     ///
     /// A state name with this lifetime can be created and deleted through the WNF API at any time, but is never deleted
     /// automatically.
@@ -41,7 +41,7 @@ pub enum WnfStateNameLifetime {
     /// `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Notifications`
     Permanent = 1,
 
-    /// Lifetime of a "persistent" WNF state name (also known as "volatile")
+    /// Lifetime of a "persistent" state name (also known as "volatile")
     ///
     /// A state name with this lifetime can be created and deleted through the WNF API at any time and is automatically
     /// deleted on system reboot.
@@ -56,7 +56,7 @@ pub enum WnfStateNameLifetime {
     /// `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\VolatileNotifications`
     Persistent = 2,
 
-    /// Lifetime of a "temporary" WNF state name
+    /// Lifetime of a "temporary" state name
     ///
     /// A state name with this lifetime can be created and deleted through the WNF API at any time and is automatically
     /// deleted when the process it was created from exits.
@@ -65,13 +65,13 @@ pub enum WnfStateNameLifetime {
     Temporary = 3,
 }
 
-/// Data scope of a WNF state name
+/// Data scope of a state name
 ///
-/// This property of a WNF state name controls whether the corresponding WNF state maintains multiple instances of its
+/// This property of a state name controls whether the corresponding state maintains multiple instances of its
 /// data that are scoped in different ways.
 #[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, PartialEq)]
 #[repr(u8)]
-pub enum WnfDataScope {
+pub enum DataScope {
     /// "System" data scope
     System = 0,
 
@@ -97,76 +97,76 @@ pub enum WnfDataScope {
     PhysicalMachine = 5,
 }
 
-/// Descriptor of a WNF state name
+/// Descriptor of a state name
 ///
-/// This contains the properties of a [`WnfStateName`] that are encoded in the bits of its transparent value.
+/// This contains the properties of a [`StateName`] that are encoded in the bits of its transparent value.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct WnfStateNameDescriptor {
+pub struct StateNameDescriptor {
     /// WNF version number, currently always `1`
     pub version: u8,
 
-    /// Lifetime of the WNF state name
-    pub lifetime: WnfStateNameLifetime,
+    /// Lifetime of the state name
+    pub lifetime: StateNameLifetime,
 
-    /// Data scope of the WNF state name
-    pub data_scope: WnfDataScope,
+    /// Data scope of the state name
+    pub data_scope: DataScope,
 
-    /// Whether the WNF state data (not the state name itself) are persisted across system reboots
+    /// Whether the state data (not the state name itself) are persisted across system reboots
     ///
-    /// This only applies to WNF state names with the [`WnfStateNameLifetime::WellKnown`] or
-    /// [`WnfStateNameLifetime::Permanent`] lifetimes. It is always `false` for state names with other lifetimes.
+    /// This only applies to state names with the [`StateNameLifetime::WellKnown`] or
+    /// [`StateNameLifetime::Permanent`] lifetimes. It is always `false` for state names with other lifetimes.
     pub is_permanent: bool,
 
-    /// Unique sequence number of the WNF state name
+    /// Unique sequence number of the state name
     pub unique_id: u32,
 
-    /// Owner tag of the WNF state name
+    /// Owner tag of the state name
     ///
-    /// This only applies to WNF state names with the [`WnfStateNameLifetime::WellKnown`] lifetime. It is always `0` for
+    /// This only applies to state names with the [`StateNameLifetime::WellKnown`] lifetime. It is always `0` for
     /// state names with other lifetimes.
     pub owner_tag: u32,
 }
 
-/// A WNF state name
+/// A state name
 ///
-/// A WNF state name is usually represented by its "opaque value", which is a 64-bit integer. This opaque value can be
+/// A state name is usually represented by its "opaque value", which is a 64-bit integer. This opaque value can be
 /// converted to a "transparent" value by XOR'ing with the magic number `0x41C64E6DA3BC0074`. This transparent value
-/// encodes certain properties of the WNF state name in its bits. The set of these properties is represented by the
-/// [`WnfStateNameDescriptor`] type. Use the provided [`TryFrom`]/[`TryInto`] implementations to convert between a
-/// [`WnfStateName`] (represented by its opaque value) and the corresponding [`WnfStateNameDescriptor`].
+/// encodes certain properties of the state name in its bits. The set of these properties is represented by the
+/// [`StateNameDescriptor`] type. Use the provided [`TryFrom`]/[`TryInto`] implementations to convert between a
+/// [`StateName`] (represented by its opaque value) and the corresponding [`StateNameDescriptor`].
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct WnfStateName {
+pub struct StateName {
     opaque_value: u64,
 }
 
-impl WnfStateName {
-    /// Creates a [`WnfStateName`] from the given opaque value
+impl StateName {
+    /// Creates a [`StateName`] from the given opaque value
     pub const fn from_opaque_value(opaque_value: u64) -> Self {
         Self { opaque_value }
     }
 
-    /// Returns the opaque value of this [`WnfStateName`]
+    /// Returns the opaque value of this [`StateName`]
     pub const fn opaque_value(self) -> u64 {
         self.opaque_value
     }
 }
 
-impl From<u64> for WnfStateName {
+impl From<u64> for StateName {
     fn from(opaque_value: u64) -> Self {
         Self::from_opaque_value(opaque_value)
     }
 }
 
-impl TryFrom<WnfStateNameDescriptor> for WnfStateName {
-    type Error = WnfStateNameFromDescriptorError;
+impl TryFrom<StateNameDescriptor> for StateName {
+    type Error = StateNameFromDescriptorError;
 
-    fn try_from(descriptor: WnfStateNameDescriptor) -> Result<Self, Self::Error> {
+    fn try_from(descriptor: StateNameDescriptor) -> Result<Self, Self::Error> {
         if descriptor.version >= (1 << 4) {
-            return Err(WnfStateNameFromDescriptorError::InvalidVersion(descriptor.version));
+            return Err(StateNameFromDescriptorError::InvalidVersion(descriptor.version));
         }
 
         if descriptor.unique_id >= (1 << 21) {
-            return Err(WnfStateNameFromDescriptorError::InvalidUniqueId(descriptor.unique_id));
+            return Err(StateNameFromDescriptorError::InvalidUniqueId(descriptor.unique_id));
         }
 
         let transparent_value = descriptor.version as u64
@@ -182,10 +182,10 @@ impl TryFrom<WnfStateNameDescriptor> for WnfStateName {
     }
 }
 
-impl TryFrom<WnfStateName> for WnfStateNameDescriptor {
-    type Error = WnfStateNameDescriptorFromStateNameError;
+impl TryFrom<StateName> for StateNameDescriptor {
+    type Error = StateNameDescriptorFromStateNameError;
 
-    fn try_from(state_name: WnfStateName) -> Result<Self, Self::Error> {
+    fn try_from(state_name: StateName) -> Result<Self, Self::Error> {
         let transparent_value = state_name.opaque_value ^ STATE_NAME_XOR_KEY;
 
         let lifetime_value = ((transparent_value >> 4) & 0b11) as u8;
@@ -194,9 +194,9 @@ impl TryFrom<WnfStateName> for WnfStateNameDescriptor {
         Ok(Self {
             version: (transparent_value & 0b1111) as u8,
             // Since `lifetime_value <= 3`, this always succeeds
-            lifetime: WnfStateNameLifetime::from_u8(lifetime_value).unwrap(),
-            data_scope: WnfDataScope::from_u8(data_scope_value).ok_or(
-                WnfStateNameDescriptorFromStateNameError::InvalidDataScope(data_scope_value),
+            lifetime: StateNameLifetime::from_u8(lifetime_value).unwrap(),
+            data_scope: DataScope::from_u8(data_scope_value).ok_or(
+                StateNameDescriptorFromStateNameError::InvalidDataScope(data_scope_value),
             )?,
             is_permanent: transparent_value & (1 << 10) != 0,
             unique_id: ((transparent_value >> 11) & 0x001FFFFF) as u32,
@@ -205,15 +205,15 @@ impl TryFrom<WnfStateName> for WnfStateNameDescriptor {
     }
 }
 
-impl Display for WnfStateName {
+impl Display for StateName {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{:#010x}", self.opaque_value)
     }
 }
 
-/// Error converting a [`WnfStateNameDescriptor`] into a [`WnfStateName`]
+/// Error converting a [`StateNameDescriptor`] into a [`StateName`]
 #[derive(Debug, Error, Eq, PartialEq)]
-pub enum WnfStateNameFromDescriptorError {
+pub enum StateNameFromDescriptorError {
     #[error("invalid version: {0}")]
     InvalidVersion(u8),
 
@@ -221,9 +221,9 @@ pub enum WnfStateNameFromDescriptorError {
     InvalidUniqueId(u32),
 }
 
-/// Error converting a [`WnfStateName`] into a [`WnfStateNameDescriptor`]
+/// Error converting a [`StateName`] into a [`StateNameDescriptor`]
 #[derive(Debug, Error, Eq, PartialEq)]
-pub enum WnfStateNameDescriptorFromStateNameError {
+pub enum StateNameDescriptorFromStateNameError {
     #[error("invalid data scope: {0}")]
     InvalidDataScope(u8),
 }
@@ -232,11 +232,11 @@ pub enum WnfStateNameDescriptorFromStateNameError {
 mod tests {
     use super::*;
 
-    const SAMPLE_STATE_NAME: WnfStateName = WnfStateName::from_opaque_value(0x0D83063EA3BE5075);
-    const SAMPLE_DESCRIPTOR: WnfStateNameDescriptor = WnfStateNameDescriptor {
+    const SAMPLE_STATE_NAME: StateName = StateName::from_opaque_value(0x0D83063EA3BE5075);
+    const SAMPLE_DESCRIPTOR: StateNameDescriptor = StateNameDescriptor {
         version: 1,
-        lifetime: WnfStateNameLifetime::WellKnown,
-        data_scope: WnfDataScope::System,
+        lifetime: StateNameLifetime::WellKnown,
+        data_scope: DataScope::System,
         is_permanent: false,
         unique_id: 0x00004A,
         owner_tag: 0x4C454853,
@@ -244,7 +244,7 @@ mod tests {
 
     #[test]
     fn state_name_into_descriptor_success() {
-        let result: Result<WnfStateNameDescriptor, _> = SAMPLE_STATE_NAME.try_into();
+        let result: Result<StateNameDescriptor, _> = SAMPLE_STATE_NAME.try_into();
 
         assert_eq!(result, Ok(SAMPLE_DESCRIPTOR));
     }
@@ -252,40 +252,40 @@ mod tests {
     #[test]
     fn state_name_into_descriptor_invalid_data_scope() {
         let opaque_value = 0x0D83063EA3BE51F5; // this is `SAMPLE_STATE_NAME` with data scope set to 0x06
-        let result: Result<WnfStateNameDescriptor, _> = WnfStateName::from_opaque_value(opaque_value).try_into();
+        let result: Result<StateNameDescriptor, _> = StateName::from_opaque_value(opaque_value).try_into();
 
         assert_eq!(
             result,
-            Err(WnfStateNameDescriptorFromStateNameError::InvalidDataScope(0x06))
+            Err(StateNameDescriptorFromStateNameError::InvalidDataScope(0x06))
         );
     }
 
     #[test]
     fn descriptor_into_state_name_success() {
-        let result: Result<WnfStateName, _> = SAMPLE_DESCRIPTOR.try_into();
+        let result: Result<StateName, _> = SAMPLE_DESCRIPTOR.try_into();
 
         assert_eq!(result, Ok(SAMPLE_STATE_NAME));
     }
 
     #[test]
     fn descriptor_into_state_name_invalid_version() {
-        let descriptor = WnfStateNameDescriptor {
+        let descriptor = StateNameDescriptor {
             version: 1 << 4,
             ..SAMPLE_DESCRIPTOR
         };
-        let result: Result<WnfStateName, _> = descriptor.try_into();
+        let result: Result<StateName, _> = descriptor.try_into();
 
-        assert_eq!(result, Err(WnfStateNameFromDescriptorError::InvalidVersion(1 << 4)));
+        assert_eq!(result, Err(StateNameFromDescriptorError::InvalidVersion(1 << 4)));
     }
 
     #[test]
     fn descriptor_into_state_name_invalid_unique_id() {
-        let descriptor = WnfStateNameDescriptor {
+        let descriptor = StateNameDescriptor {
             unique_id: 1 << 21,
             ..SAMPLE_DESCRIPTOR
         };
-        let result: Result<WnfStateName, _> = descriptor.try_into();
+        let result: Result<StateName, _> = descriptor.try_into();
 
-        assert_eq!(result, Err(WnfStateNameFromDescriptorError::InvalidUniqueId(1 << 21)));
+        assert_eq!(result, Err(StateNameFromDescriptorError::InvalidUniqueId(1 << 21)));
     }
 }

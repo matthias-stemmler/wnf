@@ -7,12 +7,12 @@ use std::io;
 use std::io::ErrorKind;
 
 use crate::bytes::NoUninit;
-use crate::read::WnfRead;
-use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
+use crate::read::Read;
+use crate::state::{BorrowedState, OwnedState, RawState};
 
-impl<T> OwnedWnfState<T>
+impl<T> OwnedState<T>
 where
-    T: WnfRead<T> + NoUninit,
+    T: Read<T> + NoUninit,
 {
     pub fn apply<D, F>(&self, transform: F) -> io::Result<D>
     where
@@ -32,9 +32,9 @@ where
     }
 }
 
-impl<T> OwnedWnfState<T>
+impl<T> OwnedState<T>
 where
-    T: WnfRead<Box<T>> + NoUninit + ?Sized,
+    T: Read<Box<T>> + NoUninit + ?Sized,
 {
     pub fn apply_boxed<D, F>(&self, transform: F) -> io::Result<D>
     where
@@ -54,9 +54,9 @@ where
     }
 }
 
-impl<T> BorrowedWnfState<'_, T>
+impl<T> BorrowedState<'_, T>
 where
-    T: WnfRead<T> + NoUninit,
+    T: Read<T> + NoUninit,
 {
     pub fn apply<D, F>(self, transform: F) -> io::Result<D>
     where
@@ -76,9 +76,9 @@ where
     }
 }
 
-impl<T> BorrowedWnfState<'_, T>
+impl<T> BorrowedState<'_, T>
 where
-    T: WnfRead<Box<T>> + NoUninit + ?Sized,
+    T: Read<Box<T>> + NoUninit + ?Sized,
 {
     pub fn apply_boxed<D, F>(self, transform: F) -> io::Result<D>
     where
@@ -98,9 +98,9 @@ where
     }
 }
 
-impl<T> RawWnfState<T>
+impl<T> RawState<T>
 where
-    T: WnfRead<T> + NoUninit,
+    T: Read<T> + NoUninit,
 {
     fn apply<D, F>(self, transform: F) -> io::Result<D>
     where
@@ -120,9 +120,9 @@ where
     }
 }
 
-impl<T> RawWnfState<T>
+impl<T> RawState<T>
 where
-    T: WnfRead<Box<T>> + NoUninit + ?Sized,
+    T: Read<Box<T>> + NoUninit + ?Sized,
 {
     fn apply_boxed<D, F>(self, transform: F) -> io::Result<D>
     where
@@ -142,14 +142,14 @@ where
     }
 }
 
-impl<T> RawWnfState<T>
+impl<T> RawState<T>
 where
     T: ?Sized,
 {
     pub(crate) fn apply_as<ReadInto, WriteFrom, F>(self, mut transform: F) -> io::Result<WriteFrom>
     where
         WriteFrom: Borrow<T>,
-        T: WnfRead<ReadInto> + NoUninit,
+        T: Read<ReadInto> + NoUninit,
         F: FnMut(ReadInto) -> WriteFrom,
     {
         self.try_apply_as(|data| Ok::<_, Infallible>(transform(data)))
@@ -158,7 +158,7 @@ where
     fn try_apply_as<ReadInto, WriteFrom, E, F>(self, mut transform: F) -> io::Result<WriteFrom>
     where
         WriteFrom: Borrow<T>,
-        T: WnfRead<ReadInto> + NoUninit,
+        T: Read<ReadInto> + NoUninit,
         E: Into<Box<dyn Error + Send + Sync>>,
         F: FnMut(ReadInto) -> Result<WriteFrom, E>,
     {

@@ -4,14 +4,14 @@ use std::io::ErrorKind;
 use std::sync::Arc;
 use std::{fmt, thread};
 
-use wnf::{AsWnfState, BorrowedWnfState, OwnedWnfState};
+use wnf::{AsState, BorrowedState, OwnedState};
 
 macro_rules! apply_tests {
     ($($name:ident: $state:ident => $apply:expr,)*) => {
         $(
             #[test]
             fn $name() {
-                let state = Arc::new(OwnedWnfState::<u32>::create_temporary().unwrap());
+                let state = Arc::new(OwnedState::<u32>::create_temporary().unwrap());
                 state.set(&0).unwrap();
 
                 const NUM_THREADS: u32 = 2;
@@ -24,7 +24,7 @@ macro_rules! apply_tests {
 
                     handles.push(thread::spawn(move || {
                         for _ in 0..NUM_ITERATIONS {
-                            let $state = state.as_wnf_state();
+                            let $state = state.as_state();
                             $apply.unwrap();
                         }
                     }));
@@ -50,7 +50,7 @@ apply_tests! {
 
 #[test]
 fn apply_slice_to_vec() {
-    let state = Arc::new(OwnedWnfState::<[u32]>::create_temporary().unwrap());
+    let state = Arc::new(OwnedState::<[u32]>::create_temporary().unwrap());
     state.set(&[0, 0]).unwrap();
 
     const NUM_THREADS: u32 = 2;
@@ -81,7 +81,7 @@ fn apply_slice_to_vec() {
 
 #[test]
 fn try_apply_by_value_ok() {
-    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
+    let state = OwnedState::<u32>::create_temporary().unwrap();
 
     state.set(&0).unwrap();
     let result = state.try_apply(|v| Ok::<_, TestError>(v + 1)).unwrap();
@@ -92,7 +92,7 @@ fn try_apply_by_value_ok() {
 
 #[test]
 fn try_apply_by_value_err() {
-    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
+    let state = OwnedState::<u32>::create_temporary().unwrap();
 
     state.set(&0).unwrap();
     let result = state.try_apply(|_| Err::<u32, _>(TestError));
@@ -102,7 +102,7 @@ fn try_apply_by_value_err() {
 
 #[test]
 fn try_apply_boxed_ok() {
-    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
+    let state = OwnedState::<u32>::create_temporary().unwrap();
 
     state.set(&0).unwrap();
     let result = state.try_apply_boxed(|v| Ok::<_, TestError>(*v + 1)).unwrap();
@@ -113,7 +113,7 @@ fn try_apply_boxed_ok() {
 
 #[test]
 fn try_apply_boxed_err() {
-    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
+    let state = OwnedState::<u32>::create_temporary().unwrap();
 
     state.set(&0).unwrap();
     let result = state.try_apply_boxed(|_| Err::<u32, _>(TestError));
@@ -123,7 +123,7 @@ fn try_apply_boxed_err() {
 
 #[test]
 fn try_apply_slice_ok() {
-    let state = OwnedWnfState::<[u32]>::create_temporary().unwrap();
+    let state = OwnedState::<[u32]>::create_temporary().unwrap();
 
     state.set(&[0]).unwrap();
     let result = state
@@ -136,7 +136,7 @@ fn try_apply_slice_ok() {
 
 #[test]
 fn try_apply_slice_err() {
-    let state = OwnedWnfState::<[u32]>::create_temporary().unwrap();
+    let state = OwnedState::<[u32]>::create_temporary().unwrap();
 
     state.set(&[0]).unwrap();
     let result = state.try_apply_boxed(|_| Err::<Vec<_>, _>(TestError));
@@ -146,7 +146,7 @@ fn try_apply_slice_err() {
 
 #[test]
 fn replace() {
-    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
+    let state = OwnedState::<u32>::create_temporary().unwrap();
 
     state.set(&0).unwrap();
     let old_value = state.replace(&1).unwrap();
@@ -157,7 +157,7 @@ fn replace() {
 
 #[test]
 fn replace_boxed() {
-    let state = OwnedWnfState::<u32>::create_temporary().unwrap();
+    let state = OwnedState::<u32>::create_temporary().unwrap();
 
     state.set(&0).unwrap();
     let old_value = state.replace_boxed(&1).unwrap();
@@ -167,24 +167,24 @@ fn replace_boxed() {
 }
 
 #[test]
-fn owned_wnf_state_delete() {
-    let state = OwnedWnfState::<()>::create_temporary().unwrap();
+fn owned_state_delete() {
+    let state = OwnedState::<()>::create_temporary().unwrap();
     let state_name = state.state_name();
     state.delete().unwrap();
 
-    let state = BorrowedWnfState::<()>::from_state_name(state_name);
+    let state = BorrowedState::<()>::from_state_name(state_name);
     assert!(!state.exists().unwrap());
 }
 
 #[test]
-fn borrowed_wnf_state_delete() {
-    let state = OwnedWnfState::<()>::create_temporary().unwrap().leak();
+fn borrowed_state_delete() {
+    let state = OwnedState::<()>::create_temporary().unwrap().leak();
     assert!(state.exists().unwrap());
 
     let state_name = state.state_name();
     state.delete().unwrap();
 
-    let state = BorrowedWnfState::<()>::from_state_name(state_name);
+    let state = BorrowedState::<()>::from_state_name(state_name);
     assert!(!state.exists().unwrap());
 }
 

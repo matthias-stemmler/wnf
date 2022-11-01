@@ -1,4 +1,4 @@
-//! Dealing with type IDs of WNF states
+//! Dealing with type IDs of states
 
 #![deny(unsafe_code)]
 
@@ -7,7 +7,7 @@ use std::{fmt, io, ptr};
 
 /// A Globally Unique Identifier (GUID)
 ///
-/// This is used to (optionally) specify type IDs for WNF states.
+/// This is used to (optionally) specify type IDs for states.
 /// It provides [`From<T>`] implementations for various types `T` from foreign crates that also represent GUIDs.
 /// These implementations are available when the respective Cargo features are enabled:
 /// - Feature `windows`: [`From<windows::core::GUID>`](windows::core::GUID)
@@ -82,12 +82,12 @@ impl From<uuid::Uuid> for GUID {
     }
 }
 
-/// Internal helper type wrapping an optional GUID for use as a type ID of a WNF state
+/// Internal helper type wrapping an optional GUID for use as a type ID of a state
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub(crate) struct TypeId(Option<windows::core::GUID>);
 
 impl TypeId {
-    /// Creates a [`TypeId`] containing no GUID for use in an untyped WNF state
+    /// Creates a [`TypeId`] containing no GUID for use in an untyped state
     pub(crate) const fn none() -> Self {
         Self(None)
     }

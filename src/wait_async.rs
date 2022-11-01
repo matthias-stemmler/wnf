@@ -7,26 +7,26 @@ use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll, Waker};
 
-use crate::data::WnfOpaqueData;
+use crate::data::OpaqueData;
 use crate::predicate::{ChangedPredicate, Predicate, PredicateStage};
-use crate::read::WnfRead;
-use crate::state::{BorrowedWnfState, OwnedWnfState, RawWnfState};
-use crate::subscribe::{WnfDataAccessor, WnfSeenChangeStamp, WnfStateListener, WnfSubscription};
+use crate::read::Read;
+use crate::state::{BorrowedState, OwnedState, RawState};
+use crate::subscribe::{DataAccessor, SeenChangeStamp, StateListener, Subscription};
 
-impl<T> OwnedWnfState<T>
+impl<T> OwnedState<T>
 where
     T: ?Sized,
 {
-    pub fn wait_async(&self) -> WnfWait {
+    pub fn wait_async(&self) -> Wait {
         self.raw.wait_async()
     }
 }
 
-impl<T> OwnedWnfState<T>
+impl<T> OwnedState<T>
 where
-    T: WnfRead<T>,
+    T: Read<T>,
 {
-    pub fn wait_until_async<F>(&self, predicate: F) -> WnfWaitUntil<T, F>
+    pub fn wait_until_async<F>(&self, predicate: F) -> WaitUntil<T, F>
     where
         F: FnMut(&T) -> bool,
     {
@@ -34,11 +34,11 @@ where
     }
 }
 
-impl<T> OwnedWnfState<T>
+impl<T> OwnedState<T>
 where
-    T: WnfRead<Box<T>> + ?Sized,
+    T: Read<Box<T>> + ?Sized,
 {
-    pub fn wait_until_boxed_async<F>(&self, predicate: F) -> WnfWaitUntilBoxed<T, F>
+    pub fn wait_until_boxed_async<F>(&self, predicate: F) -> WaitUntilBoxed<T, F>
     where
         F: FnMut(&T) -> bool,
     {
@@ -46,20 +46,20 @@ where
     }
 }
 
-impl<'a, T> BorrowedWnfState<'a, T>
+impl<'a, T> BorrowedState<'a, T>
 where
     T: ?Sized,
 {
-    pub fn wait_async(self) -> WnfWait<'a> {
+    pub fn wait_async(self) -> Wait<'a> {
         self.raw.wait_async()
     }
 }
 
-impl<'a, T> BorrowedWnfState<'a, T>
+impl<'a, T> BorrowedState<'a, T>
 where
-    T: WnfRead<T>,
+    T: Read<T>,
 {
-    pub fn wait_until_async<F>(self, predicate: F) -> WnfWaitUntil<'a, T, F>
+    pub fn wait_until_async<F>(self, predicate: F) -> WaitUntil<'a, T, F>
     where
         F: FnMut(&T) -> bool,
     {
@@ -67,11 +67,11 @@ where
     }
 }
 
-impl<'a, T> BorrowedWnfState<'a, T>
+impl<'a, T> BorrowedState<'a, T>
 where
-    T: WnfRead<Box<T>> + ?Sized,
+    T: Read<Box<T>> + ?Sized,
 {
-    pub fn wait_until_boxed_async<F>(self, predicate: F) -> WnfWaitUntilBoxed<'a, T, F>
+    pub fn wait_until_boxed_async<F>(self, predicate: F) -> WaitUntilBoxed<'a, T, F>
     where
         F: FnMut(&T) -> bool,
     {
@@ -79,57 +79,57 @@ where
     }
 }
 
-impl<T> RawWnfState<T>
+impl<T> RawState<T>
 where
     T: ?Sized,
 {
-    fn wait_async<'a>(self) -> WnfWait<'a> {
-        WnfWait::new(self)
+    fn wait_async<'a>(self) -> Wait<'a> {
+        Wait::new(self)
     }
 }
 
-impl<T> RawWnfState<T>
+impl<T> RawState<T>
 where
-    T: WnfRead<T>,
+    T: Read<T>,
 {
-    fn wait_until_async<'a, F>(self, predicate: F) -> WnfWaitUntil<'a, T, F>
+    fn wait_until_async<'a, F>(self, predicate: F) -> WaitUntil<'a, T, F>
     where
         F: FnMut(&T) -> bool,
     {
-        WnfWaitUntil::new(self, predicate)
+        WaitUntil::new(self, predicate)
     }
 }
 
-impl<T> RawWnfState<T>
+impl<T> RawState<T>
 where
-    T: WnfRead<Box<T>> + ?Sized,
+    T: Read<Box<T>> + ?Sized,
 {
-    fn wait_until_boxed_async<'a, F>(self, predicate: F) -> WnfWaitUntilBoxed<'a, T, F>
+    fn wait_until_boxed_async<'a, F>(self, predicate: F) -> WaitUntilBoxed<'a, T, F>
     where
         F: FnMut(&T) -> bool,
     {
-        WnfWaitUntilBoxed::new(self, predicate)
+        WaitUntilBoxed::new(self, predicate)
     }
 }
 
 #[derive(Debug)]
 #[must_use = "futures do nothing unless you `.await` or poll them"]
-pub struct WnfWait<'a> {
-    inner: WnfWaitUntilInternal<'a, WnfOpaqueData, WnfOpaqueData, ChangedPredicate>,
+pub struct Wait<'a> {
+    inner: WaitUntilInternal<'a, OpaqueData, OpaqueData, ChangedPredicate>,
 }
 
-impl WnfWait<'_> {
-    fn new<T>(state: RawWnfState<T>) -> Self
+impl Wait<'_> {
+    fn new<T>(state: RawState<T>) -> Self
     where
         T: ?Sized,
     {
         Self {
-            inner: WnfWaitUntilInternal::new(state.cast(), ChangedPredicate),
+            inner: WaitUntilInternal::new(state.cast(), ChangedPredicate),
         }
     }
 }
 
-impl Future for WnfWait<'_> {
+impl Future for Wait<'_> {
     type Output = io::Result<()>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -139,22 +139,22 @@ impl Future for WnfWait<'_> {
 
 #[derive(Debug)]
 #[must_use = "futures do nothing unless you `.await` or poll them"]
-pub struct WnfWaitUntil<'a, T, F> {
-    inner: WnfWaitUntilInternal<'a, T, T, F>,
+pub struct WaitUntil<'a, T, F> {
+    inner: WaitUntilInternal<'a, T, T, F>,
 }
 
-impl<F, T> WnfWaitUntil<'_, T, F> {
-    fn new(state: RawWnfState<T>, predicate: F) -> Self {
+impl<F, T> WaitUntil<'_, T, F> {
+    fn new(state: RawState<T>, predicate: F) -> Self {
         Self {
-            inner: WnfWaitUntilInternal::new(state, predicate),
+            inner: WaitUntilInternal::new(state, predicate),
         }
     }
 }
 
-impl<F, T> Future for WnfWaitUntil<'_, T, F>
+impl<F, T> Future for WaitUntil<'_, T, F>
 where
     F: FnMut(&T) -> bool,
-    T: WnfRead<T>,
+    T: Read<T>,
 {
     type Output = io::Result<T>;
 
@@ -165,28 +165,28 @@ where
 
 #[derive(Debug)]
 #[must_use = "futures do nothing unless you `.await` or poll them"]
-pub struct WnfWaitUntilBoxed<'a, T, F>
+pub struct WaitUntilBoxed<'a, T, F>
 where
     T: ?Sized,
 {
-    inner: WnfWaitUntilInternal<'a, T, Box<T>, F>,
+    inner: WaitUntilInternal<'a, T, Box<T>, F>,
 }
 
-impl<F, T> WnfWaitUntilBoxed<'_, T, F>
+impl<F, T> WaitUntilBoxed<'_, T, F>
 where
     T: ?Sized,
 {
-    fn new(state: RawWnfState<T>, predicate: F) -> Self {
+    fn new(state: RawState<T>, predicate: F) -> Self {
         Self {
-            inner: WnfWaitUntilInternal::new(state, predicate),
+            inner: WaitUntilInternal::new(state, predicate),
         }
     }
 }
 
-impl<T, F> Future for WnfWaitUntilBoxed<'_, T, F>
+impl<T, F> Future for WaitUntilBoxed<'_, T, F>
 where
     F: FnMut(&T) -> bool,
-    T: WnfRead<Box<T>> + ?Sized,
+    T: Read<Box<T>> + ?Sized,
 {
     type Output = io::Result<Box<T>>;
 
@@ -197,14 +197,14 @@ where
 
 #[derive(Debug)]
 #[must_use = "futures do nothing unless you `.await` or poll them"]
-struct WnfWaitUntilInternal<'a, T, D, F>
+struct WaitUntilInternal<'a, T, D, F>
 where
     T: ?Sized,
 {
     future_state: Option<FutureState<'a, T, D, F>>,
 }
 
-impl<T, D, F> Unpin for WnfWaitUntilInternal<'_, T, D, F> where T: ?Sized {}
+impl<T, D, F> Unpin for WaitUntilInternal<'_, T, D, F> where T: ?Sized {}
 
 #[derive(Debug)]
 enum FutureState<'a, T, D, F>
@@ -212,13 +212,13 @@ where
     T: ?Sized,
 {
     Initial {
-        state: RawWnfState<T>,
+        state: RawState<T>,
         predicate: F,
     },
     Waiting {
         predicate: F,
         shared_state: Arc<Mutex<SharedState<D>>>,
-        subscription: WnfSubscription<'a, WaitListener<D>>,
+        subscription: Subscription<'a, WaitListener<D>>,
     },
 }
 
@@ -234,22 +234,22 @@ impl<D> SharedState<D> {
     }
 }
 
-impl<D, F, T> WnfWaitUntilInternal<'_, T, D, F>
+impl<D, F, T> WaitUntilInternal<'_, T, D, F>
 where
     T: ?Sized,
 {
-    fn new(state: RawWnfState<T>, predicate: F) -> Self {
+    fn new(state: RawState<T>, predicate: F) -> Self {
         Self {
             future_state: Some(FutureState::Initial { state, predicate }),
         }
     }
 }
 
-impl<D, F, T> Future for WnfWaitUntilInternal<'_, T, D, F>
+impl<D, F, T> Future for WaitUntilInternal<'_, T, D, F>
 where
     D: Borrow<T> + Send + 'static,
     F: Predicate<T>,
-    T: WnfRead<D> + ?Sized,
+    T: Read<D> + ?Sized,
 {
     type Output = io::Result<D>;
 
@@ -266,7 +266,7 @@ where
                     let shared_state = Arc::new(Mutex::new(SharedState::from_waker(cx.waker().clone())));
                     let subscription = state.subscribe(
                         WaitListener::new(Arc::clone(&shared_state)),
-                        WnfSeenChangeStamp::Value(change_stamp),
+                        SeenChangeStamp::Value(change_stamp),
                     )?;
 
                     FutureState::Waiting {
@@ -323,12 +323,12 @@ impl<D> WaitListener<D> {
     }
 }
 
-impl<T, D> WnfStateListener<T> for WaitListener<D>
+impl<T, D> StateListener<T> for WaitListener<D>
 where
     D: Send + 'static,
-    T: WnfRead<D> + ?Sized,
+    T: Read<D> + ?Sized,
 {
-    fn call(&mut self, accessor: WnfDataAccessor<T>) {
+    fn call(&mut self, accessor: DataAccessor<T>) {
         let SharedState { result, ref waker } = &mut *self.shared_state.lock().unwrap();
         *result = Some(accessor.get_as());
         waker.wake_by_ref();
