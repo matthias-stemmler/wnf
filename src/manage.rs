@@ -1,3 +1,5 @@
+//! Methods for creating and deleting WNF states
+
 use std::borrow::Borrow;
 use std::io;
 
@@ -10,8 +12,17 @@ use crate::state_name::{WnfDataScope, WnfStateName, WnfStateNameLifetime};
 use crate::type_id::{TypeId, GUID};
 use crate::BoxedSecurityDescriptor;
 
-const MAXIMUM_STATE_SIZE: usize = 0x1000; // 4 KB
+/// The maximum size of a WNF state in bytes
+///
+/// The maximum size of a WNF state can be specified upon creation of the state and can be anything between `0` and
+/// `4KB`, which is the value of this constant. It is also used as the default value when the maximum state size is not
+/// specified.
+pub const MAXIMUM_STATE_SIZE: usize = 0x1000;
 
+/// Marker type for an unspecified lifetime when creating a WNF state
+///
+/// The lifetime of a WNF state must be specified upon its creation. When creating a WNF state via a
+/// [`WnfStateCreation`], this is used as a type parameter to indicate that the lifetime has not been specified yet.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct UnspecifiedLifetime {
     _private: (),
@@ -23,6 +34,10 @@ impl UnspecifiedLifetime {
     }
 }
 
+/// Marker type for an unspecified scope when creating a WNF state
+///
+/// The scope of a WNF state must be specified upon its creation. When creating a WNF state via a [`WnfStateCreation`],
+/// this is used as a type parameter to indicate that the scope has not been specified yet.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct UnspecifiedScope {
     _private: (),
@@ -34,6 +49,12 @@ impl UnspecifiedScope {
     }
 }
 
+/// Marker type for an unspecified security descriptor when creating a WNF state
+///
+/// The security descriptor of a WNF state can optionally be specified upon its creation. When creating a WNF state via
+/// a [`WnfStateCreation`], this is used as a type parameter to indicate that no security descriptor has been specified.
+/// In this case, a default security descriptor (see [`BoxedSecurityDescriptor::create_everyone_generic_all`]) will be
+/// used.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct UnspecifiedSecurityDescriptor {
     _private: (),
@@ -45,6 +66,13 @@ impl UnspecifiedSecurityDescriptor {
     }
 }
 
+/// The lifetime of a WNF state when specified upon creation
+///
+/// This is different from a [`WnfStateNameLifetime`] in two ways:
+/// - It does not include an equivalent of the [`WnfStateNameLifetime::WellKnown`] lifetime because states with that
+///   lifetime are provisioned with the system and cannot be created.
+/// - The [`WnfCreatableStateLifetime::Permanent`] option comes with a `persist_data` flag because that flag only
+///   applies to the [`WnfStateNameLifetime::Permant`] (and [`WnfStateNameLifetime::WellKnown`]) lifetimes.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum WnfCreatableStateLifetime {
     Permanent { persist_data: bool },

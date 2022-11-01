@@ -14,7 +14,7 @@ pub use bytes::*;
 pub use data::{WnfChangeStamp, WnfOpaqueData, WnfStampedData};
 pub use manage::{
     TryIntoSecurityDescriptor, UnspecifiedLifetime, UnspecifiedScope, UnspecifiedSecurityDescriptor,
-    WnfCreatableStateLifetime, WnfStateCreation,
+    WnfCreatableStateLifetime, WnfStateCreation, MAXIMUM_STATE_SIZE,
 };
 pub use privilege::can_create_permanent_shared_objects;
 pub use read::{WnfRead, WnfReadError};
