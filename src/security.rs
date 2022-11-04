@@ -19,8 +19,8 @@ use crate::util::CWideString;
 /// Since the layout of security descriptors is unstable, this is an *opaque type*, meaning it is only meant to be used
 /// behind a reference or pointer.
 ///
-/// Creating a new state requires providing a security descriptor. See [`StateCreation::security_descriptor`] for
-/// details on how to do that.
+/// You can configure the security descriptor of a state upon creation through the
+/// [`StateCreation::security_descriptor`] method.
 ///
 /// See RFC [1861-extern-types](https://rust-lang.github.io/rfcs/1861-extern-types.html) for some background on opaque
 /// types.
@@ -30,6 +30,12 @@ use crate::util::CWideString;
 #[repr(C)]
 pub struct SecurityDescriptor {
     _opaque: [u8; 0],
+}
+
+impl Drop for SecurityDescriptor {
+    fn drop(&mut self) {
+        unreachable!("SecurityDescriptor is an opaque type");
+    }
 }
 
 impl SecurityDescriptor {

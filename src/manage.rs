@@ -80,6 +80,7 @@ pub enum CreatableStateLifetime {
 }
 
 impl CreatableStateLifetime {
+    /// Returns whether the `persist_data` flag should be set for this [`CreatableStateLifetime`]
     fn persist_data(self) -> bool {
         matches!(self, Self::Permanent { persist_data: true })
     }
@@ -95,10 +96,26 @@ impl From<CreatableStateLifetime> for StateNameLifetime {
     }
 }
 
-pub trait TryIntoSecurityDescriptor {
+/// Trait for types that can be fallibly converted into something that can be borrowed as a [`SecurityDescriptor`]
+///
+/// This trait is implemented for
+/// - all types that implement [`Borrow<SecurityDescriptor>`]
+/// - the type [`UnspecifiedSecurityDescriptor`]
+///
+/// This allows the [`StateCreation::create_owned`] and [`StateCreation::create_static`] methods to be called after
+/// - either setting a security descriptor explicitly through [`StateCreation::security_descriptor`]
+/// - or leaving the security descriptor unspecified (in which case a default security descriptor will be used)
+/// while avoiding initial creation of a default security descriptor if one is specified explicitly later.
+///
+/// This trait is sealed and cannot be implemented outside of `wnf`.
+pub trait TryIntoSecurityDescriptor: private::Sealed {
+    /// The target type of the fallible conversion
     type IntoSecurityDescriptor: Borrow<SecurityDescriptor>;
 
+    /// Performs the fallible conversion
+    ///
     /// # Errors
+    /// Returns an error if the conversion fails
     fn try_into_security_descriptor(self) -> io::Result<Self::IntoSecurityDescriptor>;
 }
 
@@ -121,6 +138,58 @@ impl TryIntoSecurityDescriptor for UnspecifiedSecurityDescriptor {
     }
 }
 
+/// Builder type for creating states
+///
+/// You can use this type to create a state by applying the following steps:
+/// 1. Create a new builder using [`StateCreation::new`]
+/// 2. Configure options using the appropriate methods on [`StateCreation`]
+/// 3. Call [`StateCreation::create_owned`] or [`StateCreation::create_static`] to create the state
+///
+/// The following options can be configured:
+///
+/// - [`lifetime`](StateCreation::lifetime): Mandatory
+/// - [`scope`](StateCreation::scope): Mandatory
+/// - [`maximum_state_size`](StateCreation::maximum_state_size): Optional, default: `0x1000`
+/// - [`security_descriptor`](StateCreation::security_descriptor): Optional, default:
+///   [`BoxedSecurityDescriptor::create_everyone_generic_all`]
+/// - [`type_id`]: Optional, default: none
+///
+/// Due to type state, the [`StateCreation::create_owned`] and [`StateCreation::create_static`] methods are only
+/// available once the mandatory options have been configured.
+///
+/// # Example
+/// ```
+/// use wnf::{CreatableStateLifetime, DataScope, OwnedState, StateCreation};
+///
+/// let state: OwnedState<u32> = StateCreation::new()
+///     .lifetime(CreatableStateLifetime::Temporary)
+///     .scope(DataScope::Machine)
+///     .create_owned()
+///     .expect("Failed to create state");
+/// ```
+///
+/// If you want to create multiple states from a single builder, clone the builder first:
+/// ```
+/// use wnf::{CreatableStateLifetime, DataScope, OwnedState, StateCreation};
+///
+/// let template = StateCreation::new()
+///     .lifetime(CreatableStateLifetime::Temporary)
+///     .scope(DataScope::Machine);
+///
+/// let large_state: OwnedState<u32> = template
+///     .clone()
+///     .maximum_state_size(0x800)
+///     .create_owned()
+///     .expect("Failed to create state");
+///
+/// let small_state: OwnedState<u32> = template
+///     .maximum_state_size(0x400)
+///     .create_owned()
+///     .expect("Failed to create state");
+/// ```
+///
+/// In order to quickly create a temporary machine-scoped state (e.g. for testing purposes), consider using the
+/// [`OwnedState::create_temporary`] or [`BorrowedState::create_temporary`] methods.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct StateCreation<L, S, SD> {
     // mandatory fields
@@ -147,12 +216,16 @@ impl Default for StateCreation<UnspecifiedLifetime, UnspecifiedScope, Unspecifie
 }
 
 impl StateCreation<UnspecifiedLifetime, UnspecifiedScope, UnspecifiedSecurityDescriptor> {
+    /// Creates a new [`StateCreation`] builder with no configured options
     pub fn new() -> Self {
         Self::default()
     }
 }
 
 impl<L, S, SD> StateCreation<L, S, SD> {
+    /// Configures the lifetime of a [`StateCreation`] builder
+    ///
+    /// This is a mandatory option and must be configured before a state can be created.
     #[must_use]
     pub fn lifetime(self, lifetime: CreatableStateLifetime) -> StateCreation<CreatableStateLifetime, S, SD> {
         StateCreation {
@@ -165,6 +238,9 @@ impl<L, S, SD> StateCreation<L, S, SD> {
         }
     }
 
+    /// Configures the scope of a [`StateCreation`] builder
+    ///
+    /// This is a mandatory option and must be configured before a state can be created.
     #[must_use]
     pub fn scope(self, scope: DataScope) -> StateCreation<L, DataScope, SD> {
         StateCreation {
@@ -177,6 +253,9 @@ impl<L, S, SD> StateCreation<L, S, SD> {
         }
     }
 
+    /// Configures the maximum state size of a [`StateCreation`] builder
+    ///
+    /// If this is not configured, it defaults to `0x1000` (4 KB), which is the absolute maximum size of a state.
     #[must_use]
     pub fn maximum_state_size(self, maximum_state_size: usize) -> StateCreation<L, S, SD> {
         StateCreation {
@@ -185,6 +264,9 @@ impl<L, S, SD> StateCreation<L, S, SD> {
         }
     }
 
+    /// Configures the security descriptor of a [`StateCreation`] builder
+    ///
+    /// If this is not configured, it defaults to [`BoxedSecurityDescriptor::create_everyone_generic_all`].
     #[must_use]
     pub fn security_descriptor<NewSD>(self, security_descriptor: NewSD) -> StateCreation<L, S, NewSD>
     where
@@ -200,6 +282,9 @@ impl<L, S, SD> StateCreation<L, S, SD> {
         }
     }
 
+    /// Configures the type id of a [`StateCreation`] builder
+    ///
+    /// If this is not configured, it defaults to no type id.
     #[must_use]
     pub fn type_id(self, type_id: impl Into<GUID>) -> StateCreation<L, S, SD> {
         StateCreation {
@@ -213,7 +298,15 @@ impl<SD> StateCreation<CreatableStateLifetime, DataScope, SD>
 where
     SD: TryIntoSecurityDescriptor,
 {
+    /// Creates an [`OwnedState<T>`] from this [`StateCreation`]
+    ///
+    /// Note that the state will be deleted when the returned [`OwnedState<T>`] is dropped. You can avoid this by
+    /// calling [`StateCreation::create_static`] instead, which returns a statically borrowed state.
+    ///
+    /// This method is only available once [`StateCreation::lifetime`] and [`StateCreation::scope`] have been called.
+    ///
     /// # Errors
+    /// Returns an error if creating the state fails
     pub fn create_owned<T>(self) -> io::Result<OwnedState<T>>
     where
         T: ?Sized,
@@ -221,7 +314,26 @@ where
         self.create_raw().map(OwnedState::from_raw)
     }
 
+    /// Creates a state from this [`StateCreation`], returning a [`BorrowsState<'static, T>`]
+    ///
+    /// This is equivalent to creating an owned state and immediately leaking it:
+    /// ```
+    /// # use wnf::{BorrowedState, CreatableStateLifetime, DataScope, StateCreation};
+    /// let state: BorrowedState<'static, u32> = StateCreation::new()
+    ///     .lifetime(CreatableStateLifetime::Temporary)
+    ///     .scope(DataScope::Machine)
+    ///     .create_owned()
+    ///     .expect("Failed to create state")
+    ///     .leak();
+    /// ```
+    ///
+    /// Note that since you only obtain a statically borrowed state, it will not be deleted automatically. If that is
+    /// not the desired behavior, call [`StateCreation::create_owned`] instead, which returns an owned state.
+    ///
+    /// This method is only available once [`StateCreation::lifetime`] and [`StateCreation::scope`] have been called.
+    ///
     /// # Errors
+    /// Returns an error if creating the state fails
     pub fn create_static<T>(self) -> io::Result<BorrowedState<'static, T>>
     where
         T: ?Sized,
@@ -229,6 +341,7 @@ where
         self.create_raw().map(BorrowedState::from_raw)
     }
 
+    /// Creates a [`RawState<T>`] from this [`StateCreation`]
     fn create_raw<T>(self) -> io::Result<RawState<T>>
     where
         T: ?Sized,
@@ -248,7 +361,12 @@ impl<T> OwnedState<T>
 where
     T: ?Sized,
 {
+    /// Creates an [`OwnedState<T>`] with temporary lifetime and machine scope
+    ///
+    /// This is a convenience method for quickly creating a state, e.g. for testing purposes.
+    ///
     /// # Errors
+    /// Returns an error if creating the state fails
     pub fn create_temporary() -> io::Result<Self> {
         StateCreation::new()
             .lifetime(CreatableStateLifetime::Temporary)
@@ -256,7 +374,13 @@ where
             .create_owned()
     }
 
+    /// Deletes this state
+    ///
+    /// Note that an [`OwnedState<T>`] will be deleted automatically when it is dropped, so calling this method is
+    /// usually not necessary. It is useful, however, if you want to handle errors.
+    ///
     /// # Errors
+    /// Returns an error if deleting the state fails
     pub fn delete(self) -> io::Result<()> {
         self.into_raw().delete()
     }
@@ -266,7 +390,12 @@ impl<T> BorrowedState<'static, T>
 where
     T: ?Sized,
 {
+    /// Creates a [`BorrowedState<'static, T>`] with temporary lifetime and machine scope
+    ///
+    /// This is a convenience method for quickly creating a state, e.g. for testing purposes.
+    ///
     /// # Errors
+    /// Returns an error if creating the state fails
     pub fn create_temporary() -> io::Result<Self> {
         StateCreation::new()
             .lifetime(CreatableStateLifetime::Temporary)
@@ -279,7 +408,10 @@ impl<T> BorrowedState<'_, T>
 where
     T: ?Sized,
 {
+    /// Deletes this state
+    ///
     /// # Errors
+    /// Returns an error if deleting the state fails
     pub fn delete(self) -> io::Result<()> {
         self.raw.delete()
     }
@@ -289,6 +421,7 @@ impl<T> RawState<T>
 where
     T: ?Sized,
 {
+    /// Creates a [`RawState<T>`]
     fn create(
         name_lifetime: StateNameLifetime,
         data_scope: DataScope,
@@ -304,6 +437,13 @@ where
         let persist_data: u8 = persist_data.into();
         let maximum_state_size = maximum_state_size as u32;
 
+        // SAFETY:
+        // - The pointer in the first argument is valid for writes of `u64` because it comes from a live mutable
+        //   reference
+        // - The pointer in the fifth argument is either a null pointer or points to a valid `GUID` by the guarantees of
+        //   `TypeId::as_ptr`
+        // - The pointer in the seventh argument points to a valid security descriptor because it comes from a live
+        //   reference
         let result = unsafe {
             ntapi::NtCreateWnfStateName(
                 &mut opaque_value,
@@ -348,7 +488,10 @@ where
         }
     }
 
+    /// Deletes this [`RawState<T>`]
     pub(crate) fn delete(self) -> io::Result<()> {
+        // SAFETY:
+        // The pointer points to a valid `u64` because it comes from a live reference
         let result = unsafe { ntapi::NtDeleteWnfStateName(&self.state_name.opaque_value()) };
 
         debug!(
@@ -361,4 +504,14 @@ where
         result.ok()?;
         Ok(())
     }
+}
+
+/// Making [`TryIntoSecurityDescriptor`] a sealed trait
+mod private {
+    use super::*;
+
+    pub trait Sealed {}
+
+    impl<SD> Sealed for SD where SD: Borrow<SecurityDescriptor> {}
+    impl Sealed for UnspecifiedSecurityDescriptor {}
 }

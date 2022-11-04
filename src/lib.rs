@@ -85,5 +85,6 @@ mod wait_blocking;
 // TODO Safety comments
 // TODO documentation
 // TODO Wording: state vs. state name
+// TODO Wording: you vs. passive voice
 // TODO Compare with ntapi crate
 // TODO deny missing docs
