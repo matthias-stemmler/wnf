@@ -82,9 +82,9 @@ mod wait_blocking;
 // TODO CI
 // TODO Which traits should be sealed?
 // TODO unit tests (Miri?)
-// TODO Safety comments
 // TODO documentation
 // TODO Wording: state vs. state name
 // TODO Wording: you vs. passive voice
 // TODO Compare with ntapi crate
 // TODO deny missing docs
+// TODO put Rtl* behind features

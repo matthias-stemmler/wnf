@@ -277,11 +277,11 @@ struct SystemProcess(Child);
 impl SystemProcess {
     fn wait(mut self) -> io::Result<i32> {
         match self.0.wait()?.code().unwrap() {
-            exit_code if exit_code < 0 => Err(io::Error::new(
+            exit_code if exit_code == INTERNAL_ERROR_CODE || exit_code >= 0 => Ok(exit_code),
+            exit_code => Err(io::Error::new(
                 ErrorKind::Other,
                 format!("PAExec failed with exit code {exit_code}"),
             )),
-            exit_code => Ok(exit_code),
         }
     }
 }

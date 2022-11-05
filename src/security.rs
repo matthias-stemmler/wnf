@@ -3,10 +3,10 @@
 use std::borrow::Borrow;
 use std::ffi::c_void;
 use std::fmt::{self, Debug, Formatter};
+use std::io;
 use std::ops::Deref;
 use std::ptr::NonNull;
 use std::str::FromStr;
-use std::{io, ptr};
 
 use windows::Win32::Security::Authorization::{ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION};
 use windows::Win32::Security::PSECURITY_DESCRIPTOR;
@@ -105,7 +105,7 @@ impl FromStr for BoxedSecurityDescriptor {
                 string_security_descriptor.as_pcwstr(),
                 SDDL_REVISION,
                 &mut psecurity_descriptor,
-                ptr::null_mut(),
+                None,
             )
         };
 

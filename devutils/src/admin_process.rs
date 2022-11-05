@@ -102,7 +102,7 @@ impl Child {
         // SAFETY:
         // The handle in the first argument has not been closed
         let result = unsafe { WaitForSingleObject(self.0, u32::MAX) };
-        if result == WAIT_FAILED.0 {
+        if result == WAIT_FAILED {
             return Err(io::Error::last_os_error());
         }
 
