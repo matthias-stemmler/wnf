@@ -29,30 +29,12 @@ compile_error!("The `wnf` crate supports Windows only");
 #[macro_use]
 extern crate num_derive;
 
-pub use bytes::*;
-pub use data::{ChangeStamp, OpaqueData, StampedData};
-pub use manage::{
-    CreatableStateLifetime, StateCreation, TryIntoSecurityDescriptor, UnspecifiedLifetime, UnspecifiedScope,
-    UnspecifiedSecurityDescriptor, MAXIMUM_STATE_SIZE,
-};
-pub use privilege::can_create_permanent_shared_objects;
-pub use read::{Read, ReadError};
-pub use security::{BoxedSecurityDescriptor, SecurityDescriptor};
-pub use state::{AsState, BorrowedState, OwnedState};
-pub use state_name::{
-    DataScope, StateName, StateNameDescriptor, StateNameDescriptorFromStateNameError, StateNameFromDescriptorError,
-    StateNameLifetime,
-};
-pub use subscribe::{DataAccessor, SeenChangeStamp, StateListener, Subscription};
-pub use type_id::GUID;
-
 mod apply;
 mod bytes;
 mod data;
 mod info;
 mod manage;
 mod ntapi;
-mod predicate;
 mod privilege;
 mod query;
 mod read;
@@ -60,12 +42,37 @@ mod replace;
 mod security;
 mod state;
 mod state_name;
-mod subscribe;
 mod type_id;
 mod update;
 mod util;
+
+#[cfg(any(feature = "wait_async", feature = "wait_blocking"))]
+mod predicate;
+
+#[cfg(feature = "subscribe")]
+mod subscribe;
+
+#[cfg(feature = "wait_async")]
 mod wait_async;
+
+#[cfg(feature = "wait_blocking")]
 mod wait_blocking;
+
+pub use bytes::*;
+pub use data::*;
+pub use manage::*;
+pub use privilege::*;
+pub use read::*;
+pub use security::*;
+pub use state::*;
+pub use state_name::*;
+pub use type_id::*;
+
+#[cfg(feature = "subscribe")]
+pub use subscribe::*;
+
+#[cfg(feature = "wait_async")]
+pub use wait_async::*;
 
 // TODO check Debug impls
 // TODO check error messages for capitalization
@@ -87,4 +94,4 @@ mod wait_blocking;
 // TODO Wording: you vs. passive voice
 // TODO Compare with ntapi crate
 // TODO deny missing docs
-// TODO put Rtl* behind features
+// TODO CI: hack, udeps, msrv?
