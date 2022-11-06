@@ -48,10 +48,10 @@ features = [
 ]
 
 [dev-dependencies]
-crossbeam-channel = "0.5.6"
+crossbeam-channel = "0.5"
 devutils = { path = "devutils" }
-tokio = { version = "1.21", features = ["macros", "rt-multi-thread", "time"] }
-tracing-subscriber = { version = "0.3.16", default-features = false, features = ["fmt"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt"] }
 
 [[test]]
 name = "system"

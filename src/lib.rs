@@ -73,25 +73,3 @@ pub use subscribe::*;
 
 #[cfg(feature = "wait_async")]
 pub use wait_async::*;
-
-// TODO check Debug impls
-// TODO check error messages for capitalization
-// TODO consts for well-known states?
-// TODO ZST tests
-// TODO check which types are Send/Sync
-// TODO trait impls: all for external types, only needed (+Debug) for internal (check generics!)
-// TODO tests for error messages
-// TODO minimal dependency versions
-// TODO test on Windows 11
-// TODO document what's not supported (kernel mode? event aggregation? meta subscriptions?)
-// TODO real-life examples
-// TODO const fn
-// TODO CI
-// TODO Which traits should be sealed?
-// TODO unit tests (Miri?)
-// TODO documentation
-// TODO Wording: state vs. state name
-// TODO Wording: you vs. passive voice
-// TODO Compare with ntapi crate
-// TODO deny missing docs
-// TODO CI: hack, udeps, msrv?
