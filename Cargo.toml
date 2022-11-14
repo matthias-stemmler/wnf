@@ -15,21 +15,29 @@ keywords = ["api", "async", "bindings", "ffi", "windows"]
 categories = ["api-bindings", "asynchronous", "os::windows-apis"]
 include = ["crates-io.md", "LICENSE-APACHE", "LICENSE-MIT", "src/**/*"]
 
+[package.metadata.docs.rs]
+# build locally: cargo +nightly rustdoc --all-features --target x86_64-pc-windows-msvc --open -- --cfg docsrs
+all-features = true
+default-target = "x86_64-pc-windows-msvc"
+rustdoc-args = ["--cfg", "docsrs"]
+targets = ["i686-pc-windows-msvc"]
+
 [features]
-bytemuck-v1 = ["dep:bytemuck-v1"]
+bytemuck_v1 = ["dep:bytemuck-v1", "dep:paste"]
 subscribe = []
 uuid = ["dep:uuid"]
 wait_async = ["subscribe"]
 wait_blocking = ["subscribe"]
 winapi = ["dep:winapi"]
 windows = []
-windows-permissions = ["dep:windows-permissions"]
+windows_permissions = ["dep:windows-permissions"]
 zerocopy = ["dep:zerocopy"]
 
 [dependencies]
 bytemuck-v1 = { package = "bytemuck", version = "1", optional = true }
 num-derive = "0.3"
 num-traits = { version = "0.2", default-features = false }
+paste = { version = "1", optional = true }
 thiserror = "1"
 tracing = { version = "0.1.22", default-features = false, features = ["log"] }
 uuid = { version = "1", optional = true }
@@ -48,6 +56,7 @@ features = [
 ]
 
 [dev-dependencies]
+bytemuck-v1 = { package = "bytemuck", version = "1", features = ["derive"] }
 crossbeam-channel = "0.5"
 devutils = { path = "devutils" }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
@@ -56,3 +65,35 @@ tracing-subscriber = { version = "0.3", default-features = false, features = ["f
 [[test]]
 name = "system"
 harness = false
+
+[[example]]
+name = "apps_shell"
+required-features = ["subscribe"]
+
+[[example]]
+name = "recipes_subscribe"
+required-features = ["subscribe"]
+
+[[example]]
+name = "recipes_wait_async"
+required-features = ["wait_async"]
+
+[[example]]
+name = "recipes_wait_blocking"
+required-features = ["wait_blocking"]
+
+[[example]]
+name = "recipes_wait_until_async"
+required-features = ["wait_async"]
+
+[[example]]
+name = "recipes_wait_until_blocking"
+required-features = ["wait_blocking"]
+
+[[example]]
+name = "recipes_wait_until_boxed_async"
+required-features = ["wait_async"]
+
+[[example]]
+name = "recipes_wait_until_boxed_blocking"
+required-features = ["wait_blocking"]

@@ -1,15 +1,13 @@
-#[cfg(feature = "bytemuck_v1")]
+extern crate bytemuck_v1 as bytemuck;
+
 mod bytemuck_v1_tests {
     use wnf::{derive_from_bytemuck_v1, AnyBitPattern, CheckedBitPattern, NoUninit};
 
     #[test]
     fn derive_any_bit_pattern_from_bytemuck() {
-        #[derive(Clone, Copy)]
-        struct Test;
-
-        // SAFETY: `Test` is zero-sized
-        unsafe impl bytemuck_v1::Zeroable for Test {}
-        unsafe impl bytemuck_v1::AnyBitPattern for Test {}
+        #[derive(bytemuck::AnyBitPattern, Clone, Copy)]
+        #[repr(C)]
+        struct Test(u8, u16);
 
         derive_from_bytemuck_v1!(AnyBitPattern for Test);
 
@@ -18,31 +16,20 @@ mod bytemuck_v1_tests {
 
     #[test]
     fn derive_checked_bit_pattern_from_bytemuck() {
-        #[derive(Clone, Copy)]
-        struct Test;
-
-        // SAFETY: `Test` is zero-sized
-        unsafe impl bytemuck_v1::CheckedBitPattern for Test {
-            type Bits = u8;
-
-            fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-                *bits < 128
-            }
-        }
+        #[derive(bytemuck::CheckedBitPattern, Clone, Copy)]
+        #[repr(C)]
+        struct Test(char);
 
         derive_from_bytemuck_v1!(CheckedBitPattern for Test);
 
-        assert!(<Test as CheckedBitPattern>::is_valid_bit_pattern(&127u8));
-        assert!(!<Test as CheckedBitPattern>::is_valid_bit_pattern(&128u8));
+        assert_impl_checked_bit_pattern::<Test>();
     }
 
     #[test]
     fn derive_no_uninit_from_bytemuck() {
-        #[derive(Clone, Copy)]
-        struct Test;
-
-        // SAFETY: `Test` is zero-sized
-        unsafe impl bytemuck_v1::NoUninit for Test {}
+        #[derive(bytemuck::NoUninit, Clone, Copy)]
+        #[repr(C)]
+        struct Test(bool);
 
         derive_from_bytemuck_v1!(NoUninit for Test);
 
@@ -50,17 +37,18 @@ mod bytemuck_v1_tests {
     }
 
     fn assert_impl_any_bit_pattern<T: AnyBitPattern>() {}
+    fn assert_impl_checked_bit_pattern<T: CheckedBitPattern>() {}
     fn assert_impl_no_uninit<T: NoUninit>() {}
 }
 
-#[cfg(feature = "zerocopy")]
 mod zerocopy_tests {
     use wnf::{derive_from_zerocopy, AnyBitPattern, NoUninit};
 
     #[test]
     fn derive_any_bit_pattern_from_zerocopy() {
-        #[derive(Clone, Copy, zerocopy::FromBytes)]
-        struct Test;
+        #[derive(zerocopy::FromBytes, Clone, Copy)]
+        #[repr(C)]
+        struct Test(u8, u16);
 
         derive_from_zerocopy!(AnyBitPattern for Test);
 
@@ -69,9 +57,9 @@ mod zerocopy_tests {
 
     #[test]
     fn derive_no_uninit_from_zerocopy() {
-        #[derive(Clone, Copy, zerocopy::AsBytes)]
+        #[derive(zerocopy::AsBytes, Clone, Copy)]
         #[repr(C)]
-        struct Test;
+        struct Test(bool);
 
         derive_from_zerocopy!(NoUninit for Test);
 

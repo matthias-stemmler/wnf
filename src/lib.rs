@@ -1,3 +1,4 @@
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![deny(elided_lifetimes_in_paths)]
 #![deny(improper_ctypes)]
 #![deny(improper_ctypes_definitions)]
@@ -14,6 +15,12 @@
 #![deny(clippy::non_send_fields_in_send_ty)]
 #![deny(clippy::pedantic)]
 #![deny(clippy::undocumented_unsafe_blocks)]
+#![deny(rustdoc::bare_urls)]
+#![deny(rustdoc::broken_intra_doc_links)]
+#![deny(rustdoc::invalid_codeblock_attributes)]
+#![deny(rustdoc::invalid_rust_codeblocks)]
+// #![deny(rustdoc::missing_crate_level_docs)]
+#![deny(rustdoc::private_intra_doc_links)]
 #![allow(clippy::borrow_as_ptr)]
 #![allow(clippy::cast_possible_truncation)]
 #![allow(clippy::inline_always)]
@@ -66,10 +73,8 @@ pub use read::*;
 pub use security::*;
 pub use state::*;
 pub use state_name::*;
-pub use type_id::*;
-
 #[cfg(feature = "subscribe")]
 pub use subscribe::*;
-
+pub use type_id::*;
 #[cfg(feature = "wait_async")]
 pub use wait_async::*;

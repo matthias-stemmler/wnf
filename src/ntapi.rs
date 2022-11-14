@@ -11,7 +11,6 @@
 #![deny(unsafe_code)]
 
 pub(crate) use ntexapi::*;
-
 #[cfg(feature = "subscribe")]
 pub(crate) use ntrtl::*;
 
@@ -187,7 +186,7 @@ mod ntexapi {
 }
 
 /// Raw bindings to some of the WNF functions of the RTL support library
-/// 
+///
 /// These are only needed for features reyling on state subscriptions.
 #[cfg(feature = "subscribe")]
 mod ntrtl {

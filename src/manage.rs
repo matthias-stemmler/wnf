@@ -71,7 +71,8 @@ impl UnspecifiedSecurityDescriptor {
 /// - It does not include an equivalent of the [`StateNameLifetime::WellKnown`] lifetime because states with that
 ///   lifetime are provisioned with the system and cannot be created.
 /// - The [`CreatableStateLifetime::Permanent`] option comes with a `persist_data` flag because that flag only applies
-///   to the [`StateNameLifetime::Permant`] (and [`StateNameLifetime::WellKnown`]) lifetimes.
+///   to the [`StateNameLifetime::Permanent`](crate::state_name::StateNameLifetime::Permanent) (and
+///   [`StateNameLifetime::WellKnown`](crate::state_name::StateNameLifetime::WellKnown)) lifetimes.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum CreatableStateLifetime {
     Permanent { persist_data: bool },
@@ -152,7 +153,7 @@ impl TryIntoSecurityDescriptor for UnspecifiedSecurityDescriptor {
 /// - [`maximum_state_size`](StateCreation::maximum_state_size): Optional, default: `0x1000`
 /// - [`security_descriptor`](StateCreation::security_descriptor): Optional, default:
 ///   [`BoxedSecurityDescriptor::create_everyone_generic_all`]
-/// - [`type_id`]: Optional, default: none
+/// - [`type_id`](StateCreation::type_id): Optional, default: none
 ///
 /// Due to type state, the [`StateCreation::create_owned`] and [`StateCreation::create_static`] methods are only
 /// available once the mandatory options have been configured.

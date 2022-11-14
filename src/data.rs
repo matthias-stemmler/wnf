@@ -28,7 +28,7 @@ use std::fmt::{Display, Formatter};
 /// ```
 ///
 /// Another use case is reading the change stamp of a state without knowing what the actual data looks like, but that is
-/// already implemented in [`OwnedState::change_stamp`].
+/// already implemented in [`OwnedState::change_stamp`](crate::state::OwnedState::change_stamp).
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct OpaqueData {
     _private: (),
@@ -46,11 +46,13 @@ impl OpaqueData {
 /// This is `0` when the state is created and is increased by `1` on every update to the state.
 ///
 /// Several methods on other types deal with change stamps. See their documentations for details:
-/// - [`OwnedState::change_stamp`]
-/// - [`OwnedState::query`] and [`OwnedState::query_boxed`]
-/// - [`OwnedState::update`]
-/// - [`DataAccessor::change_stamp`]
-/// - [`DataAccessor::query`] and [`DataAccessor::query_boxed`]
+/// - [`OwnedState::change_stamp`](crate::state::OwnedState::change_stamp)
+/// - [`OwnedState::query`](crate::state::OwnedState::query) and
+///   [`OwnedState::query_boxed`](crate::state::OwnedState::query_boxed)
+/// - [`OwnedState::update`](crate::state::OwnedState::update)
+/// - [`DataAccessor::change_stamp`](crate::subscribe::DataAccessor::change_stamp)
+/// - [`DataAccessor::query`](crate::subscribe::DataAccessor::query) and
+///   [`DataAccessor::query_boxed`](crate::subscribe::DataAccessor::query_boxed)
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct ChangeStamp(u32);
 

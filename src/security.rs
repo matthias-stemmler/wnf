@@ -20,7 +20,7 @@ use crate::util::CWideString;
 /// behind a reference or pointer.
 ///
 /// You can configure the security descriptor of a state upon creation through the
-/// [`StateCreation::security_descriptor`] method.
+/// [`StateCreation::security_descriptor`](crate::manage::StateCreation::security_descriptor) method.
 ///
 /// See RFC [1861-extern-types](https://rust-lang.github.io/rfcs/1861-extern-types.html) for some background on opaque
 /// types.
@@ -152,7 +152,7 @@ impl Borrow<SecurityDescriptor> for BoxedSecurityDescriptor {
     }
 }
 
-#[cfg(feature = "windows-permissions")]
+#[cfg(feature = "windows_permissions")]
 mod impl_windows_permissions {
     use super::*;
 

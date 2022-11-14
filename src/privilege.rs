@@ -14,8 +14,9 @@ use crate::util::CWideString;
 /// Returns whether the `SeCreatePermanentPrivilege` privilege is enabled in the access token associated with the
 /// current process
 ///
-/// This privilege is necessary for creating states with the [`StateNameLifetime::Permanent`] or
-/// [`StateNameLifetime::Persistent`] lifetimes.
+/// This privilege is necessary for creating states with the
+/// [`StateNameLifetime::Permanent`](crate::state_name::StateNameLifetime::Permanent) or
+/// [`StateNameLifetime::Persistent`](crate::state_name::StateNameLifetime::Persistent) lifetimes.
 ///
 /// # Errors
 /// Returns an error if checking the privilege fails

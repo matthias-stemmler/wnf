@@ -153,7 +153,7 @@ fn create_state_with_security_descriptor_from_string() {
     assert!(state.set(&()).is_err());
 }
 
-#[cfg(feature = "windows-permissions")]
+#[cfg(feature = "windows_permissions")]
 #[test]
 fn create_state_with_security_descriptor_from_windows_permissions() {
     use windows_permissions::{LocalBox, SecurityDescriptor};

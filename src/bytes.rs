@@ -1,12 +1,72 @@
+//! Traits for casting between plain data types
+
 #![allow(clippy::undocumented_unsafe_blocks)]
 
 use std::marker::{PhantomData, PhantomPinned};
 use std::mem::ManuallyDrop;
 use std::num;
 
+/// Marker trait for types for which any bit pattern is valid
+///
+/// This is modelled after the [`AnyBitPattern`](bytemuck_v1::AnyBitPattern) trait of the [`bytemuck`](bytemuck_v1)
+/// crate.
+///
+/// In order for reading a value of a type `T` from a WNF state to be sound, `T` is required to implement
+/// [`AnyBitPattern`] (or at least [`CheckedBitPattern`], which is implied by [`AnyBitPattern`]).
+///
+/// # Implementation
+/// This trait is already implemented by the [`wnf`](crate) crate for many primitive types and types from the standard
+/// library. There are several ways to implement it for your own types:
+/// - Implement it directly, requiring `unsafe` code
+/// - Derive the [`AnyBitPattern`](bytemuck_v1::AnyBitPattern) trait of the [`bytemuck`](bytemuck_v1) crate and derive
+///   this trait from it via the [`derive_from_bytemuck_v1`](crate::derive_from_bytemuck_v1) macro:
+/// ```
+/// # #[macro_use] extern crate wnf;
+/// # extern crate bytemuck_v1 as bytemuck;
+/// #
+/// # fn main() {
+/// use wnf::{derive_from_bytemuck_v1, OwnedState};
+///
+/// #[derive(bytemuck::AnyBitPattern, bytemuck::NoUninit, Copy, Clone)]
+/// #[repr(transparent)]
+/// struct MyType(u32);
+///
+/// derive_from_bytemuck_v1!(AnyBitPattern for MyType);
+/// derive_from_bytemuck_v1!(NoUninit for MyType);
+///
+/// let state: OwnedState<MyType> = OwnedState::create_temporary().expect("Failed to create state");
+/// state.set(&MyType(42)).expect("Failed to update state data");
+/// let data = state.get().expect("Failed to query state data");
+///
+/// assert_eq!(data.0, 42);
+/// # }
+/// ```
+/// - Derive the [`AsBytes`](zerocopy::AsBytes) trait of the [`zerocopy`] crate and derive this trait from it via the
+///   [`derive_from_zerocopy`](crate::derive_from_zerocopy) macro:
+/// ```
+/// # #[macro_use] extern crate wnf;
+/// #
+/// # fn main() {
+/// use wnf::{derive_from_zerocopy, OwnedState};
+///
+/// #[derive(zerocopy::AsBytes, zerocopy::FromBytes, Copy, Clone)]
+/// #[repr(transparent)]
+/// struct MyType(u32);
+///
+/// derive_from_zerocopy!(AnyBitPattern for MyType);
+/// derive_from_zerocopy!(NoUninit for MyType);
+///
+/// let state: OwnedState<MyType> = OwnedState::create_temporary().expect("Failed to create state");
+/// state.set(&MyType(42)).expect("Failed to update state data");
+/// let data = state.get().expect("Failed to query state data");
+///
+/// assert_eq!(data.0, 42);
+/// # }
+/// ```
+///
 /// # Safety
-/// It is safe to implement this trait for a type `T` if and only if any initialized sequence of bytes ("bit pattern")
-/// with the same layout (i.e. size and alignment) as `T` can be interpreted as a value of type `T`
+/// Implementing this trait for a type `T` is sound if any initialized sequence of bytes ("bit pattern") with the same
+/// layout (i.e. size and alignment) as `T` is a valid `T`.
 pub unsafe trait AnyBitPattern: Copy + Send + Sized + 'static {}
 
 // SAFETY: Any bit pattern is valid for these primitive types
@@ -54,14 +114,52 @@ unsafe impl AnyBitPattern for PhantomPinned {}
 // SAFETY: `num::Wrapping<T>` is a `#[repr(transparent)]` wrapper around `T`
 unsafe impl<T> AnyBitPattern for num::Wrapping<T> where T: AnyBitPattern {}
 
-// SAFETY: Each array element can be interpreted as a value of type `T`
+// SAFETY: Each array element is a valid `T`
 unsafe impl<T, const N: usize> AnyBitPattern for [T; N] where T: AnyBitPattern {}
 
+/// Trait for types that can be checked for valid bit patterns at runtime
+///
+/// This is modelled after the [`CheckedBitPattern`](bytemuck_v1::CheckedBitPattern) trait of the
+/// [`bytemuck`](bytemuck_v1) crate.
+///
+/// In order for reading a value of a type `T` from a WNF state to be sound, `T` is required to implement
+/// [`CheckedBitPattern`] (or [`AnyBitPattern`], which imples [`CheckedBitPattern`]).
+///
+/// In case *any* bit pattern is valid for a type, implement the [`AnyBitPattern`] trait instead.
+///
+/// # Implementation
+/// This trait is already implemented by the [`wnf`](crate) crate for many primitive types and types from the standard
+/// library. There are several ways to implement it for your own types:
+/// - Implement it directly, requiring `unsafe` code
+/// - Derive the [`CheckedBitPattern`](bytemuck_v1::CheckedBitPattern) trait of the [`bytemuck`](bytemuck_v1) crate and
+///   derive this trait from it via the [`derive_from_bytemuck_v1`](crate::derive_from_bytemuck_v1) macro:
+/// ```
+/// # #[macro_use] extern crate wnf;
+/// # extern crate bytemuck_v1 as bytemuck;
+/// #
+/// # fn main() {
+/// use wnf::{derive_from_bytemuck_v1, OwnedState};
+///
+/// #[derive(bytemuck::CheckedBitPattern, bytemuck::NoUninit, Copy, Clone)]
+/// #[repr(transparent)]
+/// struct MyType(bool);
+///
+/// derive_from_bytemuck_v1!(CheckedBitPattern for MyType);
+/// derive_from_bytemuck_v1!(NoUninit for MyType);
+///
+/// let state: OwnedState<MyType> = OwnedState::create_temporary().expect("Failed to create state");
+/// state.set(&MyType(true)).expect("Failed to update state data");
+/// let data = state.get().expect("Failed to query state data");
+///
+/// assert!(data.0);
+/// # }
+/// ```
+///
 /// # Safety
-/// An implementation of this trait for a type `T` is safe if and only the following hold:
+/// Implementing this trait for a type `T` is sound if:
 /// - `<T as CheckedBitPattern>::Bits` has the same memory layout (i.e. size and alignment) as `T`
 /// - Any value `bits: <T as CheckedBitPattern>::Bits` for which `<T as CheckedBitPattern>::is_valid_bit_pattern(&bits)`
-///   is `true` can be interpreted as a value of type `T`
+///   is `true` can be interpreted as a valid `T`
 pub unsafe trait CheckedBitPattern: Copy + Send + Sized + 'static {
     type Bits: AnyBitPattern;
 
@@ -69,16 +167,16 @@ pub unsafe trait CheckedBitPattern: Copy + Send + Sized + 'static {
 }
 
 // SAFETY:
-// - `<T as CheckedBitPattern>::Bits` trivially has the same layout as `T` because it *is* `T`
-// - any value of type `<T as CheckedBitPattern>::Bits` can trivially be interpreted as a value of type `T` because it
-//   *is* a value of type `T`
+// - `<T as CheckedBitPattern>::Bits` trivially has the same memory layout as `T` because it *is* `T`
+// - any value `bits: <T as CheckedBitPattern>::Bits` can trivially be interpreted as a valid `T` because it *is* a
+//   valid `T`
 unsafe impl<T> CheckedBitPattern for T
 where
     T: AnyBitPattern,
 {
     type Bits = T;
 
-    #[inline(always)]
+    #[inline]
     fn is_valid_bit_pattern(_bits: &T) -> bool {
         true
     }
@@ -104,9 +202,65 @@ unsafe impl CheckedBitPattern for bool {
     }
 }
 
+/// Marker trait for types without uninitialized (padding) bytes
+///
+/// This is modelled after the [`NoUninit`](bytemuck_v1::NoUninit) trait of the [`bytemuck`](bytemuck_v1) crate.
+///
+/// In order for writing a value of a type `T` to a WNF state to be sound, `T` is required to implement [`NoUninit`].
+///
+/// # Implementation
+/// This trait is already implemented by the [`wnf`](crate) crate for many primitive types and types from the standard
+/// library. There are several ways to implement it for your own types:
+/// - Implement it directly, requiring `unsafe` code
+/// - Derive the [`NoUninit`](bytemuck_v1::NoUninit) trait of the [`bytemuck`](bytemuck_v1) crate and derive this trait
+///   from it via the [`derive_from_bytemuck_v1`](crate::derive_from_bytemuck_v1) macro:
+/// ```
+/// # #[macro_use] extern crate wnf;
+/// # extern crate bytemuck_v1 as bytemuck;
+/// #
+/// # fn main() {
+/// use wnf::{derive_from_bytemuck_v1, OwnedState};
+///
+/// #[derive(bytemuck::NoUninit, bytemuck::AnyBitPattern, Copy, Clone)]
+/// #[repr(transparent)]
+/// struct MyType(u32);
+///
+/// derive_from_bytemuck_v1!(NoUninit for MyType);
+/// derive_from_bytemuck_v1!(AnyBitPattern for MyType);
+///
+/// let state: OwnedState<MyType> = OwnedState::create_temporary().expect("Failed to create state");
+/// state.set(&MyType(42)).expect("Failed to update state data");
+/// let data = state.get().expect("Failed to query state data");
+///
+/// assert_eq!(data.0, 42);
+/// # }
+/// ```
+/// - Derive the [`FromBytes`](zerocopy::FromBytes) trait of the [`zerocopy`] crate and derive this trait from it via
+///   the [`derive_from_zerocopy`](crate::derive_from_zerocopy) macro:
+/// ```
+/// # #[macro_use] extern crate wnf;
+/// #
+/// # fn main() {
+/// use wnf::{derive_from_zerocopy, OwnedState};
+///
+/// #[derive(zerocopy::FromBytes, zerocopy::AsBytes, Copy, Clone)]
+/// #[repr(transparent)]
+/// struct MyType(u32);
+///
+/// derive_from_zerocopy!(NoUninit for MyType);
+/// derive_from_zerocopy!(AnyBitPattern for MyType);
+///
+/// let state: OwnedState<MyType> = OwnedState::create_temporary().expect("Failed to create state");
+/// state.set(&MyType(42)).expect("Failed to update state data");
+/// let data = state.get().expect("Failed to query state data");
+///
+/// assert_eq!(data.0, 42);
+/// # }
+/// ```
+///
 /// # Safety
-/// It is safe to implement this trait for a type `T` if and only if the memory representation of any value of type `T`
-/// contains no uninitialized (i.e. padding) bytes
+/// Implementing this trait for a type `T` is sound if the memory representation of any `T` contains no uninitialized
+/// (i.e. padding) bytes.
 pub unsafe trait NoUninit {}
 
 // SAFETY: Values of these primitive types contain no uninitialized bytes
@@ -180,16 +334,77 @@ unsafe impl<T, const N: usize> NoUninit for [T; N] where T: NoUninit {}
 // - There is no padding between the elements
 unsafe impl<T> NoUninit for [T] where T: NoUninit {}
 
+/// Reexports of items from third-party crates for use in macro-generated code
 pub mod reexports {
+    /// Reexport of the [`bytemuck`](bytemuck_v1) crate in version 1.x
+    ///
+    /// This will be referred to by macro-generated code as `wnf::reexports::bytemuck::v1`. The `v1` is for forward
+    /// compatibility in case there will ever be a major version `2.x` of `bytemuck`. In that case, items from `v1`
+    /// and `v2` are distinct and need to be reexported separately.
     #[cfg(feature = "bytemuck_v1")]
     pub mod bytemuck {
         pub use bytemuck_v1 as v1;
     }
 
+    /// Reexport of the [`paste`] crate
+    ///
+    /// This will be referred to by macro-generated code as `wnf::reexports::paste`.
+    #[cfg(feature = "bytemuck_v1")]
+    pub use paste;
+    /// Reexport of the [`zerocopy`] crate
+    ///
+    /// This will be referred to by macro-generated code as `wnf::reexports::zerocopy`. Note that in contrast to
+    /// [`bytemuck`], there is no major version marker here. This is because `zerocopy` still has an unstable `0.x`
+    /// version. In case it becomes stable, this reexport will be replaced with a reexport carrying `v1` in its
+    /// name.
     #[cfg(feature = "zerocopy")]
     pub use zerocopy;
 }
 
+/// Macro for deriving [`wnf`](crate) traits from [`bytemuck`](bytemuck_v1) traits
+///
+/// Note that there cannot be a blanket implementation of [`wnf`](crate) traits such as [`AnyBitPattern`] from
+/// [`bytemuck`](bytemuck_v1) traits such as [`bytemuck::AnyBitPattern`](bytemuck_v1::AnyBitPattern). As
+/// [`bytemuck`](bytemuck_v1) is an optional dependency of [`wnf`](crate), such a blanket implementation would have to
+/// be behind a feature gate just like any other [`bytemuck`](bytemuck_v1)-related functionality of [`wnf`](crate).
+/// However, adding a blanket implementation is a breaking change and due to the way the Cargo feature resolver works,
+/// enabling a feature must not introduce a breaking change.
+///
+/// This macro provides an alternative to a blanket implementation by requiring you to explicitly opt in to the
+/// implementation.
+///
+/// If you have a type that implements [`bytemuck::AnyBitPattern`](bytemuck_v1::AnyBitPattern),
+/// [`bytemuck::CheckedBitPattern`](bytemuck_v1::CheckedBitPattern) or [`bytemuck::NoUninit`](bytemuck_v1::NoUninit),
+/// you can derive the corresponding [`wnf`](crate) traits as follows:
+/// ```
+/// # #[macro_use] extern crate wnf;
+/// # extern crate bytemuck_v1 as bytemuck;
+/// #
+/// # fn main() {
+/// use wnf::derive_from_bytemuck_v1;
+///
+/// #[derive(bytemuck::AnyBitPattern, Copy, Clone)]
+/// #[repr(C)]
+/// struct Foo(u8, u16);
+///
+/// derive_from_bytemuck_v1!(AnyBitPattern for Foo);
+///
+/// #[derive(bytemuck::CheckedBitPattern, Copy, Clone)]
+/// #[repr(C)]
+/// struct Bar(char);
+///
+/// derive_from_bytemuck_v1!(CheckedBitPattern for Bar);
+///
+/// #[derive(bytemuck::NoUninit, Copy, Clone)]
+/// #[repr(C)]
+/// struct Baz(bool);
+///
+/// derive_from_bytemuck_v1!(NoUninit for Baz);
+/// # }
+/// ```
+///
+/// Note that in case you already derive [`AnyBitPattern`], you cannot additionally derive [`CheckedBitPattern`] as
+/// there is already a blanket implementation of [`CheckedBitPattern`] for any type implementing [`AnyBitPattern`].
 #[cfg(feature = "bytemuck_v1")]
 #[macro_export]
 macro_rules! derive_from_bytemuck_v1 {
@@ -214,14 +429,26 @@ macro_rules! derive_from_bytemuck_v1 {
             const fn assert_impl_checked_bit_pattern<T: ?Sized + bytemuck_v1::CheckedBitPattern>() {}
             assert_impl_checked_bit_pattern::<$type>();
 
-            // SAFETY:
-            // - the implementation just delegates to bytemuck_v1::CheckedBitPattern
-            // - this implies the safety conditions of wnf::CheckedBitPattern
-            unsafe impl $crate::CheckedBitPattern for $type {
-                type Bits = <$type as bytemuck_v1::CheckedBitPattern>::Bits;
+            $crate::reexports::paste::paste! {
+                #[derive(Clone, Copy)]
+                #[repr(transparent)]
+                struct [<__wnf_ $type Bits>](<$type as bytemuck_v1::CheckedBitPattern>::Bits);
 
-                fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-                    <$type as bytemuck_v1::CheckedBitPattern>::is_valid_bit_pattern(bits)
+                // SAFETY:
+                // - the inner type implements bytemuck_v1::AnyBitPattern
+                // - this implies the safety conditions of wnf::AnyBitPattern
+                // - this type is a #[repr(transparent)] wrapper around the inner type
+                unsafe impl $crate::AnyBitPattern for [<__wnf_ $type Bits>] {}
+
+                // SAFETY:
+                // - the implementation just delegates to bytemuck_v1::CheckedBitPattern
+                // - this implies the safety conditions of wnf::CheckedBitPattern
+                unsafe impl $crate::CheckedBitPattern for $type {
+                    type Bits = [<__wnf_ $type Bits>];
+
+                    fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
+                        <$type as bytemuck_v1::CheckedBitPattern>::is_valid_bit_pattern(&bits.0)
+                    }
                 }
             }
         };
@@ -250,6 +477,37 @@ macro_rules! derive_from_bytemuck_v1 {
     };
 }
 
+/// Macro for deriving [`wnf`](crate) traits from [`zerocopy`] traits
+///
+/// Note that there cannot be a blanket implementation of [`wnf`](crate) traits such as [`AnyBitPattern`] from
+/// [`zerocopy`] traits such as [`zerocopy::FromBytes`]. As [`zerocopy`] is an optional dependency of [`wnf`](crate),
+/// such a blanket implementation would have to be behind a feature gate just like any other [`zerocopy`]-related
+/// functionality of [`wnf`](crate). However, adding a blanket implementation is a breaking change and due to the way
+/// the Cargo feature resolver works, enabling a feature must not introduce a breaking change.
+///
+/// This macro provides an alternative to a blanket implementation by requiring you to explicitly opt in to the
+/// implementation.
+///
+/// If you have a type that implements [`zerocopy::FromBytes`] or [`zerocopy::AsBytes`], you can derive the
+/// corresponding [`wnf`](crate) traits as follows: ```
+/// # #[macro_use] extern crate wnf;
+/// #
+/// # fn main() {
+/// use wnf::derive_from_zerocopy;
+///
+/// #[derive(zerocopy::FromBytes, Copy, Clone)]
+/// #[repr(C)]
+/// struct Foo(u8, u16);
+///
+/// derive_from_zerocopy!(AnyBitPattern for Foo);
+///
+/// #[derive(zerocopy::AsBytes, Copy, Clone)]
+/// #[repr(C)]
+/// struct Bar(bool);
+///
+/// derive_from_zerocopy!(AsBytes for Baz);
+/// # }
+/// ```
 #[cfg(feature = "zerocopy")]
 #[macro_export]
 macro_rules! derive_from_zerocopy {
