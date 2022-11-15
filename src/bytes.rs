@@ -335,10 +335,11 @@ unsafe impl<T, const N: usize> NoUninit for [T; N] where T: NoUninit {}
 unsafe impl<T> NoUninit for [T] where T: NoUninit {}
 
 /// Reexports of items from third-party crates for use in macro-generated code
-pub mod reexports {
+#[doc(hidden)]
+pub mod __reexports {
     /// Reexport of the [`bytemuck`](bytemuck_v1) crate in version 1.x
     ///
-    /// This will be referred to by macro-generated code as `wnf::reexports::bytemuck::v1`. The `v1` is for forward
+    /// This will be referred to by macro-generated code as `wnf::__reexports::bytemuck::v1`. The `v1` is for forward
     /// compatibility in case there will ever be a major version `2.x` of `bytemuck`. In that case, items from `v1`
     /// and `v2` are distinct and need to be reexported separately.
     #[cfg(feature = "bytemuck_v1")]
@@ -346,14 +347,9 @@ pub mod reexports {
         pub use bytemuck_v1 as v1;
     }
 
-    /// Reexport of the [`paste`] crate
-    ///
-    /// This will be referred to by macro-generated code as `wnf::reexports::paste`.
-    #[cfg(feature = "bytemuck_v1")]
-    pub use paste;
     /// Reexport of the [`zerocopy`] crate
     ///
-    /// This will be referred to by macro-generated code as `wnf::reexports::zerocopy`. Note that in contrast to
+    /// This will be referred to by macro-generated code as `wnf::__reexports::zerocopy`. Note that in contrast to
     /// [`bytemuck`], there is no major version marker here. This is because `zerocopy` still has an unstable `0.x`
     /// version. In case it becomes stable, this reexport will be replaced with a reexport carrying `v1` in its
     /// name.
@@ -410,7 +406,7 @@ pub mod reexports {
 macro_rules! derive_from_bytemuck_v1 {
     (AnyBitPattern for $type:ty) => {
         const _: fn() = || {
-            use $crate::reexports::bytemuck::v1 as bytemuck_v1;
+            use $crate::__reexports::bytemuck::v1 as bytemuck_v1;
 
             const fn assert_impl_any_bit_pattern<T: ?Sized + bytemuck_v1::AnyBitPattern>() {}
             assert_impl_any_bit_pattern::<$type>();
@@ -424,31 +420,29 @@ macro_rules! derive_from_bytemuck_v1 {
 
     (CheckedBitPattern for $type:ty) => {
         const _: fn() = || {
-            use $crate::reexports::bytemuck::v1 as bytemuck_v1;
+            use $crate::__reexports::bytemuck::v1 as bytemuck_v1;
 
             const fn assert_impl_checked_bit_pattern<T: ?Sized + bytemuck_v1::CheckedBitPattern>() {}
             assert_impl_checked_bit_pattern::<$type>();
 
-            $crate::reexports::paste::paste! {
-                #[derive(Clone, Copy)]
-                #[repr(transparent)]
-                struct [<__wnf_ $type Bits>](<$type as bytemuck_v1::CheckedBitPattern>::Bits);
+            #[derive(Clone, Copy)]
+            #[repr(transparent)]
+            struct __wnf_derive_from_bytemuck_v1_Bits(<$type as bytemuck_v1::CheckedBitPattern>::Bits);
 
-                // SAFETY:
-                // - the inner type implements bytemuck_v1::AnyBitPattern
-                // - this implies the safety conditions of wnf::AnyBitPattern
-                // - this type is a #[repr(transparent)] wrapper around the inner type
-                unsafe impl $crate::AnyBitPattern for [<__wnf_ $type Bits>] {}
+            // SAFETY:
+            // - the inner type implements bytemuck_v1::AnyBitPattern
+            // - this implies the safety conditions of wnf::AnyBitPattern
+            // - this type is a #[repr(transparent)] wrapper around the inner type
+            unsafe impl $crate::AnyBitPattern for __wnf_derive_from_bytemuck_v1_Bits {}
 
-                // SAFETY:
-                // - the implementation just delegates to bytemuck_v1::CheckedBitPattern
-                // - this implies the safety conditions of wnf::CheckedBitPattern
-                unsafe impl $crate::CheckedBitPattern for $type {
-                    type Bits = [<__wnf_ $type Bits>];
+            // SAFETY:
+            // - the implementation just delegates to bytemuck_v1::CheckedBitPattern
+            // - this implies the safety conditions of wnf::CheckedBitPattern
+            unsafe impl $crate::CheckedBitPattern for $type {
+                type Bits = __wnf_derive_from_bytemuck_v1_Bits;
 
-                    fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-                        <$type as bytemuck_v1::CheckedBitPattern>::is_valid_bit_pattern(&bits.0)
-                    }
+                fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
+                    <$type as bytemuck_v1::CheckedBitPattern>::is_valid_bit_pattern(&bits.0)
                 }
             }
         };
@@ -456,7 +450,7 @@ macro_rules! derive_from_bytemuck_v1 {
 
     (NoUninit for $type:ty) => {
         const _: fn() = || {
-            use $crate::reexports::bytemuck::v1 as bytemuck_v1;
+            use $crate::__reexports::bytemuck::v1 as bytemuck_v1;
 
             const fn assert_impl_no_uninit<T: ?Sized + bytemuck_v1::NoUninit>() {}
             assert_impl_no_uninit::<$type>();
@@ -513,7 +507,7 @@ macro_rules! derive_from_bytemuck_v1 {
 macro_rules! derive_from_zerocopy {
     (AnyBitPattern for $type:ty) => {
         const _: fn() = || {
-            use $crate::reexports::zerocopy;
+            use $crate::__reexports::zerocopy;
 
             const fn assert_impl_from_bytes<T: ?Sized + zerocopy::FromBytes>() {}
             assert_impl_from_bytes::<$type>();
@@ -531,6 +525,8 @@ macro_rules! derive_from_zerocopy {
 
     (NoUninit for $type:ty) => {
         const _: fn() = || {
+            use $crate::__reexports::zerocopy;
+            
             const fn assert_impl_as_bytes<T: ?Sized + zerocopy::AsBytes>() {}
             assert_impl_as_bytes::<$type>();
 

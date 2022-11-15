@@ -23,7 +23,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 targets = ["i686-pc-windows-msvc"]
 
 [features]
-bytemuck_v1 = ["dep:bytemuck-v1", "dep:paste"]
+bytemuck_v1 = ["dep:bytemuck-v1"]
 subscribe = []
 uuid = ["dep:uuid"]
 wait_async = ["subscribe"]
@@ -37,7 +37,6 @@ zerocopy = ["dep:zerocopy"]
 bytemuck-v1 = { package = "bytemuck", version = "1", optional = true }
 num-derive = "0.3"
 num-traits = { version = "0.2", default-features = false }
-paste = { version = "1", optional = true }
 thiserror = "1"
 tracing = { version = "0.1.22", default-features = false, features = ["log"] }
 uuid = { version = "1", optional = true }
