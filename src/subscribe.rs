@@ -130,7 +130,7 @@ where
     ///
     /// # Errors
     /// Returns an error if subscribing fails
-    pub fn subscribe<F>(&self, listener: F, last_seen_change_stamp: SeenChangeStamp) -> io::Result<Subscription<'a, F>>
+    pub fn subscribe<F>(self, listener: F, last_seen_change_stamp: SeenChangeStamp) -> io::Result<Subscription<'a, F>>
     where
         F: StateListener<T> + Send + 'static,
     {
