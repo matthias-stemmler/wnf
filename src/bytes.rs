@@ -526,7 +526,7 @@ macro_rules! derive_from_zerocopy {
     (NoUninit for $type:ty) => {
         const _: fn() = || {
             use $crate::__reexports::zerocopy;
-            
+
             const fn assert_impl_as_bytes<T: ?Sized + zerocopy::AsBytes>() {}
             assert_impl_as_bytes::<$type>();
 

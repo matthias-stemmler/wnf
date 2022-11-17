@@ -684,7 +684,7 @@ impl<F> Debug for SubscriptionInner<F> {
 ///    (successfully or unsuccessfully) trying to unsubscribe
 /// 2) to avoid race conditions between parallel runs of the subscription callback calling the listener
 ///
-/// Note that case 2) does not actually happen in practice because the WNF API runs all listener within a process
+/// Note that case 2) does not actually happen in practice because the WNF API runs all listeners within a process
 /// sequentially on a single thread. However, we don't have to assume this because we need the mutex for case 1) anyway.
 struct SubscriptionContext<F>(Mutex<Option<F>>);
 

@@ -56,7 +56,7 @@ pub trait Read<D>: private::Sealed + Send + 'static {
 
 impl Read<OpaqueData> for OpaqueData {
     unsafe fn from_buffer(_: *const c_void, _: usize) -> io::Result<OpaqueData> {
-        // We just produce a `OpaqueData`, ignoring the buffer
+        // We just produce an `OpaqueData`, ignoring the buffer
         Ok(OpaqueData::new())
     }
 

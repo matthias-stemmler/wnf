@@ -332,6 +332,17 @@ where
     }
 }
 
+impl<S> AsState for &S
+where
+    S: AsState,
+{
+    type Data = S::Data;
+
+    fn as_state(&self) -> BorrowedState<'_, Self::Data> {
+        (*self).as_state()
+    }
+}
+
 /// A raw state
 ///
 /// This neither deletes the underlying state on drop, nor does it have a lifetime.
@@ -431,4 +442,5 @@ mod private {
 
     impl<T> Sealed for OwnedState<T> where T: ?Sized {}
     impl<T> Sealed for BorrowedState<'_, T> where T: ?Sized {}
+    impl<S> Sealed for &S where S: Sealed {}
 }
