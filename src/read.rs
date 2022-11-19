@@ -404,17 +404,32 @@ where
     }
 }
 
-/// Error reading state data
+/// Error reading state data as some data type `T: Sized` or slice data type `[T]`
 #[derive(Clone, Copy, Debug, Error)]
 pub enum ReadError {
+    /// The size of the data doesn't match the size of the data type `T`
     #[error("failed to read state data: data has wrong size (expected {expected}, got {actual})")]
-    WrongSize { expected: usize, actual: usize },
+    WrongSize { 
+        /// The expected size in bytes, which is the size of the data type `T`
+        expected: usize,
 
+        /// The actual size in bytes of the state data
+        actual: usize
+    },
+
+    /// The size of the data isn't a multiple of the size of `T` (for slice data types `[T]`)
     #[error(
         "failed to read state data: data has wrong size (expected a multiple of {expected_modulus}, got {actual})"
     )]
-    WrongSizeMultiple { expected_modulus: usize, actual: usize },
+    WrongSizeMultiple { 
+        /// The number the state data size in bytes is expected to be a multiple of
+        expected_modulus: usize,
 
+        /// The actual size in bytes of the state data
+        actual: usize 
+    },
+
+    /// The state data has an invalid bit pattern for the data type `T`
     #[error("failed to read state data: data has invalid bit pattern")]
     InvalidBitPattern,
 }

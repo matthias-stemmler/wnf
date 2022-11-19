@@ -214,9 +214,11 @@ impl Display for StateName {
 /// Error converting a [`StateNameDescriptor`] into a [`StateName`]
 #[derive(Clone, Copy, Debug, Error, Eq, PartialEq)]
 pub enum StateNameFromDescriptorError {
+    /// The [`StateNameDescriptor::version`] is invalid (must be less than `2^4`)
     #[error("invalid version: {0}")]
     InvalidVersion(u8),
 
+    /// The [`StateNameDescriptor::unique_id`] is invalid (must be less than `2^21`)
     #[error("invalid unique id: {0}")]
     InvalidUniqueId(u32),
 }
@@ -224,6 +226,7 @@ pub enum StateNameFromDescriptorError {
 /// Error converting a [`StateName`] into a [`StateNameDescriptor`]
 #[derive(Clone, Copy, Debug, Error, Eq, PartialEq)]
 pub enum StateNameDescriptorFromStateNameError {
+    /// The data scope encoded in the state name is invalid (must be in `0..=5`)
     #[error("invalid data scope: {0}")]
     InvalidDataScope(u8),
 }

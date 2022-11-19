@@ -161,8 +161,10 @@ unsafe impl<T, const N: usize> AnyBitPattern for [T; N] where T: AnyBitPattern {
 /// - Any value `bits: <T as CheckedBitPattern>::Bits` for which `<T as CheckedBitPattern>::is_valid_bit_pattern(&bits)`
 ///   is `true` can be interpreted as a valid `T`
 pub unsafe trait CheckedBitPattern: Copy + Send + Sized + 'static {
+    /// The type of the underlying bit patterns that can be checked for validity
     type Bits: AnyBitPattern;
 
+    /// Checks whether the given bit pattern can be interpreted as a valid `Self`
     fn is_valid_bit_pattern(bits: &Self::Bits) -> bool;
 }
 

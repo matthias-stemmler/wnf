@@ -75,8 +75,16 @@ impl UnspecifiedSecurityDescriptor {
 ///   [`StateNameLifetime::WellKnown`](crate::state_name::StateNameLifetime::WellKnown)) lifetimes.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum CreatableStateLifetime {
-    Permanent { persist_data: bool },
+    /// Lifetime of a "permanent"  state name, see [`StateNameLifetime::Permanent`]
+    Permanent {
+        /// Whether the state data (not the state name itself) are persisted across system reboots
+        persist_data: bool,
+    },
+
+    /// Lifetime of a "persistent" state name (also known as "volatile"), see [`StateNameLifetime::Persistent`]
     Persistent,
+
+    /// Lifetime of a "temporary" state name, see [`StateNameLifetime::Temporary`]
     Temporary,
 }
 

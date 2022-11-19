@@ -1,10 +1,28 @@
+//! [![GitHub](https://img.shields.io/badge/GitHub-informational?logo=GitHub&labelColor=555555)](https://github.com/matthias-stemmler/wnf)
+//! [![crates.io](https://img.shields.io/crates/v/wnf.svg)](https://crates.io/crates/wnf)
+//! [![docs.rs](https://img.shields.io/docsrs/wnf)](https://docs.rs/wnf/latest/wnf/)
+//! [![license](https://img.shields.io/crates/l/wnf.svg)](https://github.com/matthias-stemmler/wnf/blob/main/LICENSE-APACHE)
+//! [![rustc 1.62+](https://img.shields.io/badge/rustc-1.62+-lightgrey.svg)](https://blog.rust-lang.org/2022/06/30/Rust-1.62.0.html)
+//!
+//! Safe Rust bindings for the Windows Notification Facility
+//!
+//! # Minimum Supported Rust Version (MSRV) Policy
+//!
+//! The current MSRV of this crate is `1.62`.
+//!
+//! Increasing the MSRV of this crate is _not_ considered a breaking change. However, in such cases there will be at
+//! least a minor version bump.
+//!
+//! Each version //! of this crate will support at least the four latest stable Rust versions at the time it is
+//! published.
+
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![deny(elided_lifetimes_in_paths)]
 #![deny(improper_ctypes)]
 #![deny(improper_ctypes_definitions)]
 #![deny(missing_abi)]
 #![deny(missing_debug_implementations)]
-// #![deny(missing_docs)]
+#![deny(missing_docs)]
 #![deny(unsafe_op_in_unsafe_fn)]
 #![deny(clippy::as_underscore)]
 #![deny(clippy::cargo_common_metadata)]
@@ -19,7 +37,7 @@
 #![deny(rustdoc::broken_intra_doc_links)]
 #![deny(rustdoc::invalid_codeblock_attributes)]
 #![deny(rustdoc::invalid_rust_codeblocks)]
-// #![deny(rustdoc::missing_crate_level_docs)]
+#![deny(rustdoc::missing_crate_level_docs)]
 #![deny(rustdoc::private_intra_doc_links)]
 #![allow(clippy::borrow_as_ptr)]
 #![allow(clippy::cast_possible_truncation)]

@@ -1,8 +1,8 @@
 use std::error::Error;
-use std::fmt::{self, Debug, Formatter};
+use std::fmt::{self, Debug, Display, Formatter};
+use std::io::ErrorKind;
 use std::sync::Arc;
 use std::thread;
-use std::{fmt::Display, io::ErrorKind};
 
 use wnf::{AsState, OwnedState};
 
