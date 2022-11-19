@@ -25,6 +25,7 @@
 #![allow(clippy::cast_possible_truncation)]
 #![allow(clippy::inline_always)]
 #![allow(clippy::let_underscore_drop)]
+#![allow(clippy::missing_errors_doc)]
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::must_use_candidate)]
 #![allow(clippy::ptr_as_ptr)]

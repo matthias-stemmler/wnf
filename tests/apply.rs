@@ -1,10 +1,10 @@
 use std::error::Error;
-use std::fmt::{Debug, Display, Formatter};
-use std::io::ErrorKind;
+use std::fmt::{self, Debug, Formatter};
 use std::sync::Arc;
-use std::{fmt, thread};
+use std::thread;
+use std::{fmt::Display, io::ErrorKind};
 
-use wnf::{AsState, BorrowedState, OwnedState};
+use wnf::{AsState, OwnedState};
 
 macro_rules! apply_tests {
     ($($name:ident: $state:ident => $apply:expr,)*) => {
@@ -142,50 +142,6 @@ fn try_apply_slice_err() {
     let result = state.try_apply_boxed(|_| Err::<Vec<_>, _>(TestError));
 
     assert!(matches!(result, Err(err) if err.kind() == ErrorKind::Other));
-}
-
-#[test]
-fn replace() {
-    let state = OwnedState::<u32>::create_temporary().unwrap();
-
-    state.set(&0).unwrap();
-    let old_value = state.replace(&1).unwrap();
-
-    assert_eq!(state.get().unwrap(), 1);
-    assert_eq!(old_value, 0);
-}
-
-#[test]
-fn replace_boxed() {
-    let state = OwnedState::<u32>::create_temporary().unwrap();
-
-    state.set(&0).unwrap();
-    let old_value = state.replace_boxed(&1).unwrap();
-
-    assert_eq!(state.get().unwrap(), 1);
-    assert_eq!(*old_value, 0);
-}
-
-#[test]
-fn owned_state_delete() {
-    let state = OwnedState::<()>::create_temporary().unwrap();
-    let state_name = state.state_name();
-    state.delete().unwrap();
-
-    let state = BorrowedState::<()>::from_state_name(state_name);
-    assert!(!state.exists().unwrap());
-}
-
-#[test]
-fn borrowed_state_delete() {
-    let state = OwnedState::<()>::create_temporary().unwrap().leak();
-    assert!(state.exists().unwrap());
-
-    let state_name = state.state_name();
-    state.delete().unwrap();
-
-    let state = BorrowedState::<()>::from_state_name(state_name);
-    assert!(!state.exists().unwrap());
 }
 
 #[derive(Debug, Eq, Hash, PartialEq)]

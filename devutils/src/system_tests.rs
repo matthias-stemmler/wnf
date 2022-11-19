@@ -36,11 +36,8 @@ macro_rules! system_tests {
 }
 
 pub fn test_main(tests: Vec<Trial>) -> ExitCode {
-    match option_env!("WNF_SYSTEM_TESTS_ENABLED")
-        .map(str::to_ascii_lowercase)
-        .as_deref()
-    {
-        Some("true") => match run_tests_as_system(tests) {
+    match option_env!("WNF_SYSTEM_TESTS_ENABLED") {
+        Some("1") => match run_tests_as_system(tests) {
             Ok(conclusion) => conclusion.exit(),
             Err(err) => {
                 eprintln!("Failed to run tests as system: {err}");
@@ -49,7 +46,7 @@ pub fn test_main(tests: Vec<Trial>) -> ExitCode {
         },
 
         _ => {
-            println!("System tests are disabled, set WNF_SYSTEM_TESTS_ENABLED=true to enable");
+            println!("System tests are disabled, set WNF_SYSTEM_TESTS_ENABLED=1 to enable");
             ignore_tests(tests).exit()
         }
     }
