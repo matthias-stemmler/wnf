@@ -9,6 +9,7 @@ use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::mem::ManuallyDrop;
+use std::ops::Deref;
 
 use crate::state_name::StateName;
 use crate::type_id::{TypeId, GUID};
@@ -332,14 +333,15 @@ where
     }
 }
 
-impl<S> AsState for &S
+impl<S> AsState for S
 where
-    S: AsState,
+    S: Deref,
+    S::Target: AsState,
 {
-    type Data = S::Data;
+    type Data = <S::Target as AsState>::Data;
 
     fn as_state(&self) -> BorrowedState<'_, Self::Data> {
-        (*self).as_state()
+        self.deref().as_state()
     }
 }
 
@@ -436,11 +438,18 @@ where
 }
 
 mod private {
+    use std::ops::Deref;
+
     use super::{BorrowedState, OwnedState};
 
     pub trait Sealed {}
 
     impl<T> Sealed for OwnedState<T> where T: ?Sized {}
     impl<T> Sealed for BorrowedState<'_, T> where T: ?Sized {}
-    impl<S> Sealed for &S where S: Sealed {}
+    impl<S> Sealed for S
+    where
+        S: Deref,
+        S::Target: Sealed,
+    {
+    }
 }
