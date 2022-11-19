@@ -36,9 +36,10 @@ where
     ///
     /// For example, to increment the value of a state by one and return the incremented value:
     /// ```
-    /// # use std::io;
-    /// # use wnf::{AsState, OwnedState};
-    /// #
+    /// use std::io;
+    ///
+    /// use wnf::{AsState, OwnedState};
+    ///
     /// fn increment<S>(state: S) -> io::Result<u32>
     /// where
     ///     S: AsState<Data = u32>,
@@ -144,19 +145,19 @@ where
     /// The return value is the value with which the state was ultimately updated, i.e. the return value of the last
     /// call to the given closure.
     ///
-    /// For example, to extend a slice by one element and return the extended (boxed) slice:
+    /// For example, to extend a slice by one element and return the extended slice as a [`Vec<u32>`]:
     /// ```
     /// # use std::io;
     /// # use wnf::{AsState, OwnedState};
     /// #
-    /// fn extend<S>(state: S) -> io::Result<Box<[u32]>>
+    /// fn extend<S>(state: S) -> io::Result<Vec<u32>>
     /// where
     ///     S: AsState<Data = [u32]>,
     /// {
     ///     state.as_state().apply_boxed(|slice| {
     ///         let mut vec = slice.into_vec();
     ///         vec.push(42);
-    ///         vec.into_boxed_slice()
+    ///         vec
     ///     })
     /// }
     ///
@@ -196,12 +197,12 @@ where
     /// call to the given closure.
     ///
     /// For example, to extend a slice by one element, unless a maximum length is reached, and return the extended
-    /// (boxed) slice:
+    /// slice as a [`Vec<u32>`]:
     /// ```
     /// # use std::io;
     /// # use wnf::{AsState, OwnedState};
     /// #
-    /// fn try_extend<S>(state: S, max_len: usize) -> io::Result<Box<[u32]>>
+    /// fn try_extend<S>(state: S, max_len: usize) -> io::Result<Vec<u32>>
     /// where
     ///     S: AsState<Data = [u32]>,
     /// {
@@ -209,7 +210,7 @@ where
     ///         if slice.len() < max_len {
     ///             let mut vec = slice.into_vec();
     ///             vec.push(42);
-    ///             Ok(vec.into_boxed_slice())
+    ///             Ok(vec)
     ///         } else {
     ///             Err("maximum length reached")
     ///         }
@@ -243,7 +244,7 @@ where
     T: Read<T> + NoUninit,
 {
     /// Applies a transformation to the data of this state
-    /// 
+    ///
     /// See [`OwnedState::apply`]
     pub fn apply<D, F>(self, transform: F) -> io::Result<D>
     where
@@ -254,7 +255,7 @@ where
     }
 
     /// Applies a fallible transformation to the data of this state
-    /// 
+    ///
     /// See [`OwnedState::try_apply`]
     pub fn try_apply<D, E, F>(self, transform: F) -> io::Result<D>
     where
@@ -271,7 +272,7 @@ where
     T: Read<Box<T>> + NoUninit + ?Sized,
 {
     /// Applies a transformation to the data of this state as a box
-    /// 
+    ///
     /// See [`OwnedState::apply_boxed`]
     pub fn apply_boxed<D, F>(self, transform: F) -> io::Result<D>
     where
@@ -282,7 +283,7 @@ where
     }
 
     /// Applies a fallible transformation to the data of this state as a box
-    /// 
+    ///
     /// See [`OwnedState::try_apply_boxed`]
     pub fn try_apply_boxed<D, E, F>(self, transform: F) -> io::Result<D>
     where
