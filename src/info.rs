@@ -26,7 +26,7 @@ impl<T> OwnedState<T>
 where
     T: ?Sized,
 {
-    /// Returns whether a state with the name represented by this [`OwnedState<T>`] exists
+    /// Returns whether this state exists
     ///
     /// # Errors
     /// Returns an error if obtaining the information fails
@@ -34,7 +34,7 @@ where
         self.raw.exists()
     }
 
-    /// Returns whether this [`OwnedState<T>`] has at least one subscriber
+    /// Returns whether this state has at least one subscriber
     ///
     /// # Errors
     /// Returns an error if obtaining the information fails
@@ -42,8 +42,7 @@ where
         self.raw.subscribers_present()
     }
 
-    /// Returns whether this [`OwnedState<T>`] is "quiescent", i.e. none of the listeners subscribed to it are
-    /// currently running
+    /// Returns whether this state is "quiescent", i.e. none of the listeners subscribed to it are currently running
     ///
     /// # Errors
     /// Returns an error if obtaining the information fails
@@ -56,27 +55,23 @@ impl<T> BorrowedState<'_, T>
 where
     T: ?Sized,
 {
-    /// Returns whether a state with the name represented by this [`BorrowedState<'a, T>`] exists
+    /// Returns whether this state exists
     ///
-    /// # Errors
-    /// Returns an error if obtaining the information fails
+    /// See [`OwnedState::exists`]
     pub fn exists(self) -> io::Result<bool> {
         self.raw.exists()
     }
 
-    /// Returns whether this [`BorrowedState<'a, T>`] has at least one subscriber
+    /// Returns whether this state has at least one subscriber
     ///
-    /// # Errors
-    /// Returns an error if obtaining the information fails
+    /// See [`OwnedState::subscribers_present`]
     pub fn subscribers_present(self) -> io::Result<bool> {
         self.raw.subscribers_present()
     }
 
-    /// Returns whether this [`BorrowedState<'a, T>`] is "quiescent", i.e. none of the listeners subscribed to it are
-    /// currently running
+    /// Returns whether this state is "quiescent", i.e. none of the listeners subscribed to it are currently running
     ///
-    /// # Errors
-    /// Returns an error if obtaining the information fails
+    /// See [`OwnedState::is_quiescent`]
     pub fn is_quiescent(self) -> io::Result<bool> {
         self.raw.is_quiescent()
     }
@@ -86,18 +81,17 @@ impl<T> RawState<T>
 where
     T: ?Sized,
 {
-    /// Returns whether a state with the name represented by this [`RawState<T>`] exists
+    /// Returns whether this state exists
     fn exists(self) -> io::Result<bool> {
         self.info_internal(NameInfoClass::StateNameExist)
     }
 
-    /// Returns whether this [`RawState<T>`] has at least one subscriber
+    /// Returns whether this state has at least one subscriber
     fn subscribers_present(self) -> io::Result<bool> {
         self.info_internal(NameInfoClass::SubscribersPresent)
     }
 
-    /// Returns whether this [`RawState<T>`] is "quiescent", i.e. none of the listeners subscribed to it are
-    /// currently running
+    /// Returns whether this state is "quiescent", i.e. none of the listeners subscribed to it are currently running
     fn is_quiescent(self) -> io::Result<bool> {
         self.info_internal(NameInfoClass::IsQuiescent)
     }

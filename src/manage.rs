@@ -419,7 +419,6 @@ where
 {
     /// Deletes this state
     ///
-    /// # Errors
     /// Returns an error if deleting the state fails
     pub fn delete(self) -> io::Result<()> {
         self.raw.delete()
@@ -430,7 +429,7 @@ impl<T> RawState<T>
 where
     T: ?Sized,
 {
-    /// Creates a [`RawState<T>`]
+    /// Creates a state
     fn create(
         name_lifetime: StateNameLifetime,
         data_scope: DataScope,
@@ -497,7 +496,7 @@ where
         }
     }
 
-    /// Deletes this [`RawState<T>`]
+    /// Deletes this state
     pub(crate) fn delete(self) -> io::Result<()> {
         // SAFETY:
         // The pointer points to a valid `u64` because it comes from a live reference

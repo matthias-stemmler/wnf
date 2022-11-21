@@ -54,7 +54,7 @@ where
         BorrowedState::from_raw(self.into_raw())
     }
 
-    /// Casts the data type of this [`OwnedState<T>`] to a different type `U`
+    /// Casts the data type of this state to a different type `U`
     ///
     /// The returned [`OwnedState<U>`] represents the same underlying state, but treats it as containing data of
     /// a different type `U`.
@@ -160,7 +160,7 @@ where
         OwnedState::from_raw(self.raw)
     }
 
-    /// Casts the data type of this [`BorrowedState<'a, T>`] to a different type `U`
+    /// Casts the data type of this state to a different type `U`
     ///
     /// The returned [`BorrowedState<'a, U>`] represents the same underlying state, but treats it as containing
     /// data of a different type `U`.
@@ -376,7 +376,8 @@ where
         self.state_name
     }
 
-    /// Casts the data type of this [`RawState<T>`] to a different type `U`
+    /// Casts the data type of this state to a different type `U`
+    /// 
     /// The returned [`RawState<U>`] represents the same underlying state, but treats it as containing data of
     /// a different type `U`.
     pub(crate) const fn cast<U>(self) -> RawState<U> {
@@ -437,6 +438,7 @@ where
     }
 }
 
+/// Making [`AsState`] a sealed trait
 mod private {
     use std::ops::Deref;
 

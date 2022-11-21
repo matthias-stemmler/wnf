@@ -14,7 +14,7 @@ impl<T> OwnedState<T>
 where
     T: Read<T>,
 {
-    /// Queries the data of this [`OwnedState<T>`]
+    /// Queries the data of this state
     ///
     /// This produces an owned `T` on the stack and hence requires `T: Sized`. In order to produce a `Box<T>` for
     /// `T: ?Sized`, use the [`get_boxed`](OwnedState::get_boxed) method.
@@ -28,7 +28,7 @@ where
         self.raw.get()
     }
 
-    /// Queries the data of this [`OwnedState<T>`] together with its change stamp
+    /// Queries the data of this state together with its change stamp
     ///
     /// This produces an owned `T` on the stack and hence requires `T: Sized`. In order to produce a `Box<T>` for
     /// `T: ?Sized`, use the [`query_boxed`](OwnedState::query_boxed) method.
@@ -47,7 +47,7 @@ impl<T> OwnedState<T>
 where
     T: Read<Box<T>> + ?Sized,
 {
-    /// Queries the data of this [`OwnedState<T>`] as a box
+    /// Queries the data of this state as a box
     ///
     /// This produces a [`Box<T>`]. In order to produce an owned `T` on the stack (requiring `T: Sized`), use the
     /// [`get`](OwnedState::get) method.
@@ -61,7 +61,7 @@ where
         self.raw.get_boxed()
     }
 
-    /// Queries the data of this [`OwnedState<T>`] as a box together with its change stamp
+    /// Queries the data of this state as a box together with its change stamp
     ///
     /// This produces a [`Box<T>`]. In order to produce an owned `T` on the stack (requiring `T: Sized`), use the
     /// [`query`](OwnedState::query) method.
@@ -80,7 +80,7 @@ impl<T> OwnedState<T>
 where
     T: ?Sized,
 {
-    /// Queries the change stamp of this [`OwnedState<T>`]
+    /// Queries the change stamp of this state
     ///
     /// # Errors
     /// Returns an error if querying the change stamp fails
@@ -93,30 +93,16 @@ impl<T> BorrowedState<'_, T>
 where
     T: Read<T>,
 {
-    /// Queries the data of this [`BorrowedState<'a, T>`]
+    /// Queries the data of this state
     ///
-    /// This produces an owned `T` on the stack and hence requires `T: Sized`. In order to produce a `Box<T>` for
-    /// `T: ?Sized`, use the [`get_boxed`](BorrowedState::get_boxed) method.
-    ///
-    /// This returns the data of the state without a change stamp. In order to query both the data and the change
-    /// stamp, use the [`query`](BorrowedState::query) method.
-    ///
-    /// # Errors
-    /// Returns an error if querying fails, including the case that the queried data is not a valid `T`
+    /// See [`OwnedState::get`]
     pub fn get(self) -> io::Result<T> {
         self.raw.get()
     }
 
-    /// Queries the data of this [`BorrowedState<'a, T>`] together with its change stamp
+    /// Queries the data of this state together with its change stamp
     ///
-    /// This produces an owned `T` on the stack and hence requires `T: Sized`. In order to produce a `Box<T>` for
-    /// `T: ?Sized`, use the [`query_boxed`](BorrowedState::query_boxed) method.
-    ///
-    /// This returns the data of the state together with its change stamp as a [`StampedData<T>`]. In order to
-    /// only query the data, use the [`get`](BorrowedState::get) method.
-    ///
-    /// # Errors
-    /// Returns an error if querying fails, including the case that the queried data is not a valid `T`
+    /// See [`OwnedState::query`]
     pub fn query(self) -> io::Result<StampedData<T>> {
         self.raw.query()
     }
@@ -126,30 +112,16 @@ impl<T> BorrowedState<'_, T>
 where
     T: Read<Box<T>> + ?Sized,
 {
-    /// Queries the data of this [`BorrowedState<'a, T>`] as a box
-    ///
-    /// This produces a [`Box<T>`]. In order to produce an owned `T` on the stack (requiring `T: Sized`), use the
-    /// [`get`](BorrowedState::get) method.
-    ///
-    /// This returns the data of the state without a change stamp. In order to query both the data and the change
-    /// stamp, use the [`query_boxed`](BorrowedState::query_boxed) method.
-    ///
-    /// # Errors
-    /// Returns an error if querying fails, including the case that the queried data is not a valid `T`
+    /// Queries the data of this state as a box
+    /// 
+    /// See [`OwnedState::get_boxed`]
     pub fn get_boxed(self) -> io::Result<Box<T>> {
         self.raw.get_boxed()
     }
 
-    /// Queries the data of this [`BorrowedState<'a, T>`] as a box together with its change stamp
+    /// Queries the data of this state as a box together with its change stamp
     ///
-    /// This produces a [`Box<T>`]. In order to produce an owned `T` on the stack (requiring `T: Sized`), use the
-    /// [`query`](BorrowedState::query) method.
-    ///
-    /// This returns the data of the state together with its change stamp as a [`StampedData<Box<T>>`]. In order
-    /// to only query the data, use the [`get_boxed`](BorrowedState::get_boxed) method.
-    ///
-    /// # Errors
-    /// Returns an error if querying fails, including the case that the queried data is not a valid `T`
+    /// See [`OwnedState::query_boxed`]
     pub fn query_boxed(self) -> io::Result<StampedData<Box<T>>> {
         self.raw.query_boxed()
     }
@@ -159,10 +131,9 @@ impl<T> BorrowedState<'_, T>
 where
     T: ?Sized,
 {
-    /// Queries the change stamp of this [`BorrowedState<'a, T>`]
-    ///
-    /// # Errors
-    /// Returns an error if querying the change stamp fails
+    /// Queries the change stamp of this state
+    /// 
+    /// See [`OwnedState::change_stamp`]
     pub fn change_stamp(self) -> io::Result<ChangeStamp> {
         self.raw.change_stamp()
     }
@@ -172,12 +143,12 @@ impl<T> RawState<T>
 where
     T: Read<T>,
 {
-    /// Queries the data of this [`RawState<T>`]
+    /// Queries the data of this state
     fn get(self) -> io::Result<T> {
         self.query().map(StampedData::into_data)
     }
 
-    /// Queries the data of this [`RawState<T>`] together with its change stamp
+    /// Queries the data of this state together with its change stamp
     fn query(self) -> io::Result<StampedData<T>> {
         self.query_as()
     }
@@ -187,12 +158,12 @@ impl<T> RawState<T>
 where
     T: Read<Box<T>> + ?Sized,
 {
-    /// Queries the data of this [`RawState<T>`] as a box
+    /// Queries the data of this state as a box
     fn get_boxed(self) -> io::Result<Box<T>> {
         self.query_boxed().map(StampedData::into_data)
     }
 
-    /// Queries the data of this [`RawState<T>`] as a box together with its change stamp
+    /// Queries the data of this state as a box together with its change stamp
     fn query_boxed(self) -> io::Result<StampedData<Box<T>>> {
         self.query_as()
     }
@@ -202,12 +173,12 @@ impl<T> RawState<T>
 where
     T: ?Sized,
 {
-    /// Queries the change stamp of this [`RawState<T>`]
+    /// Queries the change stamp of this state
     pub(crate) fn change_stamp(self) -> io::Result<ChangeStamp> {
         Ok(self.cast::<OpaqueData>().query()?.change_stamp())
     }
 
-    /// Queries the data of this [`RawState<T>`] as a value of type `D`
+    /// Queries the data of this state as a value of type `D`
     ///
     /// If `T: Sized`, then `D` can be either `T` or `Box<T>`.
     /// If `T: !Sized`, then `D` must be `Box<T>`.

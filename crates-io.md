@@ -6,6 +6,20 @@
 [![license](https://img.shields.io/crates/l/wnf.svg)](https://github.com/matthias-stemmler/wnf/blob/main/LICENSE-APACHE)
 [![rustc 1.62+](https://img.shields.io/badge/rustc-1.62+-lightgrey.svg)](https://blog.rust-lang.org/2022/06/30/Rust-1.62.0.html)
 
+--Intro text--
+
+## Installation
+
+--TODO--
+
+## Usage
+
+--Simple example--
+
+--See crate docs--
+
+--See examples--
+
 ## Minimum Supported Rust Version (MSRV) Policy
 
 The current MSRV of this crate is `1.62`.

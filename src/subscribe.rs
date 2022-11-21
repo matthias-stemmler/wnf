@@ -84,7 +84,7 @@ impl<T> OwnedState<T>
 where
     T: ?Sized,
 {
-    /// Subscribes the given state listener to this [`OwnedState<T>`]
+    /// Subscribes the given state listener to this state
     ///
     /// The `last_seen_change_stamp` argument can be used to indicate what change stamp of the state you have last seen,
     /// which has an impact on which state updates the listener is notified about. See [`SeenChangeStamp`] for the
@@ -113,23 +113,9 @@ impl<'a, T> BorrowedState<'a, T>
 where
     T: ?Sized,
 {
-    /// Subscribes the given state listener to this [`BorrowedState<'a, T>`]
+    /// Subscribes the given state listener to this state
     ///
-    /// The `last_seen_change_stamp` argument can be used to indicate what change stamp of the state you have last seen,
-    /// which has an impact on which state updates the listener is notified about. See [`SeenChangeStamp`] for the
-    /// available options.
-    ///
-    /// Note that the listener is automatically unsubscribed when the returned [`Subscription<'a, F>`] is dropped. In
-    /// this case, errors while unsubscribing are silently ignored. If you want to handle them explicitly, use the
-    /// [`Subscription::unsubscribe`] method, which returns an [`io::Result<()>`].
-    ///
-    /// In any case, the listener will not be called anymore after unsubscribing, even when there is an error. However,
-    /// in order to maintain memory safety, in the case of an error a value the size of a [`Mutex<Option<F>>`] is leaked
-    /// on the heap. This should be fine in most cases, especially when `F` is small. Otherwise consider using a boxed
-    /// closure.
-    ///
-    /// # Errors
-    /// Returns an error if subscribing fails
+    /// See [`OwnedState::subscribe`]
     pub fn subscribe<F>(self, listener: F, last_seen_change_stamp: SeenChangeStamp) -> io::Result<Subscription<'a, F>>
     where
         F: StateListener<T> + Send + 'static,
@@ -142,7 +128,7 @@ impl<T> RawState<T>
 where
     T: ?Sized,
 {
-    /// Subscribes the given state listener to this [`RawState<T>`].
+    /// Subscribes the given state listener to this state
     pub(crate) fn subscribe<'a, F>(
         &self,
         listener: F,

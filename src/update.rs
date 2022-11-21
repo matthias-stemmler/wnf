@@ -47,25 +47,14 @@ where
 {
     /// Updates the data of this state with the given value
     ///
-    /// The update is performed regardless of the current change stamp of the state. In order to perform the update
-    /// conditionally based on the change stamp, use the [`update`](OwnedState::update) method.
-    ///
-    /// # Errors
-    /// Returns an error if updating fails
+    /// See [`OwnedState::set`]
     pub fn set(self, data: &T) -> io::Result<()> {
         self.raw.set(data)
     }
 
     /// Updates the data of this state with the given value
     ///
-    /// The update is only performed if the change stamp of the state before the update matches the given
-    /// `expected_change_stamp`. In this case, the method returns `true`. Otherwise, the update is not performed and the
-    /// method returns `false`.
-    ///
-    /// In order to update the data without checking the change stamp, use the [`set`](OwnedState::set) method.
-    ///
-    /// # Errors
-    /// Returns an error if updating fails
+    /// See [`OwnedState::update`]
     pub fn update(self, data: &T, expected_change_stamp: ChangeStamp) -> io::Result<bool> {
         self.raw.update(data, expected_change_stamp)
     }
