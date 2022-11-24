@@ -263,7 +263,7 @@ impl SystemRunner {
 }
 
 #[derive(Debug)]
-struct AdminProcess(admin_process::Child);
+struct AdminProcess(admin_process::Process);
 
 impl AdminProcess {
     fn wait(self) -> io::Result<i32> {

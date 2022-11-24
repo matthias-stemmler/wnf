@@ -59,10 +59,10 @@ impl Command {
         self
     }
 
-    /// Executes the program as Administrator as a child process, returning a handle to it
+    /// Executes the program as Administrator, returning a handle to the process
     ///
-    /// Note that the standard IO (stdin, stdout, stderr) of the child process cannot be captured.
-    pub(crate) fn spawn(&mut self) -> io::Result<Child> {
+    /// Note that the standard IO (stdin, stdout, stderr) of the process cannot be captured.
+    pub(crate) fn spawn(&mut self) -> io::Result<Process> {
         let verb: Vec<u16> = OsStr::new("runas").encode_wide().chain(Some(0)).collect();
         let file: Vec<u16> = OsStr::new(&self.program).encode_wide().chain(Some(0)).collect();
         let params = make_params(&self.args)?;
@@ -88,16 +88,16 @@ impl Command {
             return Err(io::Error::new(ErrorKind::Other, "failed to spawn admin process"));
         }
 
-        Ok(Child(shell_execute_info.hProcess))
+        Ok(Process(shell_execute_info.hProcess))
     }
 }
 
-/// Representation of a running or exited child process
+/// Representation of a running or exited process
 #[derive(Debug)]
-pub(crate) struct Child(HANDLE);
+pub(crate) struct Process(HANDLE);
 
-impl Child {
-    /// Waits for the child to exit completely, returning the status that it exited with
+impl Process {
+    /// Waits for the process to exit completely, returning the status that it exited with
     pub fn wait(self) -> io::Result<i32> {
         // SAFETY:
         // The handle in the first argument has not been closed
@@ -146,22 +146,22 @@ where
         params.push('"' as u16);
         let mut backslashes = 0;
 
-        for x in arg.as_ref().encode_wide() {
-            if x == 0 {
+        for character in arg.as_ref().encode_wide() {
+            if character == 0 {
                 return Err(io::Error::new(ErrorKind::InvalidInput, "argument contains NULL byte"));
             }
 
-            if x == '\\' as u16 {
+            if character == '\\' as u16 {
                 backslashes += 1;
             } else {
-                if x == '"' as u16 {
+                if character == '"' as u16 {
                     params.extend((0..=backslashes).map(|_| '\\' as u16))
                 }
 
                 backslashes = 0;
             }
 
-            params.push(x);
+            params.push(character);
         }
 
         params.extend((0..backslashes).map(|_| '\\' as u16));
