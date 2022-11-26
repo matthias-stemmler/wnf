@@ -1,4 +1,4 @@
-use wnf::OwnedState;
+use wnf::{OpaqueData, OwnedState};
 
 #[test]
 fn get_by_value() {
@@ -31,4 +31,15 @@ fn get_slice() {
 
     let read_values = state.get_boxed().unwrap();
     assert_eq!(*read_values, values);
+}
+
+#[test]
+fn query_opaque_data() {
+    let state = OwnedState::<u32>::create_temporary().unwrap();
+    state.set(&42).unwrap();
+
+    let state: OwnedState<OpaqueData> = state.cast();
+
+    let change_stamp = state.query().unwrap().change_stamp();
+    assert_eq!(change_stamp, 1.into());
 }

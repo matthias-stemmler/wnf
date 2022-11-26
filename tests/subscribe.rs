@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crossbeam_channel::RecvTimeoutError;
-use wnf::{ChangeStamp, DataAccessor, OwnedState, SeenChangeStamp};
+use wnf::{AsState, ChangeStamp, DataAccessor, OpaqueData, OwnedState, SeenChangeStamp};
 
 #[test]
 fn subscribe() {
@@ -242,4 +242,26 @@ fn subscribe_with_last_seen_change_stamp_value() {
         rx.recv_timeout(Duration::from_secs(1)),
         Err(RecvTimeoutError::Disconnected)
     );
+}
+
+#[test]
+fn subscribe_opaque_data() {
+    let state = OwnedState::<OpaqueData>::create_temporary().unwrap();
+
+    let (tx, rx) = crossbeam_channel::unbounded();
+
+    let _subscription = state.subscribe(
+        move |accessor: DataAccessor<_>| {
+            tx.send(accessor.change_stamp()).unwrap();
+        },
+        SeenChangeStamp::None,
+    );
+
+    state.as_state().cast::<u32>().set(&42).unwrap();
+    let change_stamp = rx.recv_timeout(Duration::from_secs(1)).unwrap();
+    assert_eq!(change_stamp, 1.into());
+
+    state.as_state().cast::<u16>().set(&43).unwrap();
+    let change_stamp = rx.recv_timeout(Duration::from_secs(1)).unwrap();
+    assert_eq!(change_stamp, 2.into());
 }
