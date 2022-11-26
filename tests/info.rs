@@ -64,6 +64,5 @@ fn is_quiescent() {
 
     tx.send(()).unwrap();
     subscription.unsubscribe().unwrap();
-
     assert!(state.is_quiescent().unwrap());
 }

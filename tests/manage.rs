@@ -1,6 +1,6 @@
 use wnf::{
     BorrowedState, BoxedSecurityDescriptor, CreatableStateLifetime, DataScope, OpaqueData, OwnedState, StateCreation,
-    StateNameDescriptor, StateNameLifetime,
+    StateNameDescriptor, StateNameLifetime, MAXIMUM_STATE_SIZE,
 };
 
 #[test]
@@ -83,35 +83,16 @@ fn create_state_with_maximum_state_size_at_limit() {
     assert!(StateCreation::new()
         .lifetime(CreatableStateLifetime::Temporary)
         .scope(DataScope::Machine)
-        .maximum_state_size(0x1000)
+        .maximum_state_size(MAXIMUM_STATE_SIZE)
         .create_owned::<OpaqueData>()
         .is_ok());
 
     assert!(StateCreation::new()
         .lifetime(CreatableStateLifetime::Temporary)
         .scope(DataScope::Machine)
-        .maximum_state_size(0x1001)
+        .maximum_state_size(MAXIMUM_STATE_SIZE + 1)
         .create_owned::<OpaqueData>()
         .is_err());
-}
-
-#[test]
-fn create_state_with_type_id() {
-    let state = StateCreation::new()
-        .lifetime(CreatableStateLifetime::Temporary)
-        .scope(DataScope::Machine)
-        .type_id("b75fa6ba-77fd-4790-b825-1715ffefbac8")
-        .create_owned()
-        .unwrap();
-
-    assert!(state.set(&()).is_ok());
-
-    let borrowed_state_with_wrong_type_id =
-        BorrowedState::from_state_name_and_type_id(state.state_name(), "ee26d6d2-53f4-4230-9c9e-88556e82c3d3".into());
-
-    assert!(borrowed_state_with_wrong_type_id.set(&()).is_err());
-
-    drop(borrowed_state_with_wrong_type_id);
 }
 
 #[test]
@@ -180,6 +161,28 @@ fn create_state_with_security_descriptor_from_windows_permissions() {
 
     assert!(state.get().is_err());
     assert!(state.set(&()).is_err());
+}
+
+#[test]
+fn create_state_with_type_id() {
+    let state = StateCreation::new()
+        .lifetime(CreatableStateLifetime::Temporary)
+        .scope(DataScope::Machine)
+        .type_id("b75fa6ba-77fd-4790-b825-1715ffefbac8")
+        .create_owned()
+        .unwrap();
+
+    assert!(state.set(&()).is_ok());
+
+    let borrowed_state_with_correct_type_id =
+        BorrowedState::from_state_name_and_type_id(state.state_name(), "b75fa6ba-77fd-4790-b825-1715ffefbac8".into());
+
+    assert!(borrowed_state_with_correct_type_id.set(&()).is_ok());
+
+    let borrowed_state_with_wrong_type_id =
+        BorrowedState::from_state_name_and_type_id(state.state_name(), "ee26d6d2-53f4-4230-9c9e-88556e82c3d3".into());
+
+    assert!(borrowed_state_with_wrong_type_id.set(&()).is_err());
 }
 
 #[test]
