@@ -15,9 +15,11 @@ where
     /// Replaces the data of this state, returning the previous value
     ///
     /// This essentially queries the state data, updates it with the given value and returns the previous value.
-    /// However, this method uses change stamps to ensure that the replacement happens atomically, meaning that it
-    /// is guaranteed that that no other update happens after the state is queried but before it is updated. In
-    /// other words, the previous value (that is returned) and the new value are assigned consecutive change stamps.
+    /// However, it tries to do so in a loop using change stamps to ensure that no concurrent update happens between
+    /// querying and updating the data. Note that it does *not* reliably avoid concurrent updates while the actual
+    /// update is happening. If another concurrent update makes the size of the state data exceed the internal
+    /// capacity of the state (causing a reallocation), it may happen that this update does not have the desired
+    /// effect on the state data.
     ///
     /// This produces an owned `T` on the stack and hence requires `T: Sized`. In order to produce a `Box<T>` for
     /// `T: ?Sized`, use the [`replace_boxed`](OwnedState::replace_boxed) method.
@@ -56,9 +58,11 @@ where
     /// Replaces the data of this state, returning the previous value as a box
     ///
     /// This essentially queries the state data, updates it with the given value and returns the previous value.
-    /// However, this method uses change stamps to ensure that the replacement happens atomically, meaning that it
-    /// is guaranteed that that no other update happens after the state is queried but before it is updated. In
-    /// other words, the previous value (that is returned) and the new value are assigned consecutive change stamps.
+    /// However, it tries to do so in a loop using change stamps to ensure that no concurrent update happens between
+    /// querying and updating the data. Note that it does *not* reliably avoid concurrent updates while the actual
+    /// update is happening. If another concurrent update makes the size of the state data exceed the internal
+    /// capacity of the state (causing a reallocation), it may happen that this update does not have the desired
+    /// effect on the state data.
     ///
     /// This produces a [`Box<T>`]. In order to produce an owned `T` on the stack (requiring `T: Sized`), use the
     /// [`replace`](OwnedState::replace) method.

@@ -32,6 +32,10 @@ where
     /// `expected_change_stamp`. In this case, the method returns `true`. Otherwise, the update is not performed and the
     /// method returns `false`.
     ///
+    /// Note that this check is not guaranteed to work reliably in all situations. If the size of the given data exceeds
+    /// the internal capacity of the state (causing a reallocation) while there is another concurrent update, it may
+    /// happen that the data is updated even though the change stamp is already greater than the given one.
+    ///
     /// In order to update the data without checking the change stamp, use the [`set`](OwnedState::set) method.
     ///
     /// # Errors

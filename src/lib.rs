@@ -5,42 +5,42 @@
 //! [![rustc 1.62+](https://img.shields.io/badge/rustc-1.62+-lightgrey.svg)](https://blog.rust-lang.org/2022/06/30/Rust-1.62.0.html)
 //!
 //! Safe Rust bindings for the Windows Notification Facility
-//! 
+//!
 //! --Intro text--
 //! --This=safe bindings, for raw bindings -> ntapi--
 //! --Safe=best effort--
 //! --Windows only--
-//! 
+//!
 //! # What is WNF
-//! 
+//!
 //! --TODO--
 //! --In particular, what can you do with a state--
 //! --What's not supported: Kernel mode, event aggregation?, meta subscriptions?--
 //! --Glossary: State vs. state name--
-//! 
+//!
 //! # Representing states
-//! 
+//!
 //! --Owned vs. borrowed, see OwnedHandle/BorrowedHandle--
-//! 
+//!
 //! # Representing state data
-//! 
+//!
 //! --Traits, Safe transmute, macros for bytemuck/zerocopy--
-//! 
+//!
 //! # Tracing
-//! 
+//!
 //! --TODO--
-//! 
+//!
 //! # Cargo features
-//! 
+//!
 //! --TODO--
-//! 
+//!
 //! # Resources
-//! 
+//!
 //! --TODO--
 //! --YouTube, Blog posts, Book, Other GitHub projects including list of well-known states--
-//! 
+//!
 //! # Stability
-//! 
+//!
 //! --TODO--
 //!
 //! # Minimum Supported Rust Version (MSRV) Policy

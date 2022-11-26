@@ -377,7 +377,7 @@ where
     }
 
     /// Casts the data type of this state to a different type `U`
-    /// 
+    ///
     /// The returned [`RawState<U>`] represents the same underlying state, but treats it as containing data of
     /// a different type `U`.
     pub(crate) const fn cast<U>(self) -> RawState<U> {

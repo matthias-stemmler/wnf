@@ -19,11 +19,12 @@ where
     /// Applies a transformation to the data of this state
     ///
     /// This essentially queries the state data, applies the given transformation closure and then updates the state
-    /// data with the transformed value. However, this method uses change stamps to ensure that the transformation
-    /// is applied atomically, meaning that it is guaranteed that no other update happens after the state is queried
-    /// but before it is updated with the transformed value. In other words, the original and the transformed values are
-    /// assigned consecutive change stamps. Note that this means that the given closure may be called multiple times,
-    /// especially when there is high contention on the state data.
+    /// data with the transformed value. However, it tries to do so in a loop using change stamps to ensure that no
+    /// concurrent update happens between querying and updating the state data. This means that the given closure may be
+    /// called multiple times. Note that it does *not* reliably avoid concurrent updates while the actual update is
+    /// happening. If another concurrent update makes the size of the state data exceed the internal capacity of the
+    /// state (causing a reallocation), it may happen that this update does not have the desired effect on the state
+    /// data.
     ///
     /// The closure receives an owned `T` on the stack, requiring `T: Sized`. In order to receive a `Box<T>` for
     /// `T: ?Sized`, use the [`apply_boxed`](OwnedState::apply_boxed) method.
@@ -67,11 +68,12 @@ where
     /// Applies a fallible transformation to the data of this state
     ///
     /// This essentially queries the state data, applies the given transformation closure and then (in case it succeeds)
-    /// updates the state data with the transformed value. However, this method uses change stamps to ensure that
-    /// the transformation is applied atomically, meaning that it is guaranteed that no other update happens after
-    /// the state is queried but before it is updated with the transformed value. In other words, the original and
-    /// the transformed values are assigned consecutive change stamps. Note that this means that the given closure
-    /// may be called multiple times, especially when there is high contention on the state data.
+    /// updates the state data with the transformed value. However, it tries to do so in a loop using change stamps
+    /// to ensure that no concurrent update happens between querying and updating the state data. This means that the
+    /// given closure may be called multiple times. Note that it does *not* reliably avoid concurrent updates while the
+    /// actual update is happening. If another concurrent update makes the size of the state data exceed the
+    /// internal capacity of the state (causing a reallocation), it may happen that this update does not have the
+    /// desired effect on the state data.
     ///
     /// The closure receives an owned `T` on the stack, requiring `T: Sized`. In order to receive a `Box<T>` for
     /// `T: ?Sized`, use the [`apply_boxed`](OwnedState::apply_boxed) method.
@@ -85,9 +87,10 @@ where
     /// For example, to increment the value of a state by one, unless a maximum is reached, and return the incremented
     /// value:
     /// ```
-    /// # use std::io;
-    /// # use wnf::{AsState, OwnedState};
-    /// #
+    /// use std::io;
+    ///
+    /// use wnf::{AsState, OwnedState};
+    ///
     /// fn try_increment<S>(state: S, max: u32) -> io::Result<u32>
     /// where
     ///     S: AsState<Data = u32>,
@@ -130,11 +133,12 @@ where
     /// Applies a transformation to the data of this state as a box
     ///
     /// This essentially queries the state data, applies the given transformation closure and then updates the state
-    /// data with the transformed value. However, this method uses change stamps to ensure that the transformation
-    /// is applied atomically, meaning that it is guaranteed that no other update happens after the state is queried
-    /// but before it is updated with the transformed value. In other words, the original and the transformed values are
-    /// assigned consecutive change stamps. Note that this means that the given closure may be called multiple times,
-    /// especially when there is high contention on the state data.
+    /// data with the transformed value. However, it tries to do so in a loop using change stamps to ensure that no
+    /// concurrent update happens between querying and updating the state data. This means that the given closure may
+    /// be called multiple times. Note that it does *not* reliably avoid concurrent updates while the actual update is
+    /// happening. If another concurrent update makes the size of the state data exceed the internal capacity of the
+    /// state (causing a reallocation), it may happen that this update does not have the desired effect on the state
+    /// data.
     ///
     /// The closure receives a [`Box<T>`]. In order to receive an owned `T` on the stack (requiring `T: Sized`), use the
     /// [`apply`](OwnedState::apply) method.
@@ -147,9 +151,10 @@ where
     ///
     /// For example, to extend a slice by one element and return the extended slice as a [`Vec<u32>`]:
     /// ```
-    /// # use std::io;
-    /// # use wnf::{AsState, OwnedState};
-    /// #
+    /// use std::io;
+    ///
+    /// use wnf::{AsState, OwnedState};
+    ///
     /// fn extend<S>(state: S) -> io::Result<Vec<u32>>
     /// where
     ///     S: AsState<Data = [u32]>,
@@ -180,12 +185,13 @@ where
 
     /// Applies a fallible transformation to the data of this state as a box
     ///
-    /// This essentially queries the state data, applies the given transformation closure and then updates the state
-    /// data with the transformed value. However, this method uses change stamps to ensure that the transformation
-    /// is applied atomically, meaning that it is guaranteed that no other update happens after the state is queried
-    /// but before it is updated with the transformed value. In other words, the original and the transformed values are
-    /// assigned consecutive change stamps. Note that this means that the given closure may be called multiple times,
-    /// especially when there is high contention on the state data.
+    /// This essentially queries the state data, applies the given transformation closure and then (in case it succeeds)
+    /// updates the state data with the transformed value. However, it tries to do so in a loop using change stamps
+    /// to ensure that no concurrent update happens between querying and updating the state data. This means that the
+    /// given closure may be called multiple times. Note that it does *not* reliably avoid concurrent updates while the
+    /// actual update is happening. If another concurrent update makes the size of the state data exceed the internal
+    /// capacity of the state (causing a reallocation), it may happen that this update does not have the desired effect
+    /// on the state data.
     ///
     /// The closure receives a [`Box<T>`]. In order to receive an owned `T` on the stack (requiring `T: Sized`), use the
     /// [`try_apply`](OwnedState::try_apply) method.
@@ -199,9 +205,10 @@ where
     /// For example, to extend a slice by one element, unless a maximum length is reached, and return the extended
     /// slice as a [`Vec<u32>`]:
     /// ```
-    /// # use std::io;
-    /// # use wnf::{AsState, OwnedState};
-    /// #
+    /// use std::io;
+    ///
+    /// use wnf::{AsState, OwnedState};
+    ///
     /// fn try_extend<S>(state: S, max_len: usize) -> io::Result<Vec<u32>>
     /// where
     ///     S: AsState<Data = [u32]>,

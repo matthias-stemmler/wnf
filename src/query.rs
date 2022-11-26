@@ -113,7 +113,7 @@ where
     T: Read<Box<T>> + ?Sized,
 {
     /// Queries the data of this state as a box
-    /// 
+    ///
     /// See [`OwnedState::get_boxed`]
     pub fn get_boxed(self) -> io::Result<Box<T>> {
         self.raw.get_boxed()
@@ -132,7 +132,7 @@ where
     T: ?Sized,
 {
     /// Queries the change stamp of this state
-    /// 
+    ///
     /// See [`OwnedState::change_stamp`]
     pub fn change_stamp(self) -> io::Result<ChangeStamp> {
         self.raw.change_stamp()
