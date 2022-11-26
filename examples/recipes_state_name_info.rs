@@ -21,9 +21,9 @@ fn main() {
         .subscribers_present()
         .expect("Failed to determine if state name has subscribers");
 
-    let is_quiescent = state
-        .is_quiescent()
+    let quiescent = state
+        .quiescent()
         .expect("Failed to determine if state name is quiescent");
 
-    info!(?descriptor, exists, subscribers_present, is_quiescent);
+    info!(?descriptor, exists, subscribers_present, quiescent);
 }

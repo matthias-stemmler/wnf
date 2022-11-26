@@ -46,8 +46,8 @@ where
     ///
     /// # Errors
     /// Returns an error if obtaining the information fails
-    pub fn is_quiescent(&self) -> io::Result<bool> {
-        self.raw.is_quiescent()
+    pub fn quiescent(&self) -> io::Result<bool> {
+        self.raw.quiescent()
     }
 }
 
@@ -71,9 +71,9 @@ where
 
     /// Returns whether this state is "quiescent", i.e. none of the listeners subscribed to it are currently running
     ///
-    /// See [`OwnedState::is_quiescent`]
-    pub fn is_quiescent(self) -> io::Result<bool> {
-        self.raw.is_quiescent()
+    /// See [`OwnedState::quiescent`]
+    pub fn quiescent(self) -> io::Result<bool> {
+        self.raw.quiescent()
     }
 }
 
@@ -92,7 +92,7 @@ where
     }
 
     /// Returns whether this state is "quiescent", i.e. none of the listeners subscribed to it are currently running
-    fn is_quiescent(self) -> io::Result<bool> {
+    fn quiescent(self) -> io::Result<bool> {
         self.info_internal(NameInfoClass::IsQuiescent)
     }
 
