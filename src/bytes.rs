@@ -1,5 +1,6 @@
 //! Traits for casting between plain data types
 
+// This is needed because one safety comment applies to multiple unsafe impls
 #![allow(clippy::undocumented_unsafe_blocks)]
 
 use std::marker::{PhantomData, PhantomPinned};
