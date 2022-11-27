@@ -30,6 +30,30 @@ where
     ///
     /// This is an async method. If you are in an sync context, use [`wait_blocking`](OwnedState::wait_blocking).
     ///
+    /// This method does not make any assumptions on what async executor you use. Note that in contrast to
+    /// [`wait_blocking`](OwnedState::wait_blocking), it does not expect a timeout as an argument. In order to
+    /// implement a timeout, wrap it in the appropriate helper function provided by your executor. For instance,
+    /// with [`tokio`], use [`tokio::time::timeout`]:
+    /// ```
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// use std::io::{self, ErrorKind};
+    /// use std::time::Duration;
+    ///
+    /// use tokio::time;
+    /// use wnf::OwnedState;
+    ///
+    /// async fn wait() -> io::Result<()> {
+    ///     let state = OwnedState::<u32>::create_temporary()?;
+    ///     time::timeout(Duration::from_millis(100), state.wait_async()).await?
+    /// }
+    ///
+    /// let result = wait().await;
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().kind(), ErrorKind::TimedOut);
+    /// # }
+    /// ```
+    ///
     /// # Errors
     /// Returns an error if querying, subscribing to or unsubscribing from the state fails
     pub fn wait_async(&self) -> Wait<'_> {
@@ -57,6 +81,7 @@ where
     /// use std::time::Duration;
     /// use std::{io, thread};
     ///
+    /// use tokio::time;
     /// use wnf::{AsState, OwnedState};
     ///
     /// async fn wait_until_at_least<S>(state: S, min_value: u32) -> io::Result<u32>
@@ -76,7 +101,7 @@ where
     ///         tokio::spawn(async move {
     ///             loop {
     ///                 state.apply(|value| value + 1).unwrap();
-    ///                 tokio::time::sleep(Duration::from_millis(10)).await;
+    ///                 time::sleep(Duration::from_millis(10)).await;
     ///             }
     ///         });
     ///     }
@@ -90,6 +115,31 @@ where
     ///
     /// This is an async method. If you are in an sync context, use
     /// [`wait_until_blocking`](OwnedState::wait_until_blocking).
+    ///
+    /// This method does not make any assumptions on what async executor you use. Note that in contrast to
+    /// [`wait_until_blocking`](OwnedState::wait_until_blocking), it does not expect a timeout as an argument. In order
+    /// to implement a timeout, wrap it in the appropriate helper function provided by your executor. For instance,
+    /// with [`tokio`], use [`tokio::time::timeout`]:
+    /// ```
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// use std::io::{self, ErrorKind};
+    /// use std::time::Duration;
+    ///
+    /// use tokio::time;
+    /// use wnf::OwnedState;
+    ///
+    /// async fn wait() -> io::Result<u32> {
+    ///     let state = OwnedState::<u32>::create_temporary()?;
+    ///     state.set(&42)?;
+    ///     time::timeout(Duration::from_millis(100), state.wait_until_async(|_| false)).await?
+    /// }
+    ///
+    /// let result = wait().await;
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().kind(), ErrorKind::TimedOut);
+    /// # }
+    /// ```
     ///
     /// # Errors
     /// Returns an error if querying, subscribing to or unsubscribing from the state fails
@@ -121,6 +171,7 @@ where
     /// use std::time::Duration;
     /// use std::{io, thread};
     ///
+    /// use tokio::time;
     /// use wnf::{AsState, OwnedState};
     ///
     /// async fn wait_until_len_at_least<S>(state: S, min_len: usize) -> io::Result<usize>
@@ -151,7 +202,7 @@ where
     ///                     })
     ///                     .unwrap();
     ///
-    ///                 tokio::time::sleep(Duration::from_millis(10)).await;
+    ///                 time::sleep(Duration::from_millis(10)).await;
     ///             }
     ///         });
     ///     }
@@ -166,6 +217,30 @@ where
     /// This is an async method. If you are in an sync context, use
     /// [`wait_until_boxed_blocking`](OwnedState::wait_until_boxed_blocking).
     ///
+    /// This method does not make any assumptions on what async executor you use. Note that in contrast to
+    /// [`wait_until_boxed_blocking`](OwnedState::wait_until_boxed_blocking), it does not expect a timeout as an
+    /// argument. In order to implement a timeout, wrap it in the appropriate helper function provided by your
+    /// executor. For instance, with [`tokio`], use [`tokio::time::timeout`]:
+    /// ```
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// use std::io::{self, ErrorKind};
+    /// use std::time::Duration;
+    ///
+    /// use tokio::time;
+    /// use wnf::OwnedState;
+    ///
+    /// async fn wait() -> io::Result<Box<[u32]>> {
+    ///     let state = OwnedState::<[u32]>::create_temporary().expect("Failed to create state");
+    ///     state.set(&[])?;
+    ///     time::timeout(Duration::from_millis(100), state.wait_until_boxed_async(|_| false)).await?
+    /// }
+    ///
+    /// let result = wait().await;
+    /// assert!(result.is_err());
+    /// assert_eq!(result.unwrap_err().kind(), ErrorKind::TimedOut);
+    /// # }
+    /// ```
     /// # Errors
     /// Returns an error if querying, subscribing to or unsubscribing from the state fails
     pub fn wait_until_boxed_async<F>(&self, predicate: F) -> WaitUntilBoxed<'_, T, F>
@@ -443,16 +518,22 @@ where
                     let mut guard = shared_state.lock().unwrap();
                     let SharedState { result, waker } = &mut *guard;
 
-                    match result.take().unwrap() {
-                        Ok(data) if !predicate.check(data.borrow(), PredicateStage::Changed) => {
+                    let ready_result = match result.take() {
+                        Some(Ok(data)) if !predicate.check(data.borrow(), PredicateStage::Changed) => None,
+                        None => None,
+                        result => result,
+                    };
+
+                    match ready_result {
+                        Some(result) => {
+                            subscription.unsubscribe()?;
+                            return Poll::Ready(Ok(result?));
+                        }
+
+                        None => {
                             if !waker.will_wake(cx.waker()) {
                                 *waker = cx.waker().clone();
                             }
-                        }
-
-                        result => {
-                            subscription.unsubscribe()?;
-                            return Poll::Ready(Ok(result?));
                         }
                     }
 

@@ -3,8 +3,9 @@
 #![deny(unsafe_code)]
 
 use std::borrow::Borrow;
-use std::io;
+use std::io::{self, ErrorKind};
 use std::sync::{Arc, Condvar, Mutex};
+use std::time::Duration;
 
 use crate::data::OpaqueData;
 use crate::predicate::{ChangedPredicate, Predicate, PredicateStage};
@@ -28,9 +29,10 @@ where
     /// This is a blocking method. If you are in an async context, use [`wait_async`](OwnedState::wait_async).
     ///
     /// # Errors
-    /// Returns an error if querying, subscribing to or unsubscribing from the state fails
-    pub fn wait_blocking(&self) -> io::Result<()> {
-        self.raw.wait_blocking()
+    /// Returns an error if querying, subscribing to or unsubscribing from the state fails or if the timeout has elapsed
+    /// In the latter case, [`io::Error::kind`] returns [`ErrorKind::TimedOut`]
+    pub fn wait_blocking(&self, timeout: Duration) -> io::Result<()> {
+        self.raw.wait_blocking(timeout)
     }
 }
 
@@ -60,7 +62,9 @@ where
     /// where
     ///     S: AsState<Data = u32>,
     /// {
-    ///     state.as_state().wait_until_blocking(|value| *value >= min_value)
+    ///     state
+    ///         .as_state()
+    ///         .wait_until_blocking(|value| *value >= min_value, Duration::MAX)
     /// }
     ///
     /// let state = Arc::new(OwnedState::create_temporary().expect("Failed to create state"));
@@ -82,12 +86,13 @@ where
     /// [`wait_until_async`](OwnedState::wait_until_async).
     ///
     /// # Errors
-    /// Returns an error if querying, subscribing to or unsubscribing from the state fails
-    pub fn wait_until_blocking<F>(&self, predicate: F) -> io::Result<T>
+    /// Returns an error if querying, subscribing to or unsubscribing from the state fails or if the timeout has elapsed
+    /// In the latter case, [`io::Error::kind`] returns [`ErrorKind::TimedOut`]
+    pub fn wait_until_blocking<F>(&self, predicate: F, timeout: Duration) -> io::Result<T>
     where
         F: FnMut(&T) -> bool,
     {
-        self.raw.wait_until_blocking(predicate)
+        self.raw.wait_until_blocking(predicate, timeout)
     }
 }
 
@@ -119,7 +124,7 @@ where
     /// {
     ///     state
     ///         .as_state()
-    ///         .wait_until_boxed_blocking(|slice| slice.len() >= min_len)
+    ///         .wait_until_boxed_blocking(|slice| slice.len() >= min_len, Duration::MAX)
     ///         .map(|slice| slice.len())
     /// }
     ///
@@ -149,12 +154,13 @@ where
     /// [`wait_until_boxed_async`](OwnedState::wait_until_boxed_async).
     ///
     /// # Errors
-    /// Returns an error if querying, subscribing to or unsubscribing from the state fails
-    pub fn wait_until_boxed_blocking<F>(&self, predicate: F) -> io::Result<Box<T>>
+    /// Returns an error if querying, subscribing to or unsubscribing from the state fails or if the timeout has elapsed
+    /// In the latter case, [`io::Error::kind`] returns [`ErrorKind::TimedOut`]
+    pub fn wait_until_boxed_blocking<F>(&self, predicate: F, timeout: Duration) -> io::Result<Box<T>>
     where
         F: FnMut(&T) -> bool,
     {
-        self.raw.wait_until_boxed_blocking(predicate)
+        self.raw.wait_until_boxed_blocking(predicate, timeout)
     }
 }
 
@@ -165,8 +171,8 @@ where
     /// Waits until this state is updated
     ///
     /// See [`OwnedState::wait_blocking`]
-    pub fn wait_blocking(self) -> io::Result<()> {
-        self.raw.wait_blocking()
+    pub fn wait_blocking(self, timeout: Duration) -> io::Result<()> {
+        self.raw.wait_blocking(timeout)
     }
 }
 
@@ -177,11 +183,11 @@ where
     /// Waits until the data of this state satisfy a given predicate, returning the data
     ///
     /// See [`OwnedState::wait_until_blocking`]
-    pub fn wait_until_blocking<F>(self, predicate: F) -> io::Result<T>
+    pub fn wait_until_blocking<F>(self, predicate: F, timeout: Duration) -> io::Result<T>
     where
         F: FnMut(&T) -> bool,
     {
-        self.raw.wait_until_blocking(predicate)
+        self.raw.wait_until_blocking(predicate, timeout)
     }
 }
 
@@ -192,11 +198,11 @@ where
     /// Waits until the data of this state satisfy a given predicate, returning the data as a box
     ///
     /// See [`OwnedState::wait_until_boxed_blocking`]
-    pub fn wait_until_boxed_blocking<F>(self, predicate: F) -> io::Result<Box<T>>
+    pub fn wait_until_boxed_blocking<F>(self, predicate: F, timeout: Duration) -> io::Result<Box<T>>
     where
         F: FnMut(&T) -> bool,
     {
-        self.raw.wait_until_boxed_blocking(predicate)
+        self.raw.wait_until_boxed_blocking(predicate, timeout)
     }
 }
 
@@ -205,8 +211,8 @@ where
     T: ?Sized,
 {
     /// Waits until this state is updated
-    fn wait_blocking(self) -> io::Result<()> {
-        let _: OpaqueData = self.cast().wait_until_blocking_internal(ChangedPredicate)?;
+    fn wait_blocking(self, timeout: Duration) -> io::Result<()> {
+        let _: OpaqueData = self.cast().wait_until_blocking_internal(ChangedPredicate, timeout)?;
         Ok(())
     }
 }
@@ -216,11 +222,11 @@ where
     T: Read<T>,
 {
     /// Waits until the data of this state satisfy a given predicate, returning the data
-    fn wait_until_blocking<F>(self, predicate: F) -> io::Result<T>
+    fn wait_until_blocking<F>(self, predicate: F, timeout: Duration) -> io::Result<T>
     where
         F: FnMut(&T) -> bool,
     {
-        self.wait_until_blocking_internal(predicate)
+        self.wait_until_blocking_internal(predicate, timeout)
     }
 }
 
@@ -229,11 +235,11 @@ where
     T: Read<Box<T>> + ?Sized,
 {
     /// Waits until the data of this state satisfy a given predicate, returning the data as a box
-    fn wait_until_boxed_blocking<F>(self, predicate: F) -> io::Result<Box<T>>
+    fn wait_until_boxed_blocking<F>(self, predicate: F, timeout: Duration) -> io::Result<Box<T>>
     where
         F: FnMut(&T) -> bool,
     {
-        self.wait_until_blocking_internal(predicate)
+        self.wait_until_blocking_internal(predicate, timeout)
     }
 }
 
@@ -248,7 +254,7 @@ where
     ///
     /// If `T: Sized`, then `D` can be either `T` or `Box<T>`.
     /// If `T: !Sized`, then `D` must be `Box<T>`.
-    fn wait_until_blocking_internal<D, F>(self, mut predicate: F) -> io::Result<D>
+    fn wait_until_blocking_internal<D, F>(self, mut predicate: F, timeout: Duration) -> io::Result<D>
     where
         D: Borrow<T> + Send + 'static,
         F: Predicate<T>,
@@ -260,7 +266,7 @@ where
             return Ok(data);
         }
 
-        let pair = Arc::new((Mutex::new(Some(Ok(data))), Condvar::new()));
+        let pair = Arc::new((Mutex::new(None), Condvar::new()));
 
         let subscription = {
             let pair = Arc::clone(&pair);
@@ -276,15 +282,23 @@ where
         };
 
         let (mutex, condvar) = &*pair;
-        let mut guard = condvar
-            .wait_while(
-                mutex.lock().unwrap(),
-                |result| matches!(result.as_ref().unwrap(), Ok(data) if !predicate.check(data.borrow(), PredicateStage::Changed)),
-            )
+        let (mut guard, timeout_result) = condvar
+            .wait_timeout_while(mutex.lock().unwrap(), timeout, |result| match result.as_ref() {
+                Some(Ok(data)) => !predicate.check(data.borrow(), PredicateStage::Changed),
+                Some(Err(..)) => false,
+                None => true,
+            })
             .unwrap();
 
         subscription.unsubscribe()?;
 
-        guard.take().unwrap()
+        if timeout_result.timed_out() {
+            Err(io::Error::new(
+                ErrorKind::TimedOut,
+                "waiting for state update timed out",
+            ))
+        } else {
+            guard.take().unwrap()
+        }
     }
 }

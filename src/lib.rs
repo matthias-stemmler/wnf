@@ -26,6 +26,11 @@
 //!
 //! --Traits, Safe transmute, macros for bytemuck/zerocopy--
 //!
+//! # What to do with states
+//!
+//! ## Creating states
+//! Note that state data should be initialized
+//!
 //! # Tracing
 //!
 //! --TODO--

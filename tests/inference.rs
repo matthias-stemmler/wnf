@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
+use std::time::Duration;
 
 use wnf::{ChangeStamp, DataAccessor, OwnedState, SeenChangeStamp};
 
@@ -99,13 +100,13 @@ async fn data_type_can_be_inferred_from_wait_until_boxed_async() {
 #[test]
 fn data_type_can_be_inferred_from_wait_until_blocking() {
     let state = OwnedState::create_temporary().unwrap();
-    let _: () = state.wait_until_blocking(|_| true).unwrap();
+    let _: () = state.wait_until_blocking(|_| true, Duration::ZERO).unwrap();
 }
 
 #[test]
 fn data_type_can_be_inferred_from_wait_until_boxed_blocking() {
     let state = OwnedState::create_temporary().unwrap();
-    let _: Box<()> = state.wait_until_boxed_blocking(|_| true).unwrap();
+    let _: Box<()> = state.wait_until_boxed_blocking(|_| true, Duration::ZERO).unwrap();
 }
 
 #[derive(Debug, Eq, Hash, PartialEq)]

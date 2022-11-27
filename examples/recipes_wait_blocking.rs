@@ -19,7 +19,9 @@ fn main() {
 
     let handle = thread::spawn(move || {
         info!("Waiting ...");
-        state2.wait_blocking().expect("Failed to wait for state update");
+        state2
+            .wait_blocking(Duration::from_secs(6))
+            .expect("Failed to wait for state update");
         info!("State updated");
     });
 

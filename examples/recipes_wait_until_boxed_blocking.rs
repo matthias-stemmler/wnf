@@ -21,19 +21,22 @@ fn main() {
 
     let handle = thread::spawn(move || {
         info!("Waiting ...");
+
         let data = state2
-            .wait_until_boxed_blocking(|data| data.len() > 1)
+            .wait_until_boxed_blocking(|data| data.len() > 1, Duration::from_secs(6))
             .expect("Failed to wait for state update");
+
         info!(data = ?data, "State updated");
     });
 
     for i in 0..2 {
         thread::sleep(Duration::from_secs(1));
+
         state
             .apply_boxed(|data| {
                 let mut vec = data.into_vec();
                 vec.push(i);
-                vec.into_boxed_slice()
+                vec
             })
             .expect("Failed to update state data");
     }

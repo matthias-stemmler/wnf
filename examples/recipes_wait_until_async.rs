@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use tokio::time;
 use tracing::info;
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::fmt::format::FmtSpan;
@@ -21,15 +22,17 @@ async fn main() {
 
     let handle = tokio::spawn(async move {
         info!("Waiting ...");
-        let data = state2
-            .wait_until_async(|data| *data > 1)
+
+        let data = time::timeout(Duration::from_secs(6), state2.wait_until_async(|data| *data > 1))
             .await
+            .expect("Waiting for state update timed out")
             .expect("Failed to wait for state update");
+
         info!(data, "State updated");
     });
 
     for i in 1..3 {
-        tokio::time::sleep(Duration::from_secs(1)).await;
+        time::sleep(Duration::from_secs(1)).await;
         state.set(&i).expect("Failed to update state data");
     }
 
