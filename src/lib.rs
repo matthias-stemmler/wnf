@@ -42,7 +42,7 @@
 //! # Resources
 //!
 //! --TODO--
-//! --YouTube, Blog posts, Book, Other GitHub projects including list of well-known states--
+//! --`YouTube`, Blog posts, Book, Other GitHub projects including list of well-known states--
 //!
 //! # Stability
 //!

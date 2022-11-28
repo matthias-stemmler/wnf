@@ -44,13 +44,13 @@ mod tests {
         let c_wide_string = CWideString::new("test");
         let PCWSTR(ptr) = c_wide_string.as_pcwstr();
 
-        let len = (0..isize::MAX / 2)
+        let len = (0..(isize::MAX as usize) / 2)
             .find(|&idx| {
                 // SAFETY: By the guarantees of `as_pcwstr` and because we haven't found a NULL element yet,
                 // - both `ptr` and the offset pointer are in bounds of the same allocated object
                 // - the computed offset `idx * 2` does not overflow an `isize`
                 // - the computed sum does not overflow a `usize`
-                let element_ptr = unsafe { ptr.offset(idx) };
+                let element_ptr = unsafe { ptr.add(idx) };
 
                 // SAFETY:
                 // By the guarantees of `as_pcwstr` and because we haven't found a NULL element yet, `element_ptr`
@@ -65,7 +65,7 @@ mod tests {
         // All safety conditions of `slice::from_raw_parts` follow from the guarantees of `as_pcwstr` and the fact that
         // `len` is the offset relative to `ptr` of the first null element (in particular, `len >= 0`, so the cast to
         // `usize` doesn't change its value)
-        let slice = unsafe { slice::from_raw_parts(ptr, len as usize) };
+        let slice = unsafe { slice::from_raw_parts(ptr, len) };
 
         assert_eq!(OsString::from_wide(slice), "test");
     }

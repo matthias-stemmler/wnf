@@ -7,7 +7,7 @@ fn get() {
     state.set(&value).unwrap();
 
     let read_value = state.get().unwrap();
-    
+
     assert_eq!(read_value, value);
 }
 
@@ -29,7 +29,7 @@ fn query() {
     state.set(&value).unwrap();
 
     let (read_value, change_stamp) = state.query().unwrap().into_data_change_stamp();
-    
+
     assert_eq!(read_value, value);
     assert_eq!(change_stamp.value(), 1);
 }
@@ -41,7 +41,7 @@ fn query_boxed_slice() {
     state.set(slice.as_slice()).unwrap();
 
     let (read_slice, change_stamp) = state.query_boxed().unwrap().into_data_change_stamp();
-    
+
     assert_eq!(*read_slice, slice);
     assert_eq!(change_stamp.value(), 1);
 }

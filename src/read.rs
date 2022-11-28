@@ -446,6 +446,9 @@ mod private {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unused_self)]
+    #![allow(clippy::undocumented_unsafe_blocks)]
+
     use std::cmp::min;
 
     use super::*;

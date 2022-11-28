@@ -235,14 +235,14 @@ pub enum StateNameDescriptorFromStateNameError {
 mod tests {
     use super::*;
 
-    const SAMPLE_STATE_NAME: StateName = StateName::from_opaque_value(0x0D83063EA3BE5075);
+    const SAMPLE_STATE_NAME: StateName = StateName::from_opaque_value(0x0D83_063E_A3BE_5075);
     const SAMPLE_DESCRIPTOR: StateNameDescriptor = StateNameDescriptor {
         version: 1,
         lifetime: StateNameLifetime::WellKnown,
         data_scope: DataScope::System,
         is_permanent: false,
-        unique_id: 0x00004A,
-        owner_tag: 0x4C454853,
+        unique_id: 0x0000_004A,
+        owner_tag: 0x4C45_4853,
     };
 
     #[test]
@@ -254,7 +254,7 @@ mod tests {
 
     #[test]
     fn state_name_into_descriptor_invalid_data_scope() {
-        let opaque_value = 0x0D83063EA3BE51F5; // this is `SAMPLE_STATE_NAME` with data scope set to 0x06
+        let opaque_value = 0x0D83_063E_A3BE_51F5; // this is `SAMPLE_STATE_NAME` with data scope set to 0x06
         let result: Result<StateNameDescriptor, _> = StateName::from_opaque_value(opaque_value).try_into();
 
         assert_eq!(

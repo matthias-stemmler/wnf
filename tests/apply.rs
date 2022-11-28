@@ -7,7 +7,7 @@ use std::thread;
 use wnf::OwnedState;
 
 #[test]
-fn apply_by_value() {
+fn apply() {
     let state = OwnedState::<u32>::create_temporary().unwrap();
     state.set(&0).unwrap();
 
@@ -18,7 +18,7 @@ fn apply_by_value() {
 }
 
 #[test]
-fn try_apply_by_value_ok() {
+fn try_apply_ok() {
     let state = OwnedState::<u32>::create_temporary().unwrap();
     state.set(&0).unwrap();
 
@@ -29,7 +29,7 @@ fn try_apply_by_value_ok() {
 }
 
 #[test]
-fn try_apply_by_value_err() {
+fn try_apply_err() {
     let state = OwnedState::<u32>::create_temporary().unwrap();
     state.set(&0).unwrap();
 
@@ -39,7 +39,7 @@ fn try_apply_by_value_err() {
 }
 
 #[test]
-fn apply_by_value_concurrent() {
+fn apply_concurrent() {
     let state = Arc::new(OwnedState::<u32>::create_temporary().unwrap());
     state.set(&0).unwrap();
 

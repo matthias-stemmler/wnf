@@ -132,7 +132,7 @@ mod tests {
 
     #[test]
     fn type_id_from_guid_as_ptr() {
-        let guid: GUID = GUID::from_u128(0x00112233445566778899AABBCCDDEEFF);
+        let guid: GUID = GUID::from_u128(0x0011_2233_4455_6677_8899_AABB_CCDD_EEFF);
 
         let type_id: TypeId = guid.into();
         let ptr = type_id.as_ptr();
