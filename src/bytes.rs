@@ -503,7 +503,7 @@ macro_rules! derive_from_bytemuck_v1 {
 /// #[repr(C)]
 /// struct Bar(bool);
 ///
-/// derive_from_zerocopy!(AsBytes for Baz);
+/// derive_from_zerocopy!(NoUninit for Bar);
 /// # }
 /// ```
 #[cfg(feature = "zerocopy")]
