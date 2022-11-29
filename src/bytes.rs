@@ -486,7 +486,7 @@ macro_rules! derive_from_bytemuck_v1 {
 /// implementation.
 ///
 /// If you have a type that implements [`zerocopy::FromBytes`] or [`zerocopy::AsBytes`], you can derive the
-/// corresponding [`wnf`](crate) traits as follows: 
+/// corresponding [`wnf`](crate) traits as follows:
 /// ```
 /// # #[macro_use] extern crate wnf;
 /// #

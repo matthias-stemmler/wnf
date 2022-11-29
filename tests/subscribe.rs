@@ -14,6 +14,7 @@ fn subscribe() {
 
     for _ in 0..NUM_SUBSCRIPTIONS {
         let tx = tx.clone();
+
         subscriptions.push(
             state
                 .subscribe(
@@ -53,56 +54,7 @@ fn subscribe() {
 }
 
 #[test]
-fn subscribe_boxed() {
-    let state = OwnedState::<u32>::create_temporary().unwrap();
-
-    let (tx, rx) = crossbeam_channel::unbounded();
-    let mut subscriptions = Vec::new();
-
-    const NUM_SUBSCRIPTIONS: usize = 2;
-
-    for _ in 0..NUM_SUBSCRIPTIONS {
-        let tx = tx.clone();
-        subscriptions.push(
-            state
-                .subscribe(
-                    move |accessor: DataAccessor<_>| {
-                        tx.send(accessor.query_boxed().unwrap()).unwrap();
-                    },
-                    SeenChangeStamp::None,
-                )
-                .unwrap(),
-        )
-    }
-
-    drop(tx);
-
-    for i in 1..3 {
-        state.set(&i).unwrap();
-
-        for _ in 0..NUM_SUBSCRIPTIONS {
-            let (data, change_stamp) = rx
-                .recv_timeout(Duration::from_secs(1))
-                .unwrap()
-                .into_data_change_stamp();
-
-            assert_eq!(*data, i);
-            assert_eq!(change_stamp, ChangeStamp::from(i));
-        }
-    }
-
-    for subscription in subscriptions {
-        subscription.unsubscribe().unwrap();
-    }
-
-    assert_eq!(
-        rx.recv_timeout(Duration::from_secs(1)),
-        Err(RecvTimeoutError::Disconnected)
-    );
-}
-
-#[test]
-fn subscribe_slice() {
+fn subscribe_boxed_slice() {
     let state = OwnedState::<[u32]>::create_temporary().unwrap();
 
     let (tx, rx) = crossbeam_channel::unbounded();
@@ -112,6 +64,7 @@ fn subscribe_slice() {
 
     for _ in 0..NUM_SUBSCRIPTIONS {
         let tx = tx.clone();
+
         subscriptions.push(
             state
                 .subscribe(
@@ -127,7 +80,7 @@ fn subscribe_slice() {
     drop(tx);
 
     for i in 1..3 {
-        state.set(&[i, i]).unwrap();
+        state.set(&(0..i).into_iter().collect::<Vec<_>>()).unwrap();
 
         for _ in 0..NUM_SUBSCRIPTIONS {
             let (data, change_stamp) = rx
@@ -135,7 +88,7 @@ fn subscribe_slice() {
                 .unwrap()
                 .into_data_change_stamp();
 
-            assert_eq!(*data, [i, i]);
+            assert_eq!(data.len(), i as usize);
             assert_eq!(change_stamp, ChangeStamp::from(i));
         }
     }

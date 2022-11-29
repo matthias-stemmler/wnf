@@ -99,6 +99,32 @@ where
     /// on the heap. This should be fine in most cases, especially when `F` is small. Otherwise consider using a boxed
     /// closure.
     ///
+    /// # Example
+    ///
+    /// ```
+    /// use wnf::{DataAccessor, OwnedState, SeenChangeStamp};
+    ///
+    /// let state = OwnedState::create_temporary().unwrap();
+    /// state.set(&0).expect("Failed to set state data");
+    ///
+    /// let _subscripton = state
+    ///     .subscribe(
+    ///         |accessor: DataAccessor<_>| {
+    ///             let value = accessor.get().expect("Failed to get state data");
+    ///             println!("State data updated: {value}");
+    ///         },
+    ///         SeenChangeStamp::Current,
+    ///     )
+    ///     .expect("Failed to subscribe to state updates");
+    ///
+    /// state.set(&1).expect("Failed to set state data");
+    /// ```
+    ///
+    /// This prints:
+    /// ```no_compile
+    /// State data updated: 1
+    /// ```
+    ///
     /// # Errors
     /// Returns an error if subscribing fails
     pub fn subscribe<F>(&self, listener: F, last_seen_change_stamp: SeenChangeStamp) -> io::Result<Subscription<'_, F>>
