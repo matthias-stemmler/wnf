@@ -259,9 +259,9 @@ fn subscribe_opaque_data() {
 
     state.as_state().cast::<u32>().set(&42).unwrap();
     let change_stamp = rx.recv_timeout(Duration::from_secs(1)).unwrap();
-    assert_eq!(change_stamp, 1.into());
+    assert_eq!(change_stamp, 1);
 
     state.as_state().cast::<u16>().set(&43).unwrap();
     let change_stamp = rx.recv_timeout(Duration::from_secs(1)).unwrap();
-    assert_eq!(change_stamp, 2.into());
+    assert_eq!(change_stamp, 2);
 }

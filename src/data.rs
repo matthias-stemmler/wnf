@@ -102,6 +102,18 @@ impl Display for ChangeStamp {
     }
 }
 
+impl PartialEq<u32> for ChangeStamp {
+    fn eq(&self, other: &u32) -> bool {
+        self.0 == *other
+    }
+}
+
+impl PartialEq<ChangeStamp> for u32 {
+    fn eq(&self, other: &ChangeStamp) -> bool {
+        *self == other.0
+    }
+}
+
 /// State data of type `T` together with a change stamp
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct StampedData<T> {
@@ -111,8 +123,11 @@ pub struct StampedData<T> {
 
 impl<T> StampedData<T> {
     /// Creates a new [`StampedData`] from the given data and change stamp
-    pub const fn from_data_change_stamp(data: T, change_stamp: ChangeStamp) -> Self {
-        Self { data, change_stamp }
+    pub fn from_data_change_stamp(data: T, change_stamp: impl Into<ChangeStamp>) -> Self {
+        Self {
+            data,
+            change_stamp: change_stamp.into(),
+        }
     }
 
     /// Moves the contained data and change stamp out of this [`StampedData`]
@@ -171,8 +186,8 @@ mod tests {
     #[test]
     fn stamped_data_map() {
         assert_eq!(
-            StampedData::from_data_change_stamp(42, 1.into()).map(|x| x.to_string()),
-            StampedData::from_data_change_stamp(String::from("42"), 1.into())
+            StampedData::from_data_change_stamp(42, 1).map(|x| x.to_string()),
+            StampedData::from_data_change_stamp(String::from("42"), 1)
         );
     }
 }

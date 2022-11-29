@@ -9,7 +9,7 @@ fn set() {
 
     let (read_value, change_stamp) = state.query().unwrap().into_data_change_stamp();
     assert_eq!(read_value, value);
-    assert_eq!(change_stamp.value(), 1);
+    assert_eq!(change_stamp, 1);
 }
 
 #[test]
@@ -21,7 +21,7 @@ fn set_slice() {
 
     let (read_slice, change_stamp) = state.query_boxed().unwrap().into_data_change_stamp();
     assert_eq!(*read_slice, slice);
-    assert_eq!(change_stamp.value(), 1);
+    assert_eq!(change_stamp, 1);
 }
 
 #[test]
@@ -33,17 +33,17 @@ fn update() {
     assert!(updated);
     let (read_value, change_stamp) = state.query().unwrap().into_data_change_stamp();
     assert_eq!(read_value, 0x11111111);
-    assert_eq!(change_stamp.value(), 1);
+    assert_eq!(change_stamp, 1);
 
     let updated = state.update(&0x22222222, ChangeStamp::from(1)).unwrap();
     assert!(updated);
     let (read_value, change_stamp) = state.query().unwrap().into_data_change_stamp();
     assert_eq!(read_value, 0x22222222);
-    assert_eq!(change_stamp.value(), 2);
+    assert_eq!(change_stamp, 2);
 
     let updated = state.update(&0x33333333, ChangeStamp::from(1)).unwrap();
     assert!(!updated);
     let (read_value, change_stamp) = state.query().unwrap().into_data_change_stamp();
     assert_eq!(read_value, 0x22222222);
-    assert_eq!(change_stamp.value(), 2);
+    assert_eq!(change_stamp, 2);
 }

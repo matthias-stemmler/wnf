@@ -31,7 +31,7 @@ fn query() {
     let (read_value, change_stamp) = state.query().unwrap().into_data_change_stamp();
 
     assert_eq!(read_value, value);
-    assert_eq!(change_stamp.value(), 1);
+    assert_eq!(change_stamp, 1);
 }
 
 #[test]
@@ -43,18 +43,18 @@ fn query_boxed_slice() {
     let (read_slice, change_stamp) = state.query_boxed().unwrap().into_data_change_stamp();
 
     assert_eq!(*read_slice, slice);
-    assert_eq!(change_stamp.value(), 1);
+    assert_eq!(change_stamp, 1);
 }
 
 #[test]
 fn change_stamp() {
     let state = OwnedState::<u32>::create_temporary().unwrap();
 
-    assert_eq!(state.change_stamp().unwrap().value(), 0);
+    assert_eq!(state.change_stamp().unwrap(), 0);
 
     state.set(&12345678).unwrap();
 
-    assert_eq!(state.change_stamp().unwrap().value(), 1);
+    assert_eq!(state.change_stamp().unwrap(), 1);
 }
 
 #[test]
@@ -63,5 +63,5 @@ fn query_opaque_data() {
     state.set(&12345678).unwrap();
     let state: OwnedState<OpaqueData> = state.cast();
 
-    assert_eq!(state.query().unwrap().change_stamp().value(), 1);
+    assert_eq!(state.query().unwrap().change_stamp(), 1);
 }

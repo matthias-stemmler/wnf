@@ -27,12 +27,12 @@ async fn wait_async() {
     time::sleep(Duration::from_millis(300)).await;
     state.set(&42).unwrap();
     let change_stamp = time::timeout(Duration::from_secs(1), rx.recv()).await.unwrap().unwrap();
-    assert_eq!(change_stamp, 1.into());
+    assert_eq!(change_stamp, 1);
 
     time::sleep(Duration::from_millis(300)).await;
     state.set(&43).unwrap();
     let change_stamp = time::timeout(Duration::from_secs(1), rx.recv()).await.unwrap().unwrap();
-    assert_eq!(change_stamp, 2.into());
+    assert_eq!(change_stamp, 2);
 
     handle.await.unwrap();
 }

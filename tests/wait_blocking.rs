@@ -25,12 +25,12 @@ fn wait_blocking() {
     thread::sleep(Duration::from_millis(300));
     state.set(&42).unwrap();
     let change_stamp = rx.recv_timeout(Duration::from_secs(1)).unwrap();
-    assert_eq!(change_stamp, 1.into());
+    assert_eq!(change_stamp, 1);
 
     thread::sleep(Duration::from_millis(300));
     state.set(&43).unwrap();
     let change_stamp = rx.recv_timeout(Duration::from_secs(1)).unwrap();
-    assert_eq!(change_stamp, 2.into());
+    assert_eq!(change_stamp, 2);
 
     handle.join().unwrap();
 }
