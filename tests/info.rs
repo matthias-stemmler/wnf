@@ -44,7 +44,7 @@ fn subscribers_present() {
 }
 
 #[test]
-fn quiescent() {
+fn is_quiescent() {
     let state = OwnedState::<u32>::create_temporary().unwrap();
     let (tx, rx) = crossbeam_channel::unbounded();
 
@@ -57,12 +57,12 @@ fn quiescent() {
         )
         .unwrap();
 
-    assert!(state.quiescent().unwrap());
+    assert!(state.is_quiescent().unwrap());
 
     state.set(&42).unwrap();
-    assert!(!state.quiescent().unwrap());
+    assert!(!state.is_quiescent().unwrap());
 
     tx.send(()).unwrap();
     subscription.unsubscribe().unwrap();
-    assert!(state.quiescent().unwrap());
+    assert!(state.is_quiescent().unwrap());
 }
