@@ -191,8 +191,24 @@ mod tests {
 
     #[test]
     fn create_everyone_generic_all() {
+        // Guard for the null-terminated wide string on the local heap obtained from
+        // `ConvertSecurityDescriptorToStringSecurityDescriptorW` below
+        struct LocalWideString(PWSTR);
+
+        impl Drop for LocalWideString {
+            fn drop(&mut self) {
+                // SAFETY:
+                // - `self.0` points to a local memory object because it was returned from a successful call to
+                //   `ConvertSecurityDescriptorToStringSecurityDescriptorW`
+                // - `self.0` has not been freed yet
+                unsafe {
+                    LocalFree(self.0.as_ptr() as isize);
+                }
+            }
+        }
+
         let security_descriptor = BoxedSecurityDescriptor::create_everyone_generic_all().unwrap();
-        let mut sd_string_ptr = PWSTR::null();
+        let mut sd_wide_string_ptr = PWSTR::null();
 
         // SAFETY:
         // - The pointer in the first argument is valid for reads of `SecurityDescriptor` because it comes from a live
@@ -204,17 +220,22 @@ mod tests {
                 security_descriptor.as_ptr(),
                 SDDL_REVISION,
                 DACL_SECURITY_INFORMATION.0,
-                &mut sd_string_ptr,
+                &mut sd_wide_string_ptr,
                 None,
             )
         };
 
-        assert!(result.as_bool());
+        let successful = result.as_bool();
+
+        assert!(successful);
+
+        // Create a guard to ensure the string is dropped
+        let _sd_wide_string = LocalWideString(sd_wide_string_ptr);
 
         // SAFETY:
         // - The pointer in `sd_string_ptr` is valid for reads up until and including the next `\0` because it was
         //   returned from a successful call to `ConvertSecurityDescriptorToStringSecurityDescriptorW`
-        let sd_string = unsafe { sd_string_ptr.to_string() }.unwrap();
+        let sd_string = unsafe { sd_wide_string_ptr.to_string() }.unwrap();
 
         assert_eq!(sd_string, "D:(A;;GA;;;WD)");
     }
