@@ -183,12 +183,9 @@ mod impl_windows_permissions {
 
 #[cfg(test)]
 mod tests {
-    use windows::{
-        core::PWSTR,
-        Win32::Security::{
-            Authorization::ConvertSecurityDescriptorToStringSecurityDescriptorW, DACL_SECURITY_INFORMATION,
-        },
-    };
+    use windows::core::PWSTR;
+    use windows::Win32::Security::Authorization::ConvertSecurityDescriptorToStringSecurityDescriptorW;
+    use windows::Win32::Security::DACL_SECURITY_INFORMATION;
 
     use super::*;
 

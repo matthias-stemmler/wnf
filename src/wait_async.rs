@@ -33,7 +33,8 @@ where
     /// This method does not make any assumptions on what async executor you use. Note that in contrast to
     /// [`wait_blocking`](OwnedState::wait_blocking), it does not expect a timeout as an argument. In order to
     /// implement a timeout, wrap it in the appropriate helper function provided by your executor. For instance,
-    /// with [`tokio`], use [`tokio::time::timeout`]:
+    /// with [`tokio`](https://docs.rs/tokio/1/tokio/), use
+    /// [`tokio::time::timeout`](https://docs.rs/tokio/1/tokio/time/fn.timeout.html):
     /// ```
     /// # #[tokio::main]
     /// # async fn main() {
@@ -119,7 +120,8 @@ where
     /// This method does not make any assumptions on what async executor you use. Note that in contrast to
     /// [`wait_until_blocking`](OwnedState::wait_until_blocking), it does not expect a timeout as an argument. In order
     /// to implement a timeout, wrap it in the appropriate helper function provided by your executor. For instance,
-    /// with [`tokio`], use [`tokio::time::timeout`]:
+    /// with [`tokio`](https://docs.rs/tokio/1/tokio/), use
+    /// [`tokio::time::timeout`](https://docs.rs/tokio/1/tokio/time/fn.timeout.html):
     /// ```
     /// # #[tokio::main]
     /// # async fn main() {
@@ -220,7 +222,8 @@ where
     /// This method does not make any assumptions on what async executor you use. Note that in contrast to
     /// [`wait_until_boxed_blocking`](OwnedState::wait_until_boxed_blocking), it does not expect a timeout as an
     /// argument. In order to implement a timeout, wrap it in the appropriate helper function provided by your
-    /// executor. For instance, with [`tokio`], use [`tokio::time::timeout`]:
+    /// executor. For instance, with [`tokio`](https://docs.rs/tokio/1/tokio), use
+    /// [`tokio::time::timeout`](https://docs.rs/tokio/1/tokio/time/fn.timeout.html):
     /// ```
     /// # #[tokio::main]
     /// # async fn main() {
