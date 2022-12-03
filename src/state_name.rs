@@ -207,7 +207,7 @@ impl TryFrom<StateName> for StateNameDescriptor {
 
 impl Display for StateName {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{:#010x}", self.opaque_value)
+        write!(f, "{:#018X}", self.opaque_value)
     }
 }
 
@@ -255,6 +255,7 @@ mod tests {
     #[test]
     fn state_name_into_descriptor_invalid_data_scope() {
         let opaque_value = 0x0D83_063E_A3BE_51F5; // this is `SAMPLE_STATE_NAME` with data scope set to 0x06
+
         let result: Result<StateNameDescriptor, _> = StateName::from_opaque_value(opaque_value).try_into();
 
         assert_eq!(
@@ -276,6 +277,7 @@ mod tests {
             version: 1 << 4,
             ..SAMPLE_DESCRIPTOR
         };
+
         let result: Result<StateName, _> = descriptor.try_into();
 
         assert_eq!(result, Err(StateNameFromDescriptorError::InvalidVersion(1 << 4)));
@@ -287,8 +289,14 @@ mod tests {
             unique_id: 1 << 21,
             ..SAMPLE_DESCRIPTOR
         };
+
         let result: Result<StateName, _> = descriptor.try_into();
 
         assert_eq!(result, Err(StateNameFromDescriptorError::InvalidUniqueId(1 << 21)));
+    }
+
+    #[test]
+    fn state_name_display() {
+        assert_eq!(SAMPLE_STATE_NAME.to_string(), "0x0D83063EA3BE5075");
     }
 }

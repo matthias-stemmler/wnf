@@ -180,3 +180,45 @@ mod impl_windows_permissions {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use windows::{
+        core::PWSTR,
+        Win32::Security::{
+            Authorization::ConvertSecurityDescriptorToStringSecurityDescriptorW, DACL_SECURITY_INFORMATION,
+        },
+    };
+
+    use super::*;
+
+    #[test]
+    fn create_everyone_generic_all() {
+        let security_descriptor = BoxedSecurityDescriptor::create_everyone_generic_all().unwrap();
+        let mut sd_string_ptr = PWSTR::null();
+
+        // SAFETY:
+        // - The pointer in the first argument is valid for reads of `SecurityDescriptor` because it comes from a live
+        //   reference
+        // - The pointer in the fourth argument is valid for writes of `PWSTR` because it comes from a live mutable
+        //   reference
+        let result = unsafe {
+            ConvertSecurityDescriptorToStringSecurityDescriptorW(
+                security_descriptor.as_ptr(),
+                SDDL_REVISION,
+                DACL_SECURITY_INFORMATION.0,
+                &mut sd_string_ptr,
+                None,
+            )
+        };
+
+        assert!(result.as_bool());
+
+        // SAFETY:
+        // - The pointer in `sd_string_ptr` is valid for reads up until and including the next `\0` because it was
+        //   returned from a successful call to `ConvertSecurityDescriptorToStringSecurityDescriptorW`
+        let sd_string = unsafe { sd_string_ptr.to_string() }.unwrap();
+
+        assert_eq!(sd_string, "D:(A;;GA;;;WD)");
+    }
+}
