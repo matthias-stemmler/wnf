@@ -65,6 +65,15 @@ pub struct BoxedSecurityDescriptor {
     ptr: NonNull<SecurityDescriptor>,
 }
 
+// SAFETY:
+// - It is safe to deallocate an object on the local heap that was allocated on a different thread
+// - `BoxedSecurityDescriptor` owns a `SecurityDescriptor`, which is `Send`
+unsafe impl Send for BoxedSecurityDescriptor {}
+
+// SAFETY:
+// `BoxedSecurityDescriptor` derefs to a `SecurityDescriptor`, which is `Sync`
+unsafe impl Sync for BoxedSecurityDescriptor {}
+
 impl BoxedSecurityDescriptor {
     /// Creates a security descriptor granting `GENERIC_ALL` access to `Everyone`
     ///
@@ -183,60 +192,17 @@ mod impl_windows_permissions {
 
 #[cfg(test)]
 mod tests {
-    use windows::core::PWSTR;
-    use windows::Win32::Security::Authorization::ConvertSecurityDescriptorToStringSecurityDescriptorW;
-    use windows::Win32::Security::DACL_SECURITY_INFORMATION;
+    use static_assertions::assert_impl_all;
 
     use super::*;
 
     #[test]
-    fn create_everyone_generic_all() {
-        // Guard for the null-terminated wide string on the local heap obtained from
-        // `ConvertSecurityDescriptorToStringSecurityDescriptorW` below
-        struct LocalWideString(PWSTR);
+    fn security_descriptor_is_send_and_sync() {
+        assert_impl_all!(SecurityDescriptor: Send, Sync);
+    }
 
-        impl Drop for LocalWideString {
-            fn drop(&mut self) {
-                // SAFETY:
-                // - `self.0` points to a local memory object because it was returned from a successful call to
-                //   `ConvertSecurityDescriptorToStringSecurityDescriptorW`
-                // - `self.0` has not been freed yet
-                unsafe {
-                    LocalFree(self.0.as_ptr() as isize);
-                }
-            }
-        }
-
-        let security_descriptor = BoxedSecurityDescriptor::create_everyone_generic_all().unwrap();
-        let mut sd_wide_string_ptr = PWSTR::null();
-
-        // SAFETY:
-        // - The pointer in the first argument is valid for reads of `SecurityDescriptor` because it comes from a live
-        //   reference
-        // - The pointer in the fourth argument is valid for writes of `PWSTR` because it comes from a live mutable
-        //   reference
-        let result = unsafe {
-            ConvertSecurityDescriptorToStringSecurityDescriptorW(
-                security_descriptor.as_ptr(),
-                SDDL_REVISION,
-                DACL_SECURITY_INFORMATION.0,
-                &mut sd_wide_string_ptr,
-                None,
-            )
-        };
-
-        let successful = result.as_bool();
-
-        assert!(successful);
-
-        // Create a guard to ensure the string is dropped
-        let _sd_wide_string = LocalWideString(sd_wide_string_ptr);
-
-        // SAFETY:
-        // - The pointer in `sd_string_ptr` is valid for reads up until and including the next `\0` because it was
-        //   returned from a successful call to `ConvertSecurityDescriptorToStringSecurityDescriptorW`
-        let sd_string = unsafe { sd_wide_string_ptr.to_string() }.unwrap();
-
-        assert_eq!(sd_string, "D:(A;;GA;;;WD)");
+    #[test]
+    fn boxed_security_descriptor_is_send_and_sync() {
+        assert_impl_all!(BoxedSecurityDescriptor: Send, Sync);
     }
 }

@@ -1,7 +1,7 @@
 //! Methods for subscribing to state changes
 
 use std::ffi::c_void;
-use std::fmt::{Debug, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::marker::PhantomData;
 use std::mem::ManuallyDrop;
 use std::sync::Mutex;
@@ -240,19 +240,19 @@ where
             SeenChangeStamp::Value(value) => value,
         };
 
-        let mut subscription_handle = ptr::null_mut();
+        let mut subscription_handle = SubscriptionHandle::null();
         let context = Box::new(SubscriptionContext::new(listener));
 
         // SAFETY:
         // - The pointer in the first argument is valid for writes of `*mut c_void` because it comes from a live mutable
-        //   reference
+        //   reference to a `SubscriptionHandle`, which is a #[repr(transparent)] wrapper around `*mut c_void`
         // - The function pointed to by the pointer in the fourth argument does not unwind because it catches all
         //   unwinding panics
         // - The pointer in the fifth argument is either a null pointer or points to a valid `GUID` by the guarantees of
         //   `TypeId::as_ptr`
         let result = unsafe {
             ntapi::RtlSubscribeWnfStateChangeNotification(
-                &mut subscription_handle,
+                &mut subscription_handle as *mut SubscriptionHandle as *mut *mut c_void,
                 self.state_name.opaque_value(),
                 change_stamp.into(),
                 callback::<F, T>,
@@ -272,7 +272,7 @@ where
                 input.state_name = %self.state_name,
                 input.change_stamp = %change_stamp,
                 input.type_id = %self.type_id,
-                output.subscription_handle = subscription_handle as u64,
+                output.subscription_handle = %subscription_handle,
                 "RtlSubscribeWnfStateChangeNotification",
             );
 
@@ -303,8 +303,8 @@ pub struct DataAccessor<'a, T>
 where
     T: ?Sized,
 {
-    data: ScopedData<T>,
-    _marker: PhantomData<&'a ()>,
+    data: ScopedData,
+    _marker: PhantomData<&'a fn() -> T>,
 }
 
 // We cannot derive this because that would impose an unnecessary trait bound `T: Copy`
@@ -334,55 +334,26 @@ where
 ///
 /// This is used to tie the lifetime `'a` of a [`DataAccessor<'a, T>`] to the scope of a call to the listener.
 /// This is not to be confused with [`DataScope`].
-struct ScopedData<T>
-where
-    T: ?Sized,
-{
+#[derive(Clone, Copy, Debug)]
+struct ScopedData {
     buffer: *const c_void,
     buffer_size: usize,
     change_stamp: ChangeStamp,
-    _marker: PhantomData<fn() -> T>,
 }
 
 // SAFETY:
-// The `buffer` pointer is only used for reading data, which is safe to do from any thread
-unsafe impl<T> Send for ScopedData<T> where T: ?Sized {}
+// The `buffer` pointer is only used for reading data
+unsafe impl Send for ScopedData {}
 
-// We cannot derive this because that would impose an unnecessary trait bound `T: Copy`
-impl<T> Copy for ScopedData<T> where T: ?Sized {}
+// SAFETY:
+// The `buffer` pointer is only used for reading data
+unsafe impl Sync for ScopedData {}
 
-// We cannot derive this because that would impose an unnecessary trait bound `T: Clone`
-impl<T> Clone for ScopedData<T>
-where
-    T: ?Sized,
-{
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-// We cannot derive this because that would impose an unnecessary trait bound `T: Debug`
-impl<T> Debug for ScopedData<T>
-where
-    T: ?Sized,
-{
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ScopedData")
-            .field("buffer", &self.buffer)
-            .field("buffer_size", &self.buffer_size)
-            .field("change_stamp", &self.change_stamp)
-            .finish()
-    }
-}
-
-impl<T> ScopedData<T>
-where
-    T: ?Sized,
-{
-    /// Creates a new [`ScopedData<T>`] with the given `buffer`, `buffer_size` and `change_stamp`.
+impl ScopedData {
+    /// Creates a new [`ScopedData`] with the given `buffer`, `buffer_size` and `change_stamp`
     ///
     /// # Safety
-    /// As long as the instance of [`ScopedData<T>`] is live:
+    /// As long as the instance of [`ScopedData`] is live:
     /// - `buffer` must be valid for reads of size `buffer_size`
     /// - the memory range of size `buffer_size` starting at `buffer` must be initialized
     unsafe fn new(buffer: *const c_void, buffer_size: usize, change_stamp: ChangeStamp) -> Self {
@@ -390,31 +361,19 @@ where
             buffer,
             buffer_size,
             change_stamp,
-            _marker: PhantomData,
         }
     }
 
-    /// Obtains a [`DataAccessor<'a, T>`] for this [`ScopedData<T>`].
+    /// Obtains a [`DataAccessor<'a, T>`] for this [`ScopedData`]
     ///
     /// The lifetime parameter `'a` of the returned [`DataAccessor<'a, T>`] is the lifetime of the reference to this
-    /// [`ScopedData<T>`], making sure the [`DataAccessor<'a, T>`] can only be used as long as this
-    /// [`DataScope<T>`] is live.
-    const fn accessor(&self) -> DataAccessor<'_, T> {
+    /// [`ScopedData`], making sure the [`DataAccessor<'a, T>`] can only be used as long as this [`ScopedData`] is live.
+    const fn accessor<T>(&self) -> DataAccessor<'_, T>
+    where
+        T: ?Sized,
+    {
         DataAccessor {
             data: *self,
-            _marker: PhantomData,
-        }
-    }
-
-    /// Casts the data type of this [`ScopedData<T>`] to a different type `U`
-    ///
-    /// The returned [`ScopedData<U>`] represents the same underlying data, but treats them as being of a different
-    /// type `U`.
-    fn cast<U>(self) -> ScopedData<U> {
-        ScopedData {
-            buffer: self.buffer,
-            buffer_size: self.buffer_size,
-            change_stamp: self.change_stamp,
             _marker: PhantomData,
         }
     }
@@ -430,7 +389,7 @@ where
     /// different type `U`.
     pub fn cast<U>(self) -> DataAccessor<'a, U> {
         DataAccessor {
-            data: self.data.cast(),
+            data: self.data,
             _marker: PhantomData,
         }
     }
@@ -540,10 +499,9 @@ where
         T: Read<D>,
     {
         // SAFETY:
-        // - `self` was obtained from a `ScopedData<T>` through `ScopedData::accessor`, which ties the lifetime
-        //   parameter `'a` of `DataAccessor<'a, T>` to the lifetime of the `ScopedData<T>`, so the `ScopedData<T>` is
-        //   still live
-        // - `self.data` is a copy of this `ScopedData<T>`, which was created through `ScopedData::new`
+        // - `self` was obtained from a `ScopedData` through `ScopedData::accessor`, which ties the lifetime parameter
+        //   `'a` of `DataAccessor<'a, T>` to the lifetime of the `ScopedData`, so the `ScopedData` is still live
+        // - `self.data` is a copy of this `ScopedData`, which was created through `ScopedData::new`
         // - The safety conditions of `ScopedData::new` then imply those of `T::from_buffer`
         unsafe { T::from_buffer(self.data.buffer, self.data.buffer_size) }
     }
@@ -606,7 +564,7 @@ impl<F> Subscription<'_, F> {
     /// Creates a new [`Subscription<'a, F>`] from the given context and subscription handle
     ///
     /// Note that the lifetime `'a` is inferred at the call site.
-    fn new(context: Box<SubscriptionContext<F>>, subscription_handle: *mut c_void) -> Self {
+    fn new(context: Box<SubscriptionContext<F>>, subscription_handle: SubscriptionHandle) -> Self {
         Self {
             inner: Some(SubscriptionInner {
                 context: ManuallyDrop::new(context),
@@ -623,12 +581,12 @@ impl<F> Subscription<'_, F> {
             //   `RtlSubscribeWnfStateChangeNotification`
             // - `RtlUnsubscribeWnfStateChangeNotification` has not been called with `inner.subscription_handle` before
             //   because it is only held in `inner` and `inner` is dropped afterwards
-            let result = unsafe { ntapi::RtlUnsubscribeWnfStateChangeNotification(inner.subscription_handle) };
+            let result = unsafe { ntapi::RtlUnsubscribeWnfStateChangeNotification(inner.subscription_handle.as_ptr()) };
 
             debug!(
                 target: ntapi::TRACING_TARGET,
                 ?result,
-                input.subscription_handle = inner.subscription_handle as u64,
+                input.subscription_handle = %inner.subscription_handle,
                 "RtlUnsubscribeWnfStateChangeNotification",
             );
 
@@ -670,13 +628,8 @@ impl<F> Debug for Subscription<'_, F> {
 /// Unlike [`Subscription<'a, F>`], this does not have a lifetime and is not optional.
 struct SubscriptionInner<F> {
     context: ManuallyDrop<Box<SubscriptionContext<F>>>,
-    subscription_handle: *mut c_void,
+    subscription_handle: SubscriptionHandle,
 }
-
-// SAFETY:
-// By the assumptions on `RtlUnsubscribeWnfStateChangeNotification`, it is safe to call it with a `subscription_handle`
-// originating from a different thread
-unsafe impl<F> Send for SubscriptionInner<F> where F: Send {}
 
 // We cannot derive this because that would impose an unnecessary trait bound `F: Debug`
 impl<F> Debug for SubscriptionInner<F> {
@@ -684,6 +637,38 @@ impl<F> Debug for SubscriptionInner<F> {
         f.debug_struct("SubscriptionInner")
             .field("subscription_handle", &self.subscription_handle)
             .finish()
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+#[repr(transparent)]
+struct SubscriptionHandle(*mut c_void);
+
+// SAFETY:
+// By the assumptions on `RtlUnsubscribeWnfStateChangeNotification`, it is safe to call it with a subscription handle
+// originating from a different thread
+unsafe impl Send for SubscriptionHandle {}
+
+// SAFETY:
+// By the assumptions on `RtlUnsubscribeWnfStateChangeNotification`, it is safe to call it with a subscription handle
+// originating from a different thread
+unsafe impl Sync for SubscriptionHandle {}
+
+impl SubscriptionHandle {
+    /// Creates a NULL [`SubscriptionHandle`]
+    fn null() -> Self {
+        Self(ptr::null_mut())
+    }
+
+    /// Returns a mutable raw pointer to the inner value for use in FFI
+    fn as_ptr(&self) -> *mut c_void {
+        self.0
+    }
+}
+
+impl Display for SubscriptionHandle {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{:#018x}", self.0 as u64)
     }
 }
 
@@ -735,5 +720,38 @@ impl<F> SubscriptionContext<F> {
                 op(listener);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(dead_code)]
+
+    use std::cell::Cell;
+
+    use static_assertions::{assert_impl_all, assert_not_impl_any};
+
+    use super::*;
+
+    #[test]
+    fn subscription_handle_display() {
+        assert_eq!(SubscriptionHandle::null().to_string(), "0x0000000000000000");
+    }
+
+    #[test]
+    fn data_accessor_is_send_and_sync_regardless_of_data_type() {
+        type NeitherSendNorSync = *const ();
+        assert_not_impl_any!(NeitherSendNorSync: Send, Sync);
+
+        assert_impl_all!(DataAccessor<'_, NeitherSendNorSync>: Send, Sync);
+    }
+
+    #[test]
+    fn subscription_is_send_and_sync_if_listener_is_send() {
+        type SendNotSync = Cell<()>;
+        assert_impl_all!(SendNotSync: Send);
+        assert_not_impl_any!(SendNotSync: Sync);
+
+        assert_impl_all!(Subscription<'_, ()>: Send, Sync);
     }
 }

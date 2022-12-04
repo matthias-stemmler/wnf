@@ -455,3 +455,28 @@ mod private {
     {
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #![allow(dead_code)]
+
+    use static_assertions::{assert_impl_all, assert_not_impl_any};
+
+    use super::*;
+
+    #[test]
+    fn owned_state_is_send_and_sync_regardless_of_data_type() {
+        type NeitherSendNorSync = *const ();
+        assert_not_impl_any!(NeitherSendNorSync: Send, Sync);
+
+        assert_impl_all!(OwnedState<NeitherSendNorSync>: Send, Sync);
+    }
+
+    #[test]
+    fn borrowed_state_is_send_and_sync_regardless_of_data_type() {
+        type NeitherSendNorSync = *const ();
+        assert_not_impl_any!(NeitherSendNorSync: Send, Sync);
+
+        assert_impl_all!(BorrowedState<'_, NeitherSendNorSync>: Send, Sync);
+    }
+}
