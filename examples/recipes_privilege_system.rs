@@ -1,5 +1,5 @@
 //! Checking for privileges when run as system
-//! 
+//!
 //! This example will elevate itself to run under the `LocalSystem` account.
 
 use tracing::info;
