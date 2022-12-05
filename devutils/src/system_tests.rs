@@ -1,4 +1,4 @@
-//! Utilities for running integration tests under the local system account
+//! Utilities for running integration tests under the `LocalSystem` account
 
 #![deny(unsafe_code)]
 

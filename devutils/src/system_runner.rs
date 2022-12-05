@@ -1,12 +1,12 @@
-//! Utilities for rerunning the current program under the local system account
+//! Utilities for rerunning the current program under the `LocalSystem` account
 //!
 //! This is useful both in integration tests (see the [`system_tests`] module) and in examples.
 //!
 //! It is achieved by running the current program multiple times in "stages":
 //! - "Initial" stage: The original invocation of the program
 //! - "Admin" stage: Running as Administrator (through the Windows API function `ShellExecuteExW` with the `runas` verb)
-//! - "System" stage: Running under the local system account through the `PAExec` utility program
-//! - "Payload" stage: Running under the local system account again in order to capture standard IO (see below)
+//! - "System" stage: Running under the `LocalSystem` account through the `PAExec` utility program
+//! - "Payload" stage: Running under the `LocalSystem` account again in order to capture standard IO (see below)
 //!
 //! The information which stage the current process is in is passed via the first command line argument. Other command
 //! line arguments are passed through verbatim. Each process waits for the next one to exit and passes on its exit code
