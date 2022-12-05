@@ -11,16 +11,18 @@ fn main() {
     let state = Arc::new(OwnedState::<u32>::create_temporary().expect("Failed to create temporary state"));
     state.set(&0).expect("Failed to set state data");
 
+    const NUM_ITERATIONS: usize = 5;
+
     let mut handles = Vec::new();
 
-    for _ in 0..2 {
+    for i in 0..2 {
         let state = Arc::clone(&state);
 
         handles.push(thread::spawn(move || {
-            for _ in 0..5 {
-                state
-                    .apply(|value| value + 1)
-                    .expect("Failed to apply transformation to state data");
+            for j in 0..NUM_ITERATIONS {
+                let value = (1 + i * NUM_ITERATIONS + j) as u32;
+                let previous_value = state.replace(&value).expect("Failed to replace state data");
+                info!(value, previous_value);
             }
         }));
     }
