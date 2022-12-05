@@ -452,7 +452,7 @@ mod tests {
     use std::cmp::min;
 
     use super::*;
-    use crate::AnyBitPattern;
+    use crate::bytes::AnyBitPattern;
 
     #[test]
     fn opaque_data_from_buffer() {

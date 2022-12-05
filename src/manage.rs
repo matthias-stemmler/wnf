@@ -5,11 +5,11 @@ use std::io;
 
 use tracing::debug;
 
-use crate::security::SecurityDescriptor;
+use crate::ntapi;
+use crate::security::{BoxedSecurityDescriptor, SecurityDescriptor};
 use crate::state::{BorrowedState, OwnedState, RawState};
 use crate::state_name::{DataScope, StateName, StateNameLifetime};
 use crate::type_id::{TypeId, GUID};
-use crate::{ntapi, BoxedSecurityDescriptor};
 
 /// The maximum size of a state in bytes
 ///
