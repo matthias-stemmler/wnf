@@ -161,6 +161,12 @@ impl Borrow<SecurityDescriptor> for BoxedSecurityDescriptor {
     }
 }
 
+impl AsRef<SecurityDescriptor> for BoxedSecurityDescriptor {
+    fn as_ref(&self) -> &SecurityDescriptor {
+        self
+    }
+}
+
 #[cfg(feature = "windows_permissions")]
 mod impl_windows_permissions {
     use super::*;
@@ -177,6 +183,12 @@ mod impl_windows_permissions {
         }
     }
 
+    impl AsRef<SecurityDescriptor> for windows_permissions::SecurityDescriptor {
+        fn as_ref(&self) -> &SecurityDescriptor {
+            self.borrow()
+        }
+    }
+
     impl Borrow<SecurityDescriptor> for &windows_permissions::SecurityDescriptor {
         fn borrow(&self) -> &SecurityDescriptor {
             (*self).borrow()
@@ -186,6 +198,12 @@ mod impl_windows_permissions {
     impl Borrow<SecurityDescriptor> for windows_permissions::LocalBox<windows_permissions::SecurityDescriptor> {
         fn borrow(&self) -> &SecurityDescriptor {
             (**self).borrow()
+        }
+    }
+
+    impl AsRef<SecurityDescriptor> for windows_permissions::LocalBox<windows_permissions::SecurityDescriptor> {
+        fn as_ref(&self) -> &SecurityDescriptor {
+            self.borrow()
         }
     }
 }

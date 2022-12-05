@@ -6,10 +6,18 @@
 //!
 //! Safe Rust bindings for the Windows Notification Facility
 //!
-//! --Intro text--
-//! --This=safe bindings, for raw bindings -> ntapi--
-//! --Safe=best effort--
-//! --Windows only--
+//! The *Windows Notification Facility (WNF)* is a registrationless publisher/subscriber mechanism that was introduced
+//! in Windows 8 and forms an undocumented part of the Windows API.
+//!
+//! This crate provides safe Rust abstractions over (a part of) this API. If you are looking for raw bindings to the
+//! API, take a look at the [`ntapi`](https://docs.rs/ntapi/latest/ntapi/) crate.
+//!
+//! Note that while great care was taken in making these abstractions memory safe, there cannot be a guarantee due to
+//! the undocumented nature of the API.
+//!
+//! This is a Windows-only crate and will fail to compile on other platforms. If you target multiple platforms, it is
+//! recommended that you declare it as a
+//! [platform specific dependency](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#platform-specific-dependencies).
 //!
 //! # What is WNF
 //!

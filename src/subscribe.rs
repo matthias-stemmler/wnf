@@ -2,6 +2,7 @@
 
 use std::ffi::c_void;
 use std::fmt::{Debug, Display, Formatter};
+use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::mem::ManuallyDrop;
 use std::sync::Mutex;
@@ -623,6 +624,23 @@ impl<F> Debug for Subscription<'_, F> {
     }
 }
 
+// We cannot derive this because that would impose an unnecessary trait bound `F: PartialEq<F>`
+impl<F> PartialEq for Subscription<'_, F> {
+    fn eq(&self, other: &Self) -> bool {
+        self.inner == other.inner
+    }
+}
+
+// We cannot derive this because that would impose an unnecessary trait bound `F: Eq`
+impl<F> Eq for Subscription<'_, F> {}
+
+// We cannot derive this because that would impose an unnecessary trait bound `F: Hash`
+impl<F> Hash for Subscription<'_, F> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.inner.hash(state);
+    }
+}
+
 /// The inner value of a [`Subscription<'a, F>`]
 ///
 /// Unlike [`Subscription<'a, F>`], this does not have a lifetime and is not optional.
@@ -640,7 +658,23 @@ impl<F> Debug for SubscriptionInner<F> {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+// We cannot derive this because that would impose an unnecessary trait bound `F: PartialEq<F>`
+impl<F> PartialEq for SubscriptionInner<F> {
+    fn eq(&self, other: &Self) -> bool {
+        self.subscription_handle == other.subscription_handle
+    }
+}
+
+// We cannot derive this because that would impose an unnecessary trait bound `F: Eq`
+impl<F> Eq for SubscriptionInner<F> {}
+
+impl<F> Hash for SubscriptionInner<F> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.subscription_handle.hash(state);
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[repr(transparent)]
 struct SubscriptionHandle(*mut c_void);
 

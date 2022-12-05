@@ -405,7 +405,7 @@ where
 }
 
 /// Error reading state data as some data type `T: Sized` or slice data type `[T]`
-#[derive(Clone, Copy, Debug, Error)]
+#[derive(Clone, Copy, Debug, Eq, Error, Hash, PartialEq)]
 pub enum ReadError {
     /// The size of the data doesn't match the size of the data type `T`
     #[error("failed to read state data: data has wrong size (expected {expected}, got {actual})")]
