@@ -55,6 +55,8 @@ where
     /// # }
     /// ```
     ///
+    /// The returned future is [`Send`] and thus can be used with multi-threaded executors.
+    ///
     /// # Errors
     /// Returns an error if querying, subscribing to or unsubscribing from the state fails
     pub fn wait_async(&self) -> Wait<'_> {
@@ -142,6 +144,10 @@ where
     /// assert_eq!(result.unwrap_err().kind(), ErrorKind::TimedOut);
     /// # }
     /// ```
+    ///
+    /// If the predicate type `F` is [`Send`], the returned future is [`Send`] and thus can be used with multi-threaded
+    /// executors. Otherwise you may be able to use constructs such as tokio's
+    /// [`LocalSet`](https://docs.rs/tokio/1/tokio/task/struct.LocalSet.html).
     ///
     /// # Errors
     /// Returns an error if querying, subscribing to or unsubscribing from the state fails
@@ -244,6 +250,11 @@ where
     /// assert_eq!(result.unwrap_err().kind(), ErrorKind::TimedOut);
     /// # }
     /// ```
+    ///
+    /// If the predicate type `F` is [`Send`], the returned future is [`Send`] and thus can be used with multi-threaded
+    /// executors. Otherwise you may be able to use constructs such as tokio's
+    /// [`LocalSet`](https://docs.rs/tokio/1/tokio/task/struct.LocalSet.html).
+    ///
     /// # Errors
     /// Returns an error if querying, subscribing to or unsubscribing from the state fails
     pub fn wait_until_boxed_async<F>(&self, predicate: F) -> WaitUntilBoxed<'_, T, F>
@@ -580,5 +591,66 @@ where
         let SharedState { result, ref waker } = &mut *self.shared_state.lock().unwrap();
         *result = Some(accessor.get_as());
         waker.wake_by_ref();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(dead_code)]
+
+    use std::cell::Cell;
+    use std::sync::MutexGuard;
+
+    use static_assertions::{assert_impl_all, assert_not_impl_any};
+
+    use super::*;
+
+    #[test]
+    fn wait_future_is_send_and_sync() {
+        assert_impl_all!(Wait<'_>: Send, Sync);
+    }
+
+    #[test]
+    fn wait_until_future_is_send_if_predicate_and_data_type_are_send() {
+        type SendNotSync = Cell<()>;
+        assert_impl_all!(SendNotSync: Send);
+        assert_not_impl_any!(SendNotSync: Sync);
+
+        assert_impl_all!(WaitUntil<'_, SendNotSync, SendNotSync>: Send);
+    }
+
+    #[test]
+    fn wait_until_future_is_sync_if_predicate_is_sync_and_data_type_is_send() {
+        type SyncNotSend = MutexGuard<'static, ()>;
+        assert_impl_all!(SyncNotSend: Sync);
+        assert_not_impl_any!(SyncNotSend: Send);
+
+        type SendNotSync = Cell<()>;
+        assert_impl_all!(SendNotSync: Send);
+        assert_not_impl_any!(SendNotSync: Sync);
+
+        assert_impl_all!(WaitUntil<'_, SendNotSync, SyncNotSend>: Sync);
+    }
+
+    #[test]
+    fn wait_until_boxed_future_is_send_if_predicate_and_data_type_are_send() {
+        type SendNotSync = Cell<()>;
+        assert_impl_all!(SendNotSync: Send);
+        assert_not_impl_any!(SendNotSync: Sync);
+
+        assert_impl_all!(WaitUntilBoxed<'_, SendNotSync, SendNotSync>: Send);
+    }
+
+    #[test]
+    fn wait_until_boxed_future_is_sync_if_predicate_is_sync_and_data_type_is_send() {
+        type SyncNotSend = MutexGuard<'static, ()>;
+        assert_impl_all!(SyncNotSend: Sync);
+        assert_not_impl_any!(SyncNotSend: Send);
+
+        type SendNotSync = Cell<()>;
+        assert_impl_all!(SendNotSync: Send);
+        assert_not_impl_any!(SendNotSync: Sync);
+
+        assert_impl_all!(WaitUntilBoxed<'_, SendNotSync, SyncNotSend>: Sync);
     }
 }
