@@ -1,3 +1,5 @@
+//! Using the `query` and `update` methods
+
 use tracing::info;
 use tracing_subscriber::filter::LevelFilter;
 use wnf::{ChangeStamp, OwnedState};

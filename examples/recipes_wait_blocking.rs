@@ -1,3 +1,5 @@
+//! Using the `wait_blocking` method
+
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;

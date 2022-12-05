@@ -1,3 +1,5 @@
+//! Using the `get` and `set` methods
+
 use tracing::info;
 use tracing_subscriber::filter::LevelFilter;
 use wnf::OwnedState;

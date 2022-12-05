@@ -1,3 +1,5 @@
+//! Using the `subscribe` method
+
 use tracing::info;
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::fmt::format::FmtSpan;

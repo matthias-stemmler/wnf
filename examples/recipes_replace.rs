@@ -1,3 +1,5 @@
+//! Using the `replace` method
+
 use std::sync::Arc;
 use std::thread;
 

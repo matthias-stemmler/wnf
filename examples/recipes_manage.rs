@@ -1,3 +1,7 @@
+//! Creating and deleting states
+//!
+//! This example will elevate itself to run under the `LocalSystem` account.
+
 use std::io::{self, Read};
 
 use tracing::info;
@@ -39,7 +43,7 @@ fn main() {
         Computer\\HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Notifications\\Data\\{:X}",
         state.state_name().opaque_value()
     );
-    info!("Press any key to delete the state");
+    info!("Press ENTER to delete the state");
 
     io::stdin().read(&mut [0u8]).unwrap();
 

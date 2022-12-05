@@ -1,3 +1,5 @@
+//! Subscribing on starts and terminations of shell applications
+
 use std::ffi::OsString;
 use std::io::{stdin, Read};
 use std::os::windows::ffi::OsStringExt;
@@ -8,7 +10,7 @@ const WNF_SHEL_DESKTOP_APPLICATION_STARTED: u64 = 0x0D83063EA3BE5075;
 const WNF_SHEL_DESKTOP_APPLICATION_TERMINATED: u64 = 0x0D83063EA3BE5875;
 
 fn main() {
-    println!("Listening to shell application starts and terminations, press any key to exit");
+    println!("Listening to shell application starts and terminations, press ENTER to exit");
 
     let _subscription_start = subscribe(WNF_SHEL_DESKTOP_APPLICATION_STARTED, |change_stamp, application| {
         println!("Application start       #{change_stamp}: {application}")

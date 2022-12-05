@@ -1,3 +1,5 @@
+//! Using the `exists`, `subscribers_present` and `is_quiescent` methods
+
 use tracing::info;
 use tracing_subscriber::filter::LevelFilter;
 use wnf::{BorrowedState, StateName, StateNameDescriptor};

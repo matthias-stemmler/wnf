@@ -1,3 +1,5 @@
+//! Using the `apply` method
+
 use std::sync::Arc;
 use std::thread;
 

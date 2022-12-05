@@ -1,3 +1,5 @@
+//! Using the `wait_until_async` method
+
 use std::sync::Arc;
 use std::time::Duration;
 
