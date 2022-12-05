@@ -28,7 +28,7 @@ pub struct UnspecifiedLifetime {
 }
 
 impl UnspecifiedLifetime {
-    fn new() -> Self {
+    const fn new() -> Self {
         Self { _private: () }
     }
 }
@@ -43,7 +43,7 @@ pub struct UnspecifiedScope {
 }
 
 impl UnspecifiedScope {
-    fn new() -> Self {
+    const fn new() -> Self {
         Self { _private: () }
     }
 }
@@ -60,7 +60,7 @@ pub struct UnspecifiedSecurityDescriptor {
 }
 
 impl UnspecifiedSecurityDescriptor {
-    fn new() -> Self {
+    const fn new() -> Self {
         Self { _private: () }
     }
 }
@@ -90,7 +90,7 @@ pub enum CreatableStateLifetime {
 
 impl CreatableStateLifetime {
     /// Returns whether the `persist_data` flag should be set for this [`CreatableStateLifetime`]
-    fn persist_data(self) -> bool {
+    const fn persist_data(self) -> bool {
         matches!(self, Self::Permanent { persist_data: true })
     }
 }
@@ -213,6 +213,13 @@ pub struct StateCreation<L, S, SD> {
 
 impl Default for StateCreation<UnspecifiedLifetime, UnspecifiedScope, UnspecifiedSecurityDescriptor> {
     fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl StateCreation<UnspecifiedLifetime, UnspecifiedScope, UnspecifiedSecurityDescriptor> {
+    /// Creates a new [`StateCreation`] builder with no configured options
+    pub const fn new() -> Self {
         Self {
             lifetime: UnspecifiedLifetime::new(),
             scope: UnspecifiedScope::new(),
@@ -221,13 +228,6 @@ impl Default for StateCreation<UnspecifiedLifetime, UnspecifiedScope, Unspecifie
             security_descriptor: UnspecifiedSecurityDescriptor::new(),
             type_id: TypeId::none(),
         }
-    }
-}
-
-impl StateCreation<UnspecifiedLifetime, UnspecifiedScope, UnspecifiedSecurityDescriptor> {
-    /// Creates a new [`StateCreation`] builder with no configured options
-    pub fn new() -> Self {
-        Self::default()
     }
 }
 

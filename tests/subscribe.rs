@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crossbeam_channel::RecvTimeoutError;
-use wnf::{AsState, ChangeStamp, DataAccessor, OpaqueData, OwnedState, SeenChangeStamp};
+use wnf::{AsState, DataAccessor, OpaqueData, OwnedState, SeenChangeStamp};
 
 #[test]
 fn subscribe() {
@@ -39,7 +39,7 @@ fn subscribe() {
                 .into_data_change_stamp();
 
             assert_eq!(data, i);
-            assert_eq!(change_stamp, ChangeStamp::from(i));
+            assert_eq!(change_stamp, i);
         }
     }
 
@@ -89,7 +89,7 @@ fn subscribe_boxed_slice() {
                 .into_data_change_stamp();
 
             assert_eq!(data.len(), i as usize);
-            assert_eq!(change_stamp, ChangeStamp::from(i));
+            assert_eq!(change_stamp, i);
         }
     }
 
@@ -120,12 +120,12 @@ fn subscribe_with_last_seen_change_stamp_none() {
         .unwrap();
 
     let change_stamp = rx.recv_timeout(Duration::from_secs(1)).unwrap();
-    assert_eq!(change_stamp, ChangeStamp::from(1));
+    assert_eq!(change_stamp, 1);
 
     for i in 1..3 {
         state.set(&i).unwrap();
         let change_stamp = rx.recv_timeout(Duration::from_secs(1)).unwrap();
-        assert_eq!(change_stamp, ChangeStamp::from(i + 1));
+        assert_eq!(change_stamp, i + 1);
     }
 
     subscription.unsubscribe().unwrap();
@@ -155,7 +155,7 @@ fn subscribe_with_last_seen_change_stamp_current() {
     for i in 1..3 {
         state.set(&i).unwrap();
         let change_stamp = rx.recv_timeout(Duration::from_secs(1)).unwrap();
-        assert_eq!(change_stamp, ChangeStamp::from(i + 1));
+        assert_eq!(change_stamp, i + 1);
     }
 
     subscription.unsubscribe().unwrap();
@@ -178,7 +178,7 @@ fn subscribe_with_last_seen_change_stamp_value() {
             move |accessor: DataAccessor<_>| {
                 tx.send(accessor.change_stamp()).unwrap();
             },
-            SeenChangeStamp::Value(ChangeStamp::from(2)),
+            SeenChangeStamp::Value(2.into()),
         )
         .unwrap();
 
@@ -187,7 +187,7 @@ fn subscribe_with_last_seen_change_stamp_value() {
     }
 
     let change_stamp = rx.recv_timeout(Duration::from_secs(1)).unwrap();
-    assert_eq!(change_stamp, ChangeStamp::from(3));
+    assert_eq!(change_stamp, 3);
 
     subscription.unsubscribe().unwrap();
 

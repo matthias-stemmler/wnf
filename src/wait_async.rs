@@ -352,7 +352,7 @@ pub struct Wait<'a> {
 
 impl Wait<'_> {
     /// Creates a new [`Wait<'_>`] future for the given raw state
-    fn new<T>(state: RawState<T>) -> Self
+    const fn new<T>(state: RawState<T>) -> Self
     where
         T: ?Sized,
     {
@@ -380,7 +380,7 @@ pub struct WaitUntil<'a, T, F> {
 
 impl<F, T> WaitUntil<'_, T, F> {
     /// Creates a new [`WaitUntil<'_, T, F>`] future for the given raw state and predicate
-    fn new(state: RawState<T>, predicate: F) -> Self {
+    const fn new(state: RawState<T>, predicate: F) -> Self {
         Self {
             inner: WaitUntilInternal::new(state, predicate),
         }
@@ -415,7 +415,7 @@ where
     T: ?Sized,
 {
     /// Creates a new [`WaitUntilBoxed<'_, T, F>`] future for the given raw state and predicate
-    fn new(state: RawState<T>, predicate: F) -> Self {
+    const fn new(state: RawState<T>, predicate: F) -> Self {
         Self {
             inner: WaitUntilInternal::new(state, predicate),
         }
@@ -476,7 +476,7 @@ struct SharedState<D> {
 
 impl<D> SharedState<D> {
     /// Creates a new [`SharedState<D>`] from the given waker
-    fn from_waker(waker: Waker) -> Self {
+    const fn from_waker(waker: Waker) -> Self {
         Self { result: None, waker }
     }
 }
@@ -486,7 +486,7 @@ where
     T: ?Sized,
 {
     /// Creates a new [`WaitUntilInternal<'_, T, D, F>`] future for the given raw state and predicate
-    fn new(state: RawState<T>, predicate: F) -> Self {
+    const fn new(state: RawState<T>, predicate: F) -> Self {
         Self {
             future_state: Some(FutureState::Initial { state, predicate }),
         }
@@ -577,7 +577,7 @@ struct WaitListener<D> {
 
 impl<D> WaitListener<D> {
     /// Creates a new [`WaitListener<D>`] with the given shared state
-    fn new(shared_state: Arc<Mutex<SharedState<D>>>) -> Self {
+    const fn new(shared_state: Arc<Mutex<SharedState<D>>>) -> Self {
         Self { shared_state }
     }
 }

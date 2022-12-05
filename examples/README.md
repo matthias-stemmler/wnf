@@ -1,5 +1,16 @@
 # `wnf` usage examples
 
+Run an example using
+
+```shell
+cargo run --all-features --example <example-name>
+```
+
+e.g.
+```shell
+cargo run --all-features --example recipes_get_set
+```
+
 There are two kinds of examples in this folder:
 
 ## Apps (named `apps_*.rs`)

@@ -225,7 +225,7 @@ where
                 //   is satisfied
                 // - As `data` is dropped before `callback` returns, the assumption on `WnfUserCallback` then implies
                 //   the safety conditions of `ScopedData::new`
-                let data = unsafe { ScopedData::new(buffer, buffer_size as usize, change_stamp.into()) };
+                let data = unsafe { ScopedData::new(buffer, buffer_size as usize, change_stamp) };
 
                 context.with_listener(|listener| {
                     listener.call(data.accessor());
@@ -357,11 +357,11 @@ impl ScopedData {
     /// As long as the instance of [`ScopedData`] is live:
     /// - `buffer` must be valid for reads of size `buffer_size`
     /// - the memory range of size `buffer_size` starting at `buffer` must be initialized
-    unsafe fn new(buffer: *const c_void, buffer_size: usize, change_stamp: ChangeStamp) -> Self {
+    unsafe fn new(buffer: *const c_void, buffer_size: usize, change_stamp: impl Into<ChangeStamp>) -> Self {
         Self {
             buffer,
             buffer_size,
-            change_stamp,
+            change_stamp: change_stamp.into(),
         }
     }
 
@@ -388,7 +388,7 @@ where
     ///
     /// The returned [`DataAccessor<'a, U>`] represents the same underlying data, but treats them as being of a
     /// different type `U`.
-    pub fn cast<U>(self) -> DataAccessor<'a, U> {
+    pub const fn cast<U>(self) -> DataAccessor<'a, U> {
         DataAccessor {
             data: self.data,
             _marker: PhantomData,
@@ -545,7 +545,7 @@ impl<F> Subscription<'_, F> {
     /// When a [`Subscription<'a, F>`] is dropped, the listener is unsubscribed. You can avoid this behavior by
     /// calling this method. It consumes the [`Subscription<'a, F>`] without dropping it, effectively keeping the
     /// subscription for as long as the process is running and the state exists.
-    pub fn forget(self) {
+    pub const fn forget(self) {
         mem::forget(self);
     }
 
@@ -565,7 +565,7 @@ impl<F> Subscription<'_, F> {
     /// Creates a new [`Subscription<'a, F>`] from the given context and subscription handle
     ///
     /// Note that the lifetime `'a` is inferred at the call site.
-    fn new(context: Box<SubscriptionContext<F>>, subscription_handle: SubscriptionHandle) -> Self {
+    const fn new(context: Box<SubscriptionContext<F>>, subscription_handle: SubscriptionHandle) -> Self {
         Self {
             inner: Some(SubscriptionInner {
                 context: ManuallyDrop::new(context),
@@ -690,12 +690,12 @@ unsafe impl Sync for SubscriptionHandle {}
 
 impl SubscriptionHandle {
     /// Creates a NULL [`SubscriptionHandle`]
-    fn null() -> Self {
+    const fn null() -> Self {
         Self(ptr::null_mut())
     }
 
     /// Returns a mutable raw pointer to the inner value for use in FFI
-    fn as_ptr(&self) -> *mut c_void {
+    const fn as_ptr(&self) -> *mut c_void {
         self.0
     }
 }
@@ -728,7 +728,7 @@ impl<F> Debug for SubscriptionContext<F> {
 
 impl<F> SubscriptionContext<F> {
     /// Creates a new context from the given listener
-    fn new(listener: F) -> Self {
+    const fn new(listener: F) -> Self {
         Self(Mutex::new(Some(listener)))
     }
 

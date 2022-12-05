@@ -157,6 +157,24 @@ impl From<u64> for StateName {
     }
 }
 
+impl PartialEq<u64> for StateName {
+    fn eq(&self, other: &u64) -> bool {
+        self.opaque_value == *other
+    }
+}
+
+impl PartialEq<StateName> for u64 {
+    fn eq(&self, other: &StateName) -> bool {
+        *self == other.opaque_value
+    }
+}
+
+impl Display for StateName {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{:#018X}", self.opaque_value)
+    }
+}
+
 impl TryFrom<StateNameDescriptor> for StateName {
     type Error = StateNameFromDescriptorError;
 
@@ -202,12 +220,6 @@ impl TryFrom<StateName> for StateNameDescriptor {
             unique_id: ((transparent_value >> 11) & 0x001F_FFFF) as u32,
             owner_tag: (transparent_value >> 32) as u32,
         })
-    }
-}
-
-impl Display for StateName {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{:#018X}", self.opaque_value)
     }
 }
 

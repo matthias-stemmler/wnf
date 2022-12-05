@@ -4,15 +4,15 @@ use std::time::Duration;
 
 use tokio::io::{stdin, AsyncReadExt};
 use tokio::time;
-use wnf::BorrowedState;
+use wnf::{BorrowedState, StateName};
 
-const WNF_SHEL_NOTIFICATIONS: u64 = 0x0D83063EA3BC1035;
+const WNF_SHEL_NOTIFICATIONS: StateName = StateName::from_opaque_value(0x0D83063EA3BC1035);
 
 const NUM_NOTIFICATIONS: u32 = 42;
 
 #[tokio::main]
 async fn main() {
-    let state = BorrowedState::<u32>::from_state_name(WNF_SHEL_NOTIFICATIONS.into());
+    let state = BorrowedState::<u32>::from_state_name(WNF_SHEL_NOTIFICATIONS);
 
     println!("Look at your notifications, then press ENTER ...");
 

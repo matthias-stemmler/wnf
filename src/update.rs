@@ -40,8 +40,8 @@ where
     ///
     /// # Errors
     /// Returns an error if updating fails
-    pub fn update(&self, data: &T, expected_change_stamp: ChangeStamp) -> io::Result<bool> {
-        self.raw.update(data, expected_change_stamp)
+    pub fn update(&self, data: &T, expected_change_stamp: impl Into<ChangeStamp>) -> io::Result<bool> {
+        self.raw.update(data, expected_change_stamp.into())
     }
 }
 
@@ -59,8 +59,8 @@ where
     /// Updates the data of this state with the given value
     ///
     /// See [`OwnedState::update`]
-    pub fn update(self, data: &T, expected_change_stamp: ChangeStamp) -> io::Result<bool> {
-        self.raw.update(data, expected_change_stamp)
+    pub fn update(self, data: &T, expected_change_stamp: impl Into<ChangeStamp>) -> io::Result<bool> {
+        self.raw.update(data, expected_change_stamp.into())
     }
 }
 

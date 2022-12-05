@@ -141,7 +141,7 @@ impl<T> StampedData<T> {
     }
 
     /// Returns a reference to the data contained in this [`StampedData`]
-    pub fn data(&self) -> &T {
+    pub const fn data(&self) -> &T {
         &self.data
     }
 
@@ -180,7 +180,7 @@ mod tests {
 
     #[test]
     fn change_stamp_display() {
-        assert_eq!(format!("{}", ChangeStamp::from(42)), "42");
+        assert_eq!(ChangeStamp::from(42).to_string(), "42");
     }
 
     #[test]

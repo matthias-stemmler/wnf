@@ -2,12 +2,12 @@
 
 use std::io::{stdin, Read};
 
-use wnf::{BorrowedState, DataAccessor, SeenChangeStamp};
+use wnf::{BorrowedState, DataAccessor, SeenChangeStamp, StateName};
 
-const WNF_PO_DISCHARGE_ESTIMATE: u64 = 0x41C6013DA3BC5075;
+const WNF_PO_DISCHARGE_ESTIMATE: StateName = StateName::from_opaque_value(0x41C6013DA3BC5075);
 
 fn main() {
-    let state = BorrowedState::<u64>::from_state_name(WNF_PO_DISCHARGE_ESTIMATE.into());
+    let state = BorrowedState::<u64>::from_state_name(WNF_PO_DISCHARGE_ESTIMATE);
 
     let _subscription = state
         .subscribe(

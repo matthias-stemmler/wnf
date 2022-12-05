@@ -74,7 +74,7 @@ where
 }
 
 // We cannot derive this because that would impose an unnecessary trait bound `T: PartialEq<T>`
-impl<T> PartialEq<Self> for OwnedState<T>
+impl<T> PartialEq for OwnedState<T>
 where
     T: ?Sized,
 {
@@ -188,8 +188,8 @@ where
     /// Note that an underlying state with the given name may or may not exist. The returned
     /// [`BorrowedState<'static, T>`] having a `'static` lifetime just means that the state is borrowed directly
     /// from the system rather than from an [`OwnedState<T>`] that will be dropped at some point.
-    pub const fn from_state_name(state_name: StateName) -> Self {
-        Self::from_raw(RawState::from_state_name_and_type_id(state_name, TypeId::none()))
+    pub fn from_state_name(state_name: impl Into<StateName>) -> Self {
+        Self::from_raw(RawState::from_state_name_and_type_id(state_name.into(), TypeId::none()))
     }
 
     /// Statically borrows the state with the given name using the given type id
@@ -197,10 +197,10 @@ where
     /// Note that an underlying state with the given name may or may not exist. The returned
     /// [`BorrowedState<'static, T>`] having a `'static` lifetime just means that the state is borrowed directly
     /// from the system rather than from an [`OwnedState<T>`] that will be dropped at some point.
-    pub const fn from_state_name_and_type_id(state_name: StateName, type_id: GUID) -> Self {
+    pub fn from_state_name_and_type_id(state_name: impl Into<StateName>, type_id: impl Into<GUID>) -> Self {
         Self::from_raw(RawState::from_state_name_and_type_id(
-            state_name,
-            TypeId::from_guid(type_id),
+            state_name.into(),
+            TypeId::from_guid(type_id.into()),
         ))
     }
 }
@@ -219,7 +219,7 @@ where
 }
 
 // We cannot derive this because that would impose an unnecessary trait bound `T: PartialEq<T>`
-impl<T> PartialEq<Self> for BorrowedState<'_, T>
+impl<T> PartialEq for BorrowedState<'_, T>
 where
     T: ?Sized,
 {
@@ -399,7 +399,7 @@ where
 }
 
 // We cannot derive this because that would impose an unnecessary trait bound `T: PartialEq<T>`
-impl<T> PartialEq<Self> for RawState<T>
+impl<T> PartialEq for RawState<T>
 where
     T: ?Sized,
 {
