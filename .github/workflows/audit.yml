@@ -1,8 +1,13 @@
 name: Audit
 
 on:
-  - workflow_call
-  - workflow_dispatch
+  push:
+    paths:
+      - "Cargo.toml"
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_call:
+  workflow_dispatch:
 
 env:
   RUSTFLAGS: --deny warnings

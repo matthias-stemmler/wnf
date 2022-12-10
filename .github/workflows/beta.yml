@@ -1,8 +1,11 @@
 name: Beta
 
 on:
-  - workflow_call
-  - workflow_dispatch
+  schedule:
+    # new Rust versions are released on Thursdays -> run every Friday at 12pm
+    - cron: "0 12 * * FRI"
+  workflow_call:
+  workflow_dispatch:
 
 env:
   RUSTFLAGS: --deny warnings
