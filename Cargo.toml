@@ -54,15 +54,6 @@ features = [
     "Win32_System_Threading",
 ]
 
-[dev-dependencies]
-async-channel = "1"
-bytemuck-v1 = { package = "bytemuck", version = "1", features = ["derive"] }
-crossbeam-channel = "0.5"
-devutils = { path = "devutils" }
-static_assertions = "1"
-tokio = { version = "1", features = ["io-std", "io-util", "macros", "rt-multi-thread", "time"] }
-tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt"] }
-
 [[test]]
 name = "system"
 harness = false

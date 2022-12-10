@@ -1,0 +1,36 @@
+name: Feature powerset
+
+on:
+  - workflow_call
+  - workflow_dispatch
+
+env:
+  RUSTFLAGS: --deny warnings
+  # renovate: datasource=crate depName=cargo-hack
+  VERSION_CARGO_HACK: 0.5.24
+
+jobs:
+  feature-powerset:
+    name: Feature powerset
+    runs-on: windows-latest
+
+    steps:
+      - name: Cache cargo-hack
+        id: cache-cargo-hack
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/
+          key: cargo-hack-${{ env.VERSION_CARGO_HACK }}
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-hack
+        if: ${{ !steps.cache-cargo-hack.outputs.cache-hit }}
+        run: cargo install cargo-hack@${{ env.VERSION_CARGO_HACK }}
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Check against feature powerset
+        run: cargo hack check --feature-powerset --no-dev-deps
