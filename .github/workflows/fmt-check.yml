@@ -1,0 +1,20 @@
+name: Format Check
+
+on:
+  - workflow_call
+  - workflow_dispatch
+
+jobs:
+  fmt-check:
+    name: Format Check
+    runs-on: windows-latest
+
+    steps:
+      - name: Install nightly toolchain
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Run `cargo fmt --check`
+        run: cargo fmt --check
