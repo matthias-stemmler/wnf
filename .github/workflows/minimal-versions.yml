@@ -9,7 +9,7 @@ env:
   WNF_SYSTEM_TESTS_ENABLED: 1
 
 jobs:
-  test:
+  check:
     name: Test using minimal dependency versions
     runs-on: windows-latest
 
