@@ -6,7 +6,6 @@ on:
 
 env:
   RUSTFLAGS: --deny warnings
-  WNF_SYSTEM_TESTS_ENABLED: 1
 
 jobs:
   check:

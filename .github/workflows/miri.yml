@@ -1,4 +1,4 @@
-name: Format check
+name: Miri
 
 on:
   - workflow_call
@@ -8,18 +8,21 @@ env:
   RUSTFLAGS: --deny warnings
 
 jobs:
-  fmt-check:
-    name: Format check
+  miri:
+    name: Miri
     runs-on: windows-latest
 
     steps:
-      - name: Install nightly toolchain with rustfmt
+      - name: Install nightly toolchain with Miri
         uses: dtolnay/rust-toolchain@nightly
         with:
-          components: rustfmt
+          components: miri
+
+      - name: Setup Miri
+        run: cargo miri setup
 
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Run format check
-        run: cargo fmt --check
+      - name: Run lib tests under Miri
+        run: cargo miri test --lib
