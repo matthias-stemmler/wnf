@@ -6,8 +6,6 @@ on:
 
 env:
   RUSTFLAGS: --deny warnings
-  # renovate: datasource=crate depName=cargo-audit
-  VERSION_CARGO_AUDIT: 0.17.4
 
 jobs:
   audit:
@@ -15,19 +13,8 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Cache cargo-audit
-        id: cache-cargo-audit
-        uses: actions/cache@v3
-        with:
-          path: ~/.cargo/
-          key: cargo-audit-${{ env.VERSION_CARGO_AUDIT }}
-
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@stable
-
-      - name: Install cargo-audit
-        if: ${{ !steps.cache-cargo-audit.outputs.cache-hit }}
-        run: cargo install cargo-audit@${{ env.VERSION_CARGO_AUDIT }}
 
       - name: Checkout
         uses: actions/checkout@v3

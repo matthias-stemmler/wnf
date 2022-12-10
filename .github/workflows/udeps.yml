@@ -1,0 +1,36 @@
+name: Unused dependencies
+
+on:
+  - workflow_call
+  - workflow_dispatch
+
+env:
+  RUSTFLAGS: --deny warnings
+  # renovate: datasource=crate depName=cargo-udeps
+  VERSION_CARGO_UDEPS: 0.1.35
+
+jobs:
+  udeps:
+    name: Unused dependencies
+    runs-on: windows-latest
+
+    steps:
+      - name: Cache cargo-udeps
+        id: cache-cargo-udeps
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/
+          key: cargo-udeps-${{ env.VERSION_CARGO_UDEPS }}
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-udeps
+        if: ${{ !steps.cache-cargo-udeps.outputs.cache-hit }}
+        run: cargo install cargo-udeps@${{ env.VERSION_CARGO_UDEPS }}
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Run udeps
+        run: cargo udeps
