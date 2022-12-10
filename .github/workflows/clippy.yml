@@ -1,0 +1,23 @@
+name: Clippy
+
+on:
+  - workflow_call
+  - workflow_dispatch
+
+env:
+  RUSTFLAGS: --deny warnings
+
+jobs:
+  fmt-check:
+    name: Clippy
+    runs-on: windows-latest
+
+    steps:
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Run `cargo clippy --all-features --all-targets`
+        run: cargo clippy --all-features --all-targets
