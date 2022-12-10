@@ -1,4 +1,4 @@
-name: Format Check
+name: Doc
 
 on:
   - workflow_call
@@ -9,17 +9,15 @@ env:
 
 jobs:
   fmt-check:
-    name: Format Check
+    name: Doc
     runs-on: windows-latest
 
     steps:
       - name: Install nightly toolchain
         uses: dtolnay/rust-toolchain@nightly
-        with:
-          components: rustfmt
 
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Run format check
-        run: cargo fmt --check
+      - name: Build docs
+        run: cargo rustdoc --all-features --target x86_64-pc-windows-msvc -- --cfg docsrs

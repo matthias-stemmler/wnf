@@ -19,5 +19,5 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Run `cargo clippy --all-features --all-targets`
+      - name: Run Clippy
         run: cargo clippy --all-features --all-targets
