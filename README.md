@@ -6,19 +6,48 @@
 [![license](https://img.shields.io/crates/l/wnf.svg)](https://github.com/matthias-stemmler/wnf/blob/main/LICENSE-APACHE)
 [![rustc 1.62+](https://img.shields.io/badge/rustc-1.62+-lightgrey.svg)](https://blog.rust-lang.org/2022/06/30/Rust-1.62.0.html)
 
---Intro text--
+The _Windows Notification Facility (WNF)_ is a registrationless publisher/subscriber mechanism that was introduced in
+Windows 8 and forms an undocumented part of the Windows API.
+
+This crate provides safe Rust abstractions over (a part of) this API. If you are looking for raw bindings to the API,
+take a look at the [`ntapi`](https://docs.rs/ntapi/latest/ntapi/) crate.
+
+Note that while great care was taken in making these abstractions memory safe, there cannot be a guarantee due to the
+undocumented nature of the API.
 
 ## Installation
 
---TODO--
+This crate is available on [crates.io](https://crates.io/crates/wnf). In order to use it, add this to the `dependencies`
+table of your `Cargo.toml`:
+
+```toml
+[dependencies]
+wnf = "0.1.0"
+```
+
+Some functionality of this crate is only available if the corresponding
+[features](https://doc.rust-lang.org/cargo/reference/features.html) are enabled. For example, in order to enable the
+`subscribe` feature:
+
+```toml
+[dependencies]
+wnf = { version = "0.1.0", features = ["subscribe"] }
+```
+
+This is a Windows-only crate and will fail to compile on other platforms. If you target multiple platforms, it is
+recommended that you declare it as a
+[platform specific dependency](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#platform-specific-dependencies):
+
+```toml
+[target.'cfg(windows)'.dependencies]
+wnf = "0.1.0"
+```
 
 ## Usage
 
---Simple example--
+For a detailed explanation on how to use this crate, see the [crate documentation](https://docs.rs/wnf/latest/wnf/).
 
---See crate docs--
-
---See examples--
+For examples, see the [examples](funcmap/examples) folder.
 
 ## Minimum Supported Rust Version (MSRV) Policy
 
