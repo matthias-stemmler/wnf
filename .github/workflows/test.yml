@@ -1,0 +1,32 @@
+name: Test
+
+on:
+  - workflow_call
+  - workflow_dispatch
+
+env:
+  RUSTFLAGS: --deny warnings
+  WNF_SYSTEM_TESTS_ENABLED: 1
+
+jobs:
+  test:
+    name: Test (${{ matrix.toolchain }} on ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, windows-2019]
+        toolchain: [stable, nightly]
+
+    steps:
+      - name: Install ${{ matrix.toolchain }} toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.toolchain }}
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Run `cargo test --all-features`
+        run: cargo test --all-features
