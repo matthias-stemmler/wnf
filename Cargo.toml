@@ -68,6 +68,14 @@ name = "system"
 harness = false
 
 [[example]]
+name = "apps_battery"
+required-features = ["subscribe"]
+
+[[example]]
+name = "apps_notifications"
+required-features = ["wait_async"]
+
+[[example]]
 name = "apps_shell"
 required-features = ["subscribe"]
 

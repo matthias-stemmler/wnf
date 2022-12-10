@@ -1,4 +1,4 @@
-use wnf::{CreatableStateLifetime, DataScope, OpaqueData, StateCreation, StateNameDescriptor, StateNameLifetime};
+use wnf::{CreatableStateLifetime, DataScope, OpaqueData, StateCreation, StateLifetime, StateNameDescriptor};
 
 devutils::system_tests![
     can_create_permanent_shared_objects_returns_true_when_run_as_system,
@@ -22,7 +22,7 @@ fn create_state_with_persistent_lifetime() {
     let state_name_descriptor: StateNameDescriptor = state.state_name().try_into().unwrap();
 
     assert_eq!(state_name_descriptor.version, 1);
-    assert_eq!(state_name_descriptor.lifetime, StateNameLifetime::Persistent);
+    assert_eq!(state_name_descriptor.lifetime, StateLifetime::Persistent);
     assert_eq!(state_name_descriptor.data_scope, DataScope::Machine);
     assert!(!state_name_descriptor.is_permanent);
     assert_eq!(state_name_descriptor.owner_tag, 0);
@@ -38,7 +38,7 @@ fn create_state_with_permanent_lifetime_and_non_persistent_data() {
     let state_name_descriptor: StateNameDescriptor = state.state_name().try_into().unwrap();
 
     assert_eq!(state_name_descriptor.version, 1);
-    assert_eq!(state_name_descriptor.lifetime, StateNameLifetime::Permanent);
+    assert_eq!(state_name_descriptor.lifetime, StateLifetime::Permanent);
     assert_eq!(state_name_descriptor.data_scope, DataScope::Machine);
     assert!(!state_name_descriptor.is_permanent);
     assert_eq!(state_name_descriptor.owner_tag, 0);
@@ -54,7 +54,7 @@ fn create_state_with_permanent_lifetime_and_persistent_data() {
     let state_name_descriptor: StateNameDescriptor = state.state_name().try_into().unwrap();
 
     assert_eq!(state_name_descriptor.version, 1);
-    assert_eq!(state_name_descriptor.lifetime, StateNameLifetime::Permanent);
+    assert_eq!(state_name_descriptor.lifetime, StateLifetime::Permanent);
     assert_eq!(state_name_descriptor.data_scope, DataScope::Machine);
     assert!(state_name_descriptor.is_permanent);
     assert_eq!(state_name_descriptor.owner_tag, 0);
@@ -70,7 +70,7 @@ fn create_state_with_process_scope() {
     let state_name_descriptor: StateNameDescriptor = state.state_name().try_into().unwrap();
 
     assert_eq!(state_name_descriptor.version, 1);
-    assert_eq!(state_name_descriptor.lifetime, StateNameLifetime::Persistent);
+    assert_eq!(state_name_descriptor.lifetime, StateLifetime::Persistent);
     assert_eq!(state_name_descriptor.data_scope, DataScope::Process);
     assert!(!state_name_descriptor.is_permanent);
     assert_eq!(state_name_descriptor.owner_tag, 0);

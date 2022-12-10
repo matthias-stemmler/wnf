@@ -4,7 +4,7 @@
 //! this module has been collected from various sources and via reverse engineering. There is no guarantee that it is
 //! correct. This applies in particular to the safety conditions.
 //!
-//! Functions in the `ntrtl` submodule, whose names start with `Rtl` (standing for "runtime library"), provide
+//! Functions in the `ntrtl` submodule, whose names start with `Rtl` (standing for *runtime library*), provide
 //! higher-level abstractions while functions in the `ntexapi` submodule, whose names start with `Nt`, are more low
 //! level. We use a combination of both, choosing whichever function is more suitable for the task at hand.
 

@@ -21,5 +21,5 @@ fn main() {
         )
         .expect("Failed to subscribe to state changes");
 
-    stdin().read(&mut [0u8]).unwrap();
+    stdin().read_exact(&mut [0u8]).unwrap();
 }

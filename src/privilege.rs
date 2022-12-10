@@ -15,8 +15,8 @@ use crate::util::CWideString;
 /// current process
 ///
 /// This privilege is necessary for creating states with the
-/// [`StateNameLifetime::Permanent`](crate::state_name::StateNameLifetime::Permanent) or
-/// [`StateNameLifetime::Persistent`](crate::state_name::StateNameLifetime::Persistent) lifetimes.
+/// [`StateLifetime::Permanent`](crate::state_name::StateLifetime::Permanent) or
+/// [`StateLifetime::Persistent`](crate::state_name::StateLifetime::Persistent) lifetimes.
 ///
 /// # Errors
 /// Returns an error if checking the privilege fails

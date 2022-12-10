@@ -20,7 +20,7 @@ fn main() {
         println!("Application termination #{change_stamp}: {application}")
     });
 
-    stdin().read(&mut [0u8]).unwrap();
+    stdin().read_exact(&mut [0u8]).unwrap();
 }
 
 fn subscribe<F>(state_name: StateName, listener: F) -> Subscription<'static, ApplicationListener<F>>

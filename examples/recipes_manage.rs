@@ -45,7 +45,7 @@ fn main() {
     );
     info!("Press ENTER to delete the state");
 
-    io::stdin().read(&mut [0u8]).unwrap();
+    io::stdin().read_exact(&mut [0u8]).unwrap();
 
     state.delete().expect("Failed to delete state");
 

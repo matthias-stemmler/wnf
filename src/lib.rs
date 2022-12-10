@@ -19,12 +19,77 @@
 //! recommended that you declare it as a
 //! [platform specific dependency](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#platform-specific-dependencies).
 //!
-//! # What is WNF
+//! # How WNF works
 //!
-//! --TODO--
-//! --In particular, what can you do with a state--
-//! --What's not supported: Kernel mode, event aggregation?, meta subscriptions?--
-//! --Glossary: State vs. state name--
+//! WNF is built upon the core concept of a *state name*. Processes can publish to and subscribe to a state name,
+//! represented by a 64-bit identifier. In this crate, in order to distinguish between such an identifier and the actual
+//! operating system object it represents, we call the identifier a *state name*, while the underlying object will be
+//! referred to as a *state*.
+//!
+//! A state can have different *lifetimes*:
+//! - A *well-known state* is provisioned with the system and cannot be created or deleted.
+//! - A *permanent* state can be created and stays alive even across system reboots until it is explicitly deleted.
+//! - A *persistent* or *volatile* state can be created and stays alive until the next system reboot or until it is
+//!   explicitly deleted.
+//! - A *temporary* state can be created and stays alive until the system it was created from exits or until it is
+//!   explicitly deleted.
+//! For details, see [`StateLifetime`].
+//!
+//! A state has an associated payload, called the *state data* or *state value*, up to 4KB in size. Processes can query
+//! and update these data and subscribe to changes of the data. Furthermore, a state has an associated *change stamp*,
+//! which starts at zero when the state is created and increases by one on every update of the data.
+//!
+//! A state that lives across system reboots (i.e. with well-known or permanent lifetime) can be configured to persist
+//! its data across reboots. Otherwise, the state itself stays alive but its data is reset on reboots.
+//!
+//! A state can have different *data scopes* that control whether it maintains multiple independent instances of its
+//! data that are scoped in different ways. See [`DataScope`] for the available options.
+//!
+//! Access to a state is secured by a standard Windows Security Descriptor. In addition, creating a permanent or
+//! persistent state or a state with "process" scope requires the `SeCreatePermanentPrivilege` privilege.
+//!
+//! The WNF mechanism, though officially undocumented, has been described by various sources. Its API is part of the
+//! Windows Native API exposed through `ntdll.dll` and has been (partly) reverse engineered and described. For details,
+//! refer to these sources:
+//! - [A. Allievi et al.: Windows Internals, Part 2, 7th Edition](https://www.microsoftpressstore.com/store/windows-internals-part-2-9780135462331),
+//!   p. 224ff.
+//! - [Quarkslab's Blog: Playing with the Windows Notification Facility (WNF)](https://blog.quarkslab.com/playing-with-the-windows-notification-facility-wnf.html)
+//! - [A. Ionescu, G. Viala: The Windows Notification Facility: Peeling the Onion of the Most Undocumented Kernel Attack
+//!   Surface Yet](https://www.youtube.com/watch?v=MybmgE95weo), Talk at black hat USA 2018
+//! - [A. Ionescu, G. Viala: WNF Utilities 4 Newbies (WNFUN)](https://github.com/ionescu007/wnfun), including a list of
+//!   the names of well-known states
+//!
+//! # What this crate offers
+//!
+//! This crate provides memory-safe abstractions over most of the WNF API to accomplish these tasks:
+//! - Create and delete a state
+//! - Query information on a state
+//! - Query and update state data
+//! - Subscribe to state data
+//!
+//! Subscribing uses higher-level functions from `ntdll.dll` whose names start with `Rtl`, standing for *runtime
+//! library*:
+//! - `RtlSubscribeWnfStateChangeNotification`
+//! - `RtlUnsubscribeWnfStateChangeNotification`
+//!
+//! The other featurs use more low-level functions from `ntdll.dll` whose names start with `Nt*`:
+//! - `NtCreateWnfStateName`
+//! - `NtDeleteWnfStateName`
+//! - `NtQueryWnfStateNameInformation`
+//! - `NtQueryWnfStateData`
+//! - `NtUpdateWnfStateData`
+//!
+//! In addition, this crate provides some higher-level abstractions:
+//! - Applying a transformation to state data
+//! - Replacing state data
+//! - Waiting for updates of state data (in both blocking and async variants)
+//! - Waiting until state data satisfy a certain condition (in both blocking and async variants)
+//!
+//! The following WNF features are currently not supported:
+//! - Subscriptions in meta-notification mode, i.e. subscribing to consumers becoming active or inactive or publishers
+//!   terminating
+//! - Event aggregation through the *Common Event Aggregator* to subscribe to updates of one out of multiple states
+//! - Kernel mode
 //!
 //! # Representing states
 //!
@@ -47,14 +112,10 @@
 //!
 //! --TODO--
 //!
-//! # Resources
-//!
-//! --TODO--
-//! --`YouTube`, Blog posts, Book, Other GitHub projects including list of well-known states--
-//!
 //! # Stability
 //!
-//! --TODO--
+//! Since this crate depends on the WNF API, which is undocumented and hence must be considered unstable, it will
+//! probably stay on an unstable `0.x` version forever.
 //!
 //! # Minimum Supported Rust Version (MSRV) Policy
 //!
@@ -63,7 +124,7 @@
 //! Increasing the MSRV of this crate is _not_ considered a breaking change. However, in such cases there will be at
 //! least a minor version bump.
 //!
-//! Each version //! of this crate will support at least the four latest stable Rust versions at the time it is
+//! Each version of this crate will support at least the four latest stable Rust versions at the time it is
 //! published.
 
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]

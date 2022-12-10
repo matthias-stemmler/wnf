@@ -14,39 +14,39 @@ use thiserror::Error;
 /// For reference, see e.g. <https://blog.quarkslab.com/playing-with-the-windows-notification-facility-wnf.html>
 const STATE_NAME_XOR_KEY: u64 = 0x41C6_4E6D_A3BC_0074;
 
-/// Lifetime of a state name
+/// Lifetime of a state
 ///
-/// This property of a state name controls at what point in time the corresponding state is automatically
-/// deleted as well as if and how the state name is persisted.
+/// This property of a state controls at what point in time it is automatically deleted as well as if and how it is
+/// persisted.
 #[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, PartialEq)]
 #[repr(u8)]
-pub enum StateNameLifetime {
-    /// Lifetime of a "well-known" state name
+pub enum StateLifetime {
+    /// Lifetime of a "well-known" state
     ///
-    /// A state name with this lifetime cannot be created or deleted through the WNF API, but instead is provisioned
-    /// with the system. It lives forever.
+    /// A state with this lifetime cannot be created or deleted through the WNF API, but instead is provisioned with
+    /// the system. It lives forever.
     ///
     /// It is persisted in the Windows registry under the key
     /// `HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Notifications`
     WellKnown = 0,
 
-    /// Lifetime of a "permanent"  state name
+    /// Lifetime of a "permanent"  state
     ///
-    /// A state name with this lifetime can be created and deleted through the WNF API at any time, but is never
-    /// deleted automatically.
+    /// A state with this lifetime can be created and deleted through the WNF API at any time and is never deleted
+    /// automatically.
     ///
-    /// Creating a state name with this lifetime requires the `SeCreatePermanentPrivilege` privilege.
+    /// Creating a state with this lifetime requires the `SeCreatePermanentPrivilege` privilege.
     ///
     /// It is persisted in the Windows registry under the key
     /// `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Notifications`
     Permanent = 1,
 
-    /// Lifetime of a "persistent" state name (also known as "volatile")
+    /// Lifetime of a "persistent" state (also known as "volatile")
     ///
-    /// A state name with this lifetime can be created and deleted through the WNF API at any time and is automatically
+    /// A state with this lifetime can be created and deleted through the WNF API at any time and is automatically
     /// deleted on system reboot.
     ///
-    /// Creating a state name with this lifetime requires the `SeCreatePermanentPrivilege` privilege.
+    /// Creating a state with this lifetime requires the `SeCreatePermanentPrivilege` privilege.
     ///
     /// The name "persistent" is meant in relation to a temporary state name because it is persisted beyond the
     /// lifetime of the process it was created from. The alternative name "volatile" is meant in relation to a
@@ -56,19 +56,19 @@ pub enum StateNameLifetime {
     /// `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\VolatileNotifications`
     Persistent = 2,
 
-    /// Lifetime of a "temporary" state name
+    /// Lifetime of a "temporary" state
     ///
-    /// A state name with this lifetime can be created and deleted through the WNF API at any time and is automatically
+    /// A state with this lifetime can be created and deleted through the WNF API at any time and is automatically
     /// deleted when the process it was created from exits.
     ///
     /// It is not persisted in the Windows registry.
     Temporary = 3,
 }
 
-/// Data scope of a state name
+/// Data scope of a state
 ///
-/// This property of a state name controls whether the corresponding state maintains multiple instances of its
-/// data that are scoped in different ways.
+/// This property of a state controls whether it maintains multiple instances of its data that are scoped in different
+/// ways.
 #[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, PartialEq)]
 #[repr(u8)]
 pub enum DataScope {
@@ -106,15 +106,15 @@ pub struct StateNameDescriptor {
     pub version: u8,
 
     /// Lifetime of the state name
-    pub lifetime: StateNameLifetime,
+    pub lifetime: StateLifetime,
 
     /// Data scope of the state name
     pub data_scope: DataScope,
 
     /// Whether the state data (not the state name itself) are persisted across system reboots
     ///
-    /// This only applies to state names with the [`StateNameLifetime::WellKnown`] or
-    /// [`StateNameLifetime::Permanent`] lifetimes. It is always `false` for state names with other lifetimes.
+    /// This only applies to state names with the [`StateLifetime::WellKnown`] or
+    /// [`StateLifetime::Permanent`] lifetimes. It is always `false` for state names with other lifetimes.
     pub is_permanent: bool,
 
     /// Unique sequence number of the state name
@@ -122,7 +122,7 @@ pub struct StateNameDescriptor {
 
     /// Owner tag of the state name
     ///
-    /// This only applies to state names with the [`StateNameLifetime::WellKnown`] lifetime. It is always `0` for
+    /// This only applies to state names with the [`StateLifetime::WellKnown`] lifetime. It is always `0` for
     /// state names with other lifetimes.
     pub owner_tag: u32,
 }
@@ -212,7 +212,7 @@ impl TryFrom<StateName> for StateNameDescriptor {
         Ok(Self {
             version: (transparent_value & 0b1111) as u8,
             // Since `lifetime_value <= 3`, this always succeeds
-            lifetime: StateNameLifetime::from_u8(lifetime_value).unwrap(),
+            lifetime: StateLifetime::from_u8(lifetime_value).unwrap(),
             data_scope: DataScope::from_u8(data_scope_value).ok_or(
                 StateNameDescriptorFromStateNameError::InvalidDataScope(data_scope_value),
             )?,
@@ -250,7 +250,7 @@ mod tests {
     const SAMPLE_STATE_NAME: StateName = StateName::from_opaque_value(0x0D83_063E_A3BE_5075);
     const SAMPLE_DESCRIPTOR: StateNameDescriptor = StateNameDescriptor {
         version: 1,
-        lifetime: StateNameLifetime::WellKnown,
+        lifetime: StateLifetime::WellKnown,
         data_scope: DataScope::System,
         is_permanent: false,
         unique_id: 0x0000_004A,

@@ -1,6 +1,5 @@
 use wnf::{
-    BorrowedState, DataAccessor, DataScope, OwnedState, SeenChangeStamp, StateName, StateNameDescriptor,
-    StateNameLifetime,
+    BorrowedState, DataAccessor, DataScope, OwnedState, SeenChangeStamp, StateLifetime, StateName, StateNameDescriptor,
 };
 
 #[test]
@@ -17,7 +16,7 @@ fn not_exists() {
     let state = BorrowedState::<()>::from_state_name(
         StateName::try_from(StateNameDescriptor {
             version: 1,
-            lifetime: StateNameLifetime::Temporary,
+            lifetime: StateLifetime::Temporary,
             data_scope: DataScope::Machine,
             is_permanent: false,
             unique_id: 0,

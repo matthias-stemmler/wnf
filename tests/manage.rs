@@ -1,6 +1,6 @@
 use wnf::{
     BorrowedState, BoxedSecurityDescriptor, CreatableStateLifetime, DataScope, OpaqueData, OwnedState, StateCreation,
-    StateNameDescriptor, StateNameLifetime, MAXIMUM_STATE_SIZE,
+    StateLifetime, StateNameDescriptor, MAXIMUM_STATE_SIZE,
 };
 
 #[test]
@@ -9,7 +9,7 @@ fn owned_state_create_temporary() {
     let state_name_descriptor: StateNameDescriptor = state.state_name().try_into().unwrap();
 
     assert_eq!(state_name_descriptor.version, 1);
-    assert_eq!(state_name_descriptor.lifetime, StateNameLifetime::Temporary);
+    assert_eq!(state_name_descriptor.lifetime, StateLifetime::Temporary);
     assert_eq!(state_name_descriptor.data_scope, DataScope::Machine);
     assert!(!state_name_descriptor.is_permanent);
     assert_eq!(state_name_descriptor.owner_tag, 0);
@@ -21,7 +21,7 @@ fn borrowed_state_create_temporary() {
     let state_name_descriptor: StateNameDescriptor = state.state_name().try_into().unwrap();
 
     assert_eq!(state_name_descriptor.version, 1);
-    assert_eq!(state_name_descriptor.lifetime, StateNameLifetime::Temporary);
+    assert_eq!(state_name_descriptor.lifetime, StateLifetime::Temporary);
     assert_eq!(state_name_descriptor.data_scope, DataScope::Machine);
     assert!(!state_name_descriptor.is_permanent);
     assert_eq!(state_name_descriptor.owner_tag, 0);
@@ -45,7 +45,7 @@ create_state_with_scope_tests![
     create_state_with_session_scope: DataScope::Session,
     create_state_with_user_scope: DataScope::User,
     create_state_with_machine_scope: DataScope::Machine,
-    // DataScope::Process is not compatible with StateNameLifetime::Temporary and hence requires
+    // DataScope::Process is not compatible with StateLifetime::Temporary and hence requires
     // SeCreatePermanentPrivilege, see system.rs
 ];
 
@@ -59,7 +59,7 @@ fn create_state_with_scope_test(scope: DataScope) {
     let state_name_descriptor: StateNameDescriptor = state.state_name().try_into().unwrap();
 
     assert_eq!(state_name_descriptor.version, 1);
-    assert_eq!(state_name_descriptor.lifetime, StateNameLifetime::Temporary);
+    assert_eq!(state_name_descriptor.lifetime, StateLifetime::Temporary);
     assert_eq!(state_name_descriptor.data_scope, scope);
     assert!(!state_name_descriptor.is_permanent);
     assert_eq!(state_name_descriptor.owner_tag, 0);

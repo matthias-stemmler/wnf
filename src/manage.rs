@@ -8,7 +8,7 @@ use tracing::debug;
 use crate::ntapi;
 use crate::security::{BoxedSecurityDescriptor, SecurityDescriptor};
 use crate::state::{BorrowedState, OwnedState, RawState};
-use crate::state_name::{DataScope, StateName, StateNameLifetime};
+use crate::state_name::{DataScope, StateLifetime, StateName};
 use crate::type_id::{TypeId, GUID};
 
 /// The maximum size of a state in bytes
@@ -67,24 +67,24 @@ impl UnspecifiedSecurityDescriptor {
 
 /// The lifetime of a state when specified upon creation
 ///
-/// This is different from a [`StateNameLifetime`] in two ways:
-/// - It does not include an equivalent of the [`StateNameLifetime::WellKnown`] lifetime because states with that
-///   lifetime are provisioned with the system and cannot be created.
+/// This is different from a [`StateLifetime`] in two ways:
+/// - It does not include an equivalent of the [`StateLifetime::WellKnown`] lifetime because states with that lifetime
+///   are provisioned with the system and cannot be created.
 /// - The [`CreatableStateLifetime::Permanent`] option comes with a `persist_data` flag because that flag only applies
-///   to the [`StateNameLifetime::Permanent`](crate::state_name::StateNameLifetime::Permanent) (and
-///   [`StateNameLifetime::WellKnown`](crate::state_name::StateNameLifetime::WellKnown)) lifetimes.
+///   to the [`StateLifetime::Permanent`](crate::state_name::StateLifetime::Permanent) (and
+///   [`StateLifetime::WellKnown`](crate::state_name::StateLifetime::WellKnown)) lifetimes.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum CreatableStateLifetime {
-    /// Lifetime of a "permanent"  state name, see [`StateNameLifetime::Permanent`]
+    /// Lifetime of a "permanent" state, see [`StateLifetime::Permanent`]
     Permanent {
-        /// Whether the state data (not the state name itself) are persisted across system reboots
+        /// Whether the state data (not the state itself) are persisted across system reboots
         persist_data: bool,
     },
 
-    /// Lifetime of a "persistent" state name (also known as "volatile"), see [`StateNameLifetime::Persistent`]
+    /// Lifetime of a "persistent" state (also known as "volatile"), see [`StateLifetime::Persistent`]
     Persistent,
 
-    /// Lifetime of a "temporary" state name, see [`StateNameLifetime::Temporary`]
+    /// Lifetime of a "temporary" state, see [`StateLifetime::Temporary`]
     Temporary,
 }
 
@@ -95,12 +95,12 @@ impl CreatableStateLifetime {
     }
 }
 
-impl From<CreatableStateLifetime> for StateNameLifetime {
+impl From<CreatableStateLifetime> for StateLifetime {
     fn from(lifetime: CreatableStateLifetime) -> Self {
         match lifetime {
-            CreatableStateLifetime::Permanent { .. } => StateNameLifetime::Permanent,
-            CreatableStateLifetime::Persistent => StateNameLifetime::Persistent,
-            CreatableStateLifetime::Temporary => StateNameLifetime::Temporary,
+            CreatableStateLifetime::Permanent { .. } => StateLifetime::Permanent,
+            CreatableStateLifetime::Persistent => StateLifetime::Persistent,
+            CreatableStateLifetime::Temporary => StateLifetime::Temporary,
         }
     }
 }
@@ -431,7 +431,7 @@ where
 {
     /// Creates a state
     fn create(
-        name_lifetime: StateNameLifetime,
+        name_lifetime: StateLifetime,
         data_scope: DataScope,
         persist_data: bool,
         type_id: TypeId,
