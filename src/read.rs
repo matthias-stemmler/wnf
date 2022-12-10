@@ -434,6 +434,7 @@ pub enum ReadError {
     InvalidBitPattern,
 }
 
+/// Making [`Read<D>`] a sealed trait
 mod private {
     use super::*;
 
