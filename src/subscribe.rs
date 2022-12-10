@@ -728,7 +728,7 @@ impl<F> Debug for SubscriptionContext<F> {
 
 impl<F> SubscriptionContext<F> {
     /// Creates a new context from the given listener
-    const fn new(listener: F) -> Self {
+    fn new(listener: F) -> Self {
         Self(Mutex::new(Some(listener)))
     }
 
