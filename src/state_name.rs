@@ -157,6 +157,12 @@ impl From<u64> for StateName {
     }
 }
 
+impl From<StateName> for u64 {
+    fn from(state_name: StateName) -> Self {
+        state_name.opaque_value()
+    }
+}
+
 impl PartialEq<u64> for StateName {
     fn eq(&self, other: &u64) -> bool {
         self.opaque_value == *other

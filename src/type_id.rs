@@ -65,23 +65,58 @@ impl From<GUID> for u128 {
 }
 
 #[cfg(feature = "windows")]
-impl From<windows::core::GUID> for GUID {
-    fn from(guid: windows::core::GUID) -> Self {
-        Self(guid)
+mod impl_windows {
+    use super::*;
+
+    impl From<GUID> for windows::core::GUID {
+        fn from(guid: GUID) -> Self {
+            guid.0
+        }
+    }
+
+    impl From<windows::core::GUID> for GUID {
+        fn from(guid: windows::core::GUID) -> Self {
+            Self(guid)
+        }
     }
 }
 
 #[cfg(feature = "winapi")]
-impl From<winapi::shared::guiddef::GUID> for GUID {
-    fn from(guid: winapi::shared::guiddef::GUID) -> Self {
-        Self::from_values(guid.Data1, guid.Data2, guid.Data3, guid.Data4)
+mod impl_winapi {
+    use super::*;
+
+    impl From<GUID> for winapi::shared::guiddef::GUID {
+        fn from(guid: GUID) -> Self {
+            Self {
+                Data1: guid.0.data1,
+                Data2: guid.0.data2,
+                Data3: guid.0.data3,
+                Data4: guid.0.data4,
+            }
+        }
+    }
+
+    impl From<winapi::shared::guiddef::GUID> for GUID {
+        fn from(guid: winapi::shared::guiddef::GUID) -> Self {
+            Self::from_values(guid.Data1, guid.Data2, guid.Data3, guid.Data4)
+        }
     }
 }
 
 #[cfg(feature = "uuid")]
-impl From<uuid::Uuid> for GUID {
-    fn from(uuid: uuid::Uuid) -> Self {
-        uuid.as_u128().into()
+mod impl_uuid {
+    use super::*;
+
+    impl From<GUID> for uuid::Uuid {
+        fn from(guid: GUID) -> Self {
+            Self::from_u128(guid.into())
+        }
+    }
+
+    impl From<uuid::Uuid> for GUID {
+        fn from(uuid: uuid::Uuid) -> Self {
+            uuid.as_u128().into()
+        }
     }
 }
 

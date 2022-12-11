@@ -2,6 +2,7 @@
 
 #![deny(unsafe_code)]
 
+use std::borrow::{Borrow, BorrowMut};
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
@@ -114,6 +115,30 @@ impl PartialEq<ChangeStamp> for u32 {
     }
 }
 
+impl AsRef<u32> for ChangeStamp {
+    fn as_ref(&self) -> &u32 {
+        &self.0
+    }
+}
+
+impl AsMut<u32> for ChangeStamp {
+    fn as_mut(&mut self) -> &mut u32 {
+        &mut self.0
+    }
+}
+
+impl Borrow<u32> for ChangeStamp {
+    fn borrow(&self) -> &u32 {
+        &self.0
+    }
+}
+
+impl BorrowMut<u32> for ChangeStamp {
+    fn borrow_mut(&mut self) -> &mut u32 {
+        &mut self.0
+    }
+}
+
 /// State data of type `T` together with a change stamp
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct StampedData<T> {
@@ -171,6 +196,18 @@ impl<T> From<(T, ChangeStamp)> for StampedData<T> {
 impl<T> From<StampedData<T>> for (T, ChangeStamp) {
     fn from(stamped_data: StampedData<T>) -> Self {
         (stamped_data.data, stamped_data.change_stamp)
+    }
+}
+
+impl<T> AsRef<T> for StampedData<T> {
+    fn as_ref(&self) -> &T {
+        &self.data
+    }
+}
+
+impl<T> AsMut<T> for StampedData<T> {
+    fn as_mut(&mut self) -> &mut T {
+        &mut self.data
     }
 }
 
