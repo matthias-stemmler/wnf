@@ -45,6 +45,11 @@
 //! A state can have different *data scopes* that control whether it maintains multiple independent instances of its
 //! data that are scoped in different ways. See [`DataScope`] for the available options.
 //!
+//! A state can have an associated *type id*, which is a GUID that identifies the type of the data. While WNF does not
+//! maintain a registry of types itself, it can ensure that state data are only updated if the correct type id is
+//! provided. This can be useful if you maintain your own type registry or just want to avoid accidental updates with
+//! invalid data.
+//!
 //! Access to a state is secured by a standard Windows Security Descriptor. In addition, creating a permanent or
 //! persistent state or a state with "process" scope requires the `SeCreatePermanentPrivilege` privilege.
 //!
@@ -93,16 +98,38 @@
 //!
 //! # Representing states
 //!
-//! --Owned vs. borrowed, see OwnedHandle/BorrowedHandle--
+//! There are two types in this crate that represent states: [`OwnedState<T>`] and [`BorrowedState<'_, T>`]. They work
+//! in a similar way as the [`OwnedHandle`](std::os::windows::io::OwnedHandle) and
+//! [`BorrowedHandle<'_>`](std::os::windows::io::BorrowedHandle) types from the standard library:
+//! - An [`OwnedState<T>`] has no lifetime, does not implement [`Copy`] or [`Clone`] and deletes the represented state
+//!   on drop
+//! - A [`BorrowedState<'_, T>`] has a lifetime, implements [`Copy`] and [`Clone`] and does not delete the represented
+//!   state on drop
+//!
+//! Note that copying/cloning a [`BorrowedState<'_, T>`] just copies the borrow, returning another borrow of the same
+//! underlying state, rather than cloning the state itself.
+//!
+//! You can abstract over ownership (i.e. whether a state is owned or borrowed) through the [`AsState`] trait and its
+//! [`as_state`](AsState::as_state) method. This trait is similar to the [`AsHandle`](std::os::windows::io::AsHandle)
+//! trait in the standard library and is implemented by both [`OwnedState<T>`] and [`BorrowedState<'_, T>`] as well as
+//! any type that derefs to one of these types. Calling [`as_state`](AsState::as_state) on an [`OwnedState<T>`]
+//! borrows it as a [`BorrowedState<'_, T>`] while calling it on a [`BorrowedState<'_, T>`] just copies the borrow.
+//!
+//! You can obtain an instance of [`OwnedState<T>`] or [`BorrowedState<'_, T>`] in the following ways:
+//! - Creating a new owned state through the [`StateCreation::create_owned`] method This is common for temporary states,
+//!   for which there is the [`OwnedState::create_temporary`] shortcut method.
+//! - Creating a new state and statically borrow it through the [`StateCreation::create_static`] method This is common
+//!   for permanent or persistent states.
+//! - Statically borrowing an existing state through the [`BorrowedState::from_state_name`] method This is common for
+//!   well-known states.
+//!
+//! An owned state can be "leaked" as a statically borrowed state through the [`OwnedState::leak`] method, while a
+//! borrowed state can be turned into an owned state through the [`BorrowedState::to_owned_state`] method.
 //!
 //! # Representing state data
 //!
 //! --Traits, Safe transmute, macros for bytemuck/zerocopy--
-//!
-//! # What to do with states
-//!
-//! ## Creating states
-//! Note that state data should be initialized
+//! -- Note that state data should be initialized upon creation
 //!
 //! # Tracing
 //!

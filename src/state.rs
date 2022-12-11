@@ -126,12 +126,12 @@ where
 /// drop.
 ///
 /// While borrowing in Rust usually refers to borrowing memory, this applies the idea of borrowing to an external
-/// entity, namely a state. It's similar to [`BorrowedHandle<'a>`](std::os::windows::io::BorrowedHandle) in that
+/// entity, namely a state. It's similar to [`BorrowedHandle<'_>`](std::os::windows::io::BorrowedHandle) in that
 /// regard.
 ///
 /// Calling [`Clone::clone`] on a [`BorrowedState<'a, T>`] just makes a trivial copy, returning another
 /// [`BorrowedState<'a, T>`] with the same lifetime as the original one and representing the same underlying WNF
-/// state. The same applies to the [`ToOwned::to_owned`] method.  If you want to turn a [`BorrowedState<'a, T>`]
+/// state. The same applies to the [`ToOwned::to_owned`] method.  If you want to turn a [`BorrowedState<'_, T>`]
 /// into an [`OwnedState<T>`] (which will then delete the underlying state on drop), use the
 /// [`BorrowedState::to_owned_state`] method.
 ///
