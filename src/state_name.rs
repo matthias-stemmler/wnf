@@ -2,7 +2,7 @@
 
 #![deny(unsafe_code)]
 
-use std::fmt;
+use std::fmt::{self, Binary, LowerHex, Octal, UpperHex};
 use std::fmt::{Display, Formatter};
 
 use num_traits::FromPrimitive;
@@ -177,7 +177,31 @@ impl PartialEq<StateName> for u64 {
 
 impl Display for StateName {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{self:X}")
+    }
+}
+
+impl UpperHex for StateName {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{:#018X}", self.opaque_value)
+    }
+}
+
+impl LowerHex for StateName {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{:#018x}", self.opaque_value)
+    }
+}
+
+impl Octal for StateName {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{:#024o}", self.opaque_value)
+    }
+}
+
+impl Binary for StateName {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{:#066b}", self.opaque_value)
     }
 }
 
@@ -316,5 +340,28 @@ mod tests {
     #[test]
     fn state_name_display() {
         assert_eq!(SAMPLE_STATE_NAME.to_string(), "0x0D83063EA3BE5075");
+    }
+
+    #[test]
+    fn state_name_upper_hex() {
+        assert_eq!(format!("{SAMPLE_STATE_NAME:X}"), "0x0D83063EA3BE5075");
+    }
+
+    #[test]
+    fn state_name_lower_hex() {
+        assert_eq!(format!("{SAMPLE_STATE_NAME:x}"), "0x0d83063ea3be5075");
+    }
+
+    #[test]
+    fn state_name_octal() {
+        assert_eq!(format!("{SAMPLE_STATE_NAME:o}"), "0o0066030143724357450165");
+    }
+
+    #[test]
+    fn state_name_binary() {
+        assert_eq!(
+            format!("{SAMPLE_STATE_NAME:b}"),
+            "0b0000110110000011000001100011111010100011101111100101000001110101"
+        );
     }
 }
