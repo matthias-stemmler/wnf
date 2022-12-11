@@ -15,6 +15,7 @@ use std::fmt::{Display, Formatter};
 /// # use std::io;
 /// # use wnf::{AsState, OwnedState, ChangeStamp, OpaqueData, StampedData};
 /// #
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// fn can_read(state: impl AsState) -> bool {
 ///     // If we replaced `OpaqueData` by, say, `()`, this would only work if the data was actually zero-sized
 ///     // With `OpaqueData`, it works in any case
@@ -22,10 +23,11 @@ use std::fmt::{Display, Formatter};
 /// }
 ///
 /// // Here we could have used any type `T: NoUninit` in place of `u32`
-/// let state = OwnedState::<u32>::create_temporary().expect("failed to create state");
-/// state.set(&42).expect("failed to set state data");
+/// let state = OwnedState::<u32>::create_temporary()?;
+/// state.set(&42)?;
 ///
 /// assert!(can_read(state));
+/// # Ok(()) }
 /// ```
 ///
 /// Another use case is reading the change stamp of a state without knowing what the actual data looks like, but that is

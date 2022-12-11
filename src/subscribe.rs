@@ -103,22 +103,22 @@ where
     /// # Example
     ///
     /// ```
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use wnf::{DataAccessor, OwnedState, SeenChangeStamp};
     ///
-    /// let state = OwnedState::create_temporary().unwrap();
-    /// state.set(&0).expect("failed to set state data");
+    /// let state = OwnedState::create_temporary()?;
+    /// state.set(&0)?;
     ///
-    /// let _subscripton = state
-    ///     .subscribe(
-    ///         |accessor: DataAccessor<_>| {
-    ///             let value = accessor.get().expect("failed to get state data");
-    ///             println!("State data updated: {value}");
-    ///         },
-    ///         SeenChangeStamp::Current,
-    ///     )
-    ///     .expect("failed to subscribe to state updates");
+    /// let _subscripton = state.subscribe(
+    ///     |accessor: DataAccessor<_>| {
+    ///         let value = accessor.get().unwrap();
+    ///         println!("State data updated: {value}");
+    ///     },
+    ///     SeenChangeStamp::Current,
+    /// )?;
     ///
-    /// state.set(&1).expect("failed to set state data");
+    /// state.set(&1)?;
+    /// # Ok(()) }
     /// ```
     ///
     /// This prints:

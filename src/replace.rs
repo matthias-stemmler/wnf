@@ -26,6 +26,7 @@ where
     ///
     /// For example, to set the value of a state to zero while returning the previous value:
     /// ```
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use std::io;
     ///
     /// use wnf::{AsState, OwnedState};
@@ -37,11 +38,12 @@ where
     ///     state.as_state().replace(&0)
     /// }
     ///
-    /// let state = OwnedState::create_temporary().expect("failed to create state");
-    /// state.set(&42).expect("failed to set state data");
+    /// let state = OwnedState::create_temporary()?;
+    /// state.set(&42)?;
     ///
-    /// let previous_value = reset(&state).expect("failed to reset state data");
+    /// let previous_value = reset(&state)?;
     /// assert_eq!(previous_value, 42);
+    /// # Ok(()) }
     /// ```
     ///
     /// # Errors
@@ -69,6 +71,7 @@ where
     ///
     /// For example, to make a slice empty while returning the previous (boxed) slice:
     /// ```
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use std::io;
     ///
     /// use wnf::{AsState, OwnedState};
@@ -80,11 +83,12 @@ where
     ///     state.as_state().replace_boxed(&[])
     /// }
     ///
-    /// let state = OwnedState::<[u32]>::create_temporary().expect("failed to create state");
-    /// state.set(&[1, 2, 3]).expect("failed to set state data");
+    /// let state = OwnedState::<[u32]>::create_temporary()?;
+    /// state.set(&[1, 2, 3])?;
     ///
-    /// let previous_value = clear(&state).expect("failed to clear state data");
+    /// let previous_value = clear(&state)?;
     /// assert_eq!(*previous_value, [1, 2, 3]);
+    /// # Ok(()) }
     /// ```
     ///
     /// # Errors

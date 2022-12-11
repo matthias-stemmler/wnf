@@ -80,6 +80,7 @@ where
     ///
     /// For example, to wait until the value of a state reaches a given minimum:
     /// ```
+    /// use std::error::Error;
     /// use std::sync::Arc;
     /// use std::time::Duration;
     /// use std::{io, thread};
@@ -95,9 +96,9 @@ where
     /// }
     ///
     /// #[tokio::main]
-    /// async fn main() {
-    ///     let state = Arc::new(OwnedState::create_temporary().expect("failed to create state"));
-    ///     state.set(&0).expect("failed to set state data");
+    /// async fn main() -> Result<(), Box<dyn Error>> {
+    ///     let state = Arc::new(OwnedState::create_temporary()?);
+    ///     state.set(&0)?;
     ///
     ///     {
     ///         let state = Arc::clone(&state);
@@ -109,10 +110,10 @@ where
     ///         });
     ///     }
     ///
-    ///     let value = wait_until_at_least(&state, 10)
-    ///         .await
-    ///         .expect("failed to wait for state update");
+    ///     let value = wait_until_at_least(&state, 10).await?;
     ///     assert!(value >= 10);
+    ///
+    ///     Ok(())
     /// }
     /// ```
     ///
@@ -175,6 +176,7 @@ where
     ///
     /// For example, to wait until the length of a slice reaches a given minimum:
     /// ```
+    /// use std::error::Error;
     /// use std::sync::Arc;
     /// use std::time::Duration;
     /// use std::{io, thread};
@@ -194,9 +196,9 @@ where
     /// }
     ///
     /// #[tokio::main]
-    /// async fn main() {
-    ///     let state = Arc::new(OwnedState::<[u32]>::create_temporary().expect("failed to create state"));
-    ///     state.set(&[]).expect("failed to set state data");
+    /// async fn main() -> Result<(), Box<dyn Error>> {
+    ///     let state = Arc::new(OwnedState::<[u32]>::create_temporary()?);
+    ///     state.set(&[])?;
     ///
     ///     {
     ///         let state = Arc::clone(&state);
@@ -215,10 +217,10 @@ where
     ///         });
     ///     }
     ///
-    ///     let len = wait_until_len_at_least(&state, 10)
-    ///         .await
-    ///         .expect("failed to wait for state update");
+    ///     let len = wait_until_len_at_least(&state, 10).await?;
     ///     assert!(len >= 10);
+    ///
+    ///     Ok(())
     /// }
     /// ```
     ///
@@ -232,7 +234,8 @@ where
     /// [`tokio::time::timeout`](https://docs.rs/tokio/1/tokio/time/fn.timeout.html):
     /// ```
     /// # #[tokio::main]
-    /// # async fn main() {
+    /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// use std::error::Error;
     /// use std::io::{self, ErrorKind};
     /// use std::time::Duration;
     ///
@@ -240,7 +243,7 @@ where
     /// use wnf::OwnedState;
     ///
     /// async fn wait() -> io::Result<Box<[u32]>> {
-    ///     let state = OwnedState::<[u32]>::create_temporary().expect("failed to create state");
+    ///     let state = OwnedState::<[u32]>::create_temporary()?;
     ///     state.set(&[])?;
     ///     time::timeout(Duration::from_millis(100), state.wait_until_boxed_async(|_| false)).await?
     /// }
@@ -248,7 +251,7 @@ where
     /// let result = wait().await;
     /// assert!(result.is_err());
     /// assert_eq!(result.unwrap_err().kind(), ErrorKind::TimedOut);
-    /// # }
+    /// # Ok(()) }
     /// ```
     ///
     /// If the predicate type `F` is [`Send`], the returned future is [`Send`] and thus can be used with multi-threaded

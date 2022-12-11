@@ -52,6 +52,7 @@ where
     ///
     /// For example, to wait until the value of a state reaches a given minimum:
     /// ```
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use std::sync::Arc;
     /// use std::time::Duration;
     /// use std::{io, thread};
@@ -67,8 +68,8 @@ where
     ///         .wait_until_blocking(|value| *value >= min_value, Duration::MAX)
     /// }
     ///
-    /// let state = Arc::new(OwnedState::create_temporary().expect("failed to create state"));
-    /// state.set(&0).expect("failed to set state data");
+    /// let state = Arc::new(OwnedState::create_temporary()?);
+    /// state.set(&0)?;
     ///
     /// {
     ///     let state = Arc::clone(&state);
@@ -78,8 +79,9 @@ where
     ///     });
     /// }
     ///
-    /// let value = wait_until_at_least(&state, 10).expect("failed to wait for state update");
+    /// let value = wait_until_at_least(&state, 10)?;
     /// assert!(value >= 10);
+    /// # Ok(()) }
     /// ```
     ///
     /// This is a blocking method. If you are in an async context, use
@@ -112,6 +114,7 @@ where
     ///
     /// For example, to wait until the length of a slice reaches a given minimum:
     /// ```
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use std::sync::Arc;
     /// use std::time::Duration;
     /// use std::{io, thread};
@@ -128,8 +131,8 @@ where
     ///         .map(|slice| slice.len())
     /// }
     ///
-    /// let state = Arc::new(OwnedState::<[u32]>::create_temporary().expect("failed to create state"));
-    /// state.set(&[]).expect("failed to set state data");
+    /// let state = Arc::new(OwnedState::<[u32]>::create_temporary()?);
+    /// state.set(&[])?;
     ///
     /// {
     ///     let state = Arc::clone(&state);
@@ -146,8 +149,9 @@ where
     ///     });
     /// }
     ///
-    /// let len = wait_until_len_at_least(&state, 10).expect("failed to wait for state update");
+    /// let len = wait_until_len_at_least(&state, 10)?;
     /// assert!(len >= 10);
+    /// # Ok(()) }
     /// ```
     ///
     /// This is a blocking method. If you are in an async context, use

@@ -2,8 +2,7 @@
 
 #![deny(unsafe_code)]
 
-use std::fmt::{self, Binary, LowerHex, Octal, UpperHex};
-use std::fmt::{Display, Formatter};
+use std::fmt::{self, Binary, Display, Formatter, LowerHex, Octal, UpperHex};
 
 use num_traits::FromPrimitive;
 use thiserror::Error;

@@ -168,33 +168,29 @@ impl TryIntoSecurityDescriptor for UnspecifiedSecurityDescriptor {
 ///
 /// # Example
 /// ```
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// use wnf::{CreatableStateLifetime, DataScope, OwnedState, StateCreation};
 ///
 /// let state: OwnedState<u32> = StateCreation::new()
 ///     .lifetime(CreatableStateLifetime::Temporary)
 ///     .scope(DataScope::Machine)
-///     .create_owned()
-///     .expect("failed to create state");
+///     .create_owned()?;
+/// # Ok(()) }
 /// ```
 ///
 /// If you want to create multiple states from a single builder, clone the builder first:
 /// ```
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// use wnf::{CreatableStateLifetime, DataScope, OwnedState, StateCreation};
 ///
 /// let template = StateCreation::new()
 ///     .lifetime(CreatableStateLifetime::Temporary)
 ///     .scope(DataScope::Machine);
 ///
-/// let large_state: OwnedState<u32> = template
-///     .clone()
-///     .maximum_state_size(0x800)
-///     .create_owned()
-///     .expect("failed to create state");
+/// let large_state: OwnedState<u32> = template.clone().maximum_state_size(0x800).create_owned()?;
 ///
-/// let small_state: OwnedState<u32> = template
-///     .maximum_state_size(0x400)
-///     .create_owned()
-///     .expect("failed to create state");
+/// let small_state: OwnedState<u32> = template.maximum_state_size(0x400).create_owned()?;
+/// # Ok(()) }
 /// ```
 ///
 /// In order to quickly create a temporary machine-scoped state (e.g. for testing purposes), consider using the
@@ -328,12 +324,14 @@ where
     /// This is equivalent to creating an owned state and immediately leaking it:
     /// ```
     /// # use wnf::{BorrowedState, CreatableStateLifetime, DataScope, StateCreation};
+    /// #
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let state: BorrowedState<'static, u32> = StateCreation::new()
     ///     .lifetime(CreatableStateLifetime::Temporary)
     ///     .scope(DataScope::Machine)
-    ///     .create_owned()
-    ///     .expect("failed to create state")
+    ///     .create_owned()?
     ///     .leak();
+    /// # Ok(()) }
     /// ```
     ///
     /// Note that since you only obtain a statically borrowed state, it will not be deleted automatically. If that is

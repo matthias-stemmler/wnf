@@ -25,7 +25,7 @@ use std::num;
 /// # #[macro_use] extern crate wnf;
 /// # extern crate bytemuck_v1 as bytemuck;
 /// #
-/// # fn main() {
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// use wnf::{derive_from_bytemuck_v1, OwnedState};
 ///
 /// #[derive(bytemuck::AnyBitPattern, bytemuck::NoUninit, Copy, Clone)]
@@ -35,19 +35,19 @@ use std::num;
 /// derive_from_bytemuck_v1!(AnyBitPattern for MyType);
 /// derive_from_bytemuck_v1!(NoUninit for MyType);
 ///
-/// let state: OwnedState<MyType> = OwnedState::create_temporary().expect("failed to create state");
-/// state.set(&MyType(42)).expect("failed to update state data");
-/// let data = state.get().expect("failed to query state data");
+/// let state: OwnedState<MyType> = OwnedState::create_temporary()?;
+/// state.set(&MyType(42))?;
+/// let data = state.get()?;
 ///
 /// assert_eq!(data.0, 42);
-/// # }
+/// # Ok (()) }
 /// ```
 /// - Derive the [`AsBytes`](zerocopy::AsBytes) trait of the [`zerocopy`] crate and derive this trait from it via the
 ///   [`derive_from_zerocopy`](crate::derive_from_zerocopy) macro:
 /// ```
 /// # #[macro_use] extern crate wnf;
 /// #
-/// # fn main() {
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// use wnf::{derive_from_zerocopy, OwnedState};
 ///
 /// #[derive(zerocopy::AsBytes, zerocopy::FromBytes, Copy, Clone)]
@@ -57,12 +57,12 @@ use std::num;
 /// derive_from_zerocopy!(AnyBitPattern for MyType);
 /// derive_from_zerocopy!(NoUninit for MyType);
 ///
-/// let state: OwnedState<MyType> = OwnedState::create_temporary().expect("failed to create state");
-/// state.set(&MyType(42)).expect("failed to update state data");
-/// let data = state.get().expect("failed to query state data");
+/// let state: OwnedState<MyType> = OwnedState::create_temporary()?;
+/// state.set(&MyType(42))?;
+/// let data = state.get()?;
 ///
 /// assert_eq!(data.0, 42);
-/// # }
+/// # Ok(()) }
 /// ```
 ///
 /// # Safety
@@ -138,7 +138,7 @@ unsafe impl<T, const N: usize> AnyBitPattern for [T; N] where T: AnyBitPattern {
 /// # #[macro_use] extern crate wnf;
 /// # extern crate bytemuck_v1 as bytemuck;
 /// #
-/// # fn main() {
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// use wnf::{derive_from_bytemuck_v1, OwnedState};
 ///
 /// #[derive(bytemuck::CheckedBitPattern, bytemuck::NoUninit, Copy, Clone)]
@@ -148,12 +148,12 @@ unsafe impl<T, const N: usize> AnyBitPattern for [T; N] where T: AnyBitPattern {
 /// derive_from_bytemuck_v1!(CheckedBitPattern for MyType);
 /// derive_from_bytemuck_v1!(NoUninit for MyType);
 ///
-/// let state: OwnedState<MyType> = OwnedState::create_temporary().expect("failed to create state");
-/// state.set(&MyType(true)).expect("failed to update state data");
-/// let data = state.get().expect("failed to query state data");
+/// let state: OwnedState<MyType> = OwnedState::create_temporary()?;
+/// state.set(&MyType(true))?;
+/// let data = state.get()?;
 ///
 /// assert!(data.0);
-/// # }
+/// # Ok(()) }
 /// ```
 ///
 /// # Safety
@@ -221,7 +221,7 @@ unsafe impl CheckedBitPattern for bool {
 /// # #[macro_use] extern crate wnf;
 /// # extern crate bytemuck_v1 as bytemuck;
 /// #
-/// # fn main() {
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// use wnf::{derive_from_bytemuck_v1, OwnedState};
 ///
 /// #[derive(bytemuck::NoUninit, bytemuck::AnyBitPattern, Copy, Clone)]
@@ -231,19 +231,19 @@ unsafe impl CheckedBitPattern for bool {
 /// derive_from_bytemuck_v1!(NoUninit for MyType);
 /// derive_from_bytemuck_v1!(AnyBitPattern for MyType);
 ///
-/// let state: OwnedState<MyType> = OwnedState::create_temporary().expect("failed to create state");
-/// state.set(&MyType(42)).expect("failed to update state data");
-/// let data = state.get().expect("failed to query state data");
+/// let state: OwnedState<MyType> = OwnedState::create_temporary()?;
+/// state.set(&MyType(42))?;
+/// let data = state.get()?;
 ///
 /// assert_eq!(data.0, 42);
-/// # }
+/// # Ok(()) }
 /// ```
 /// - Derive the [`FromBytes`](zerocopy::FromBytes) trait of the [`zerocopy`] crate and derive this trait from it via
 ///   the [`derive_from_zerocopy`](crate::derive_from_zerocopy) macro:
 /// ```
 /// # #[macro_use] extern crate wnf;
 /// #
-/// # fn main() {
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// use wnf::{derive_from_zerocopy, OwnedState};
 ///
 /// #[derive(zerocopy::FromBytes, zerocopy::AsBytes, Copy, Clone)]
@@ -253,12 +253,12 @@ unsafe impl CheckedBitPattern for bool {
 /// derive_from_zerocopy!(NoUninit for MyType);
 /// derive_from_zerocopy!(AnyBitPattern for MyType);
 ///
-/// let state: OwnedState<MyType> = OwnedState::create_temporary().expect("failed to create state");
-/// state.set(&MyType(42)).expect("failed to update state data");
-/// let data = state.get().expect("failed to query state data");
+/// let state: OwnedState<MyType> = OwnedState::create_temporary()?;
+/// state.set(&MyType(42))?;
+/// let data = state.get()?;
 ///
 /// assert_eq!(data.0, 42);
-/// # }
+/// # Ok(()) }
 /// ```
 ///
 /// # Safety

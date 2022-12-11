@@ -37,6 +37,7 @@ where
     ///
     /// For example, to increment the value of a state by one and return the incremented value:
     /// ```
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use std::io;
     ///
     /// use wnf::{AsState, OwnedState};
@@ -48,11 +49,12 @@ where
     ///     state.as_state().apply(|value| value + 1)
     /// }
     ///
-    /// let state = OwnedState::create_temporary().expect("failed to create state");
-    /// state.set(&42).expect("failed to set state data");
+    /// let state = OwnedState::create_temporary()?;
+    /// state.set(&42)?;
     ///
-    /// let new_data = increment(&state).expect("failed to increment state data");
+    /// let new_data = increment(&state)?;
     /// assert_eq!(new_data, 43);
+    /// # Ok(()) }
     /// ```
     ///
     /// # Errors
@@ -87,6 +89,7 @@ where
     /// For example, to increment the value of a state by one, unless a maximum is reached, and return the incremented
     /// value:
     /// ```
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use std::io;
     ///
     /// use wnf::{AsState, OwnedState};
@@ -104,14 +107,15 @@ where
     ///     })
     /// }
     ///
-    /// let state = OwnedState::create_temporary().expect("failed to create state");
-    /// state.set(&42).expect("failed to set state data");
+    /// let state = OwnedState::create_temporary()?;
+    /// state.set(&42)?;
     ///
-    /// let new_data = try_increment(&state, 43).expect("failed to increment state data");
+    /// let new_data = try_increment(&state, 43)?;
     /// assert_eq!(new_data, 43);
     ///
     /// let result = try_increment(&state, 43);
     /// assert!(result.is_err());
+    /// # Ok(()) }
     /// ```
     ///
     /// # Errors
@@ -151,6 +155,7 @@ where
     ///
     /// For example, to extend a slice by one element and return the extended slice as a [`Vec<u32>`]:
     /// ```
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use std::io;
     ///
     /// use wnf::{AsState, OwnedState};
@@ -166,11 +171,12 @@ where
     ///     })
     /// }
     ///
-    /// let state = OwnedState::<[u32]>::create_temporary().expect("failed to create state");
-    /// state.set(&[1, 2, 3]).expect("failed to set state data");
+    /// let state = OwnedState::<[u32]>::create_temporary()?;
+    /// state.set(&[1, 2, 3])?;
     ///
-    /// let new_data = extend(&state).expect("failed to extend state data");
+    /// let new_data = extend(&state)?;
     /// assert_eq!(*new_data, [1, 2, 3, 42]);
+    /// # Ok(()) }
     /// ```
     ///
     /// # Errors
@@ -205,6 +211,7 @@ where
     /// For example, to extend a slice by one element, unless a maximum length is reached, and return the extended
     /// slice as a [`Vec<u32>`]:
     /// ```
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use std::io;
     ///
     /// use wnf::{AsState, OwnedState};
@@ -224,14 +231,15 @@ where
     ///     })
     /// }
     ///
-    /// let state = OwnedState::<[u32]>::create_temporary().expect("failed to create state");
-    /// state.set(&[1, 2, 3]).expect("failed to set state data");
+    /// let state = OwnedState::<[u32]>::create_temporary()?;
+    /// state.set(&[1, 2, 3])?;
     ///
-    /// let new_data = try_extend(&state, 4).expect("failed to extend state data");
+    /// let new_data = try_extend(&state, 4)?;
     /// assert_eq!(*new_data, [1, 2, 3, 42]);
     ///
     /// let result = try_extend(&state, 4);
     /// assert!(result.is_err());
+    /// # Ok(()) }
     /// ```
     ///
     /// # Errors
