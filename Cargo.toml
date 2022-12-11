@@ -8,7 +8,6 @@ edition = "2021"
 rust-version = "1.62" # should be the same as in devutils, docs and MSRV job
 description = "Safe Rust bindings for the Windows Notification Facility"
 readme = "crates-io.md"
-homepage = "https://github.com/matthias-stemmler/wnf"
 repository = "https://github.com/matthias-stemmler/wnf"
 license = "MIT OR Apache-2.0"
 keywords = ["api", "async", "bindings", "ffi", "windows"]
