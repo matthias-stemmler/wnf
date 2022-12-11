@@ -47,7 +47,7 @@ wnf = "0.1.0"
 
 For a detailed explanation on how to use this crate, see the [crate documentation](https://docs.rs/wnf/latest/wnf/).
 
-For examples, see the [examples](funcmap/examples) folder.
+For examples, see the [examples](examples) folder.
 
 ## Minimum Supported Rust Version (MSRV) Policy
 
