@@ -96,8 +96,8 @@ where
     ///
     /// #[tokio::main]
     /// async fn main() {
-    ///     let state = Arc::new(OwnedState::create_temporary().expect("Failed to create state"));
-    ///     state.set(&0).expect("Failed to set state data");
+    ///     let state = Arc::new(OwnedState::create_temporary().expect("failed to create state"));
+    ///     state.set(&0).expect("failed to set state data");
     ///
     ///     {
     ///         let state = Arc::clone(&state);
@@ -111,7 +111,7 @@ where
     ///
     ///     let value = wait_until_at_least(&state, 10)
     ///         .await
-    ///         .expect("Failed to wait for state update");
+    ///         .expect("failed to wait for state update");
     ///     assert!(value >= 10);
     /// }
     /// ```
@@ -195,8 +195,8 @@ where
     ///
     /// #[tokio::main]
     /// async fn main() {
-    ///     let state = Arc::new(OwnedState::<[u32]>::create_temporary().expect("Failed to create state"));
-    ///     state.set(&[]).expect("Failed to set state data");
+    ///     let state = Arc::new(OwnedState::<[u32]>::create_temporary().expect("failed to create state"));
+    ///     state.set(&[]).expect("failed to set state data");
     ///
     ///     {
     ///         let state = Arc::clone(&state);
@@ -217,7 +217,7 @@ where
     ///
     ///     let len = wait_until_len_at_least(&state, 10)
     ///         .await
-    ///         .expect("Failed to wait for state update");
+    ///         .expect("failed to wait for state update");
     ///     assert!(len >= 10);
     /// }
     /// ```
@@ -240,7 +240,7 @@ where
     /// use wnf::OwnedState;
     ///
     /// async fn wait() -> io::Result<Box<[u32]>> {
-    ///     let state = OwnedState::<[u32]>::create_temporary().expect("Failed to create state");
+    ///     let state = OwnedState::<[u32]>::create_temporary().expect("failed to create state");
     ///     state.set(&[])?;
     ///     time::timeout(Duration::from_millis(100), state.wait_until_boxed_async(|_| false)).await?
     /// }
@@ -503,7 +503,7 @@ where
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         self.future_state = Some(
-            match self.future_state.take().expect("Future polled after it has completed") {
+            match self.future_state.take().expect("future polled after it has completed") {
                 FutureState::Initial { state, mut predicate } => {
                     let (data, change_stamp) = state.query_as()?.into_data_change_stamp();
 

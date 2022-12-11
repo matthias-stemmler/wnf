@@ -9,7 +9,7 @@ use tracing_subscriber::filter::LevelFilter;
 use wnf::{CreatableStateLifetime, DataScope, StateCreation, StateNameDescriptor};
 
 fn main() {
-    devutils::ensure_running_as_system().expect("Failed to run as system");
+    devutils::ensure_running_as_system().expect("failed to run as system");
 
     tracing_subscriber::fmt().with_max_level(LevelFilter::DEBUG).init();
 
@@ -18,19 +18,19 @@ fn main() {
         .scope(DataScope::Machine)
         .type_id("1d942789-c358-46fc-a75d-2947c7a8fefa")
         .create_static()
-        .expect("Failed to create state");
+        .expect("failed to create state");
 
-    let exists = state.exists().expect("Failed to determine if state name exists");
+    let exists = state.exists().expect("failed to determine if state name exists");
     info!(exists);
 
     let descriptor: StateNameDescriptor = state
         .state_name()
         .try_into()
-        .expect("Failed to convert state name into descriptor");
+        .expect("failed to convert state name into descriptor");
     info!(?descriptor);
 
-    state.set(&0x11223344).expect("Failed to set state data");
-    let data = state.get().expect("Failed to get state data");
+    state.set(&0x11223344).expect("failed to set state data");
+    let data = state.get().expect("failed to get state data");
     info!(data = %format!("{data:#10x}"));
 
     info!(
@@ -47,8 +47,8 @@ fn main() {
 
     io::stdin().read_exact(&mut [0u8]).unwrap();
 
-    state.delete().expect("Failed to delete state");
+    state.delete().expect("failed to delete state");
 
-    let exists = state.exists().expect("Failed to determine if state name exists");
+    let exists = state.exists().expect("failed to determine if state name exists");
     info!(exists);
 }

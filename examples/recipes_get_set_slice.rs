@@ -7,11 +7,11 @@ use wnf::OwnedState;
 fn main() {
     tracing_subscriber::fmt().with_max_level(LevelFilter::DEBUG).init();
 
-    let state = OwnedState::<[u32]>::create_temporary().expect("Failed to create temporary state");
+    let state = OwnedState::<[u32]>::create_temporary().expect("failed to create temporary state");
 
     let data = vec![1, 2, 3, 4, 5];
-    state.set(&data).expect("Failed to set state data");
+    state.set(&data).expect("failed to set state data");
 
-    let data = state.get_boxed().expect("Failed to get state data");
+    let data = state.get_boxed().expect("failed to get state data");
     info!(?data);
 }

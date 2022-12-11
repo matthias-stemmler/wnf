@@ -48,10 +48,10 @@ where
     ///     state.as_state().apply(|value| value + 1)
     /// }
     ///
-    /// let state = OwnedState::create_temporary().expect("Failed to create state");
-    /// state.set(&42).expect("Failed to set state data");
+    /// let state = OwnedState::create_temporary().expect("failed to create state");
+    /// state.set(&42).expect("failed to set state data");
     ///
-    /// let new_data = increment(&state).expect("Failed to increment state data");
+    /// let new_data = increment(&state).expect("failed to increment state data");
     /// assert_eq!(new_data, 43);
     /// ```
     ///
@@ -104,10 +104,10 @@ where
     ///     })
     /// }
     ///
-    /// let state = OwnedState::create_temporary().expect("Failed to create state");
-    /// state.set(&42).expect("Failed to set state data");
+    /// let state = OwnedState::create_temporary().expect("failed to create state");
+    /// state.set(&42).expect("failed to set state data");
     ///
-    /// let new_data = try_increment(&state, 43).expect("Failed to increment state data");
+    /// let new_data = try_increment(&state, 43).expect("failed to increment state data");
     /// assert_eq!(new_data, 43);
     ///
     /// let result = try_increment(&state, 43);
@@ -166,10 +166,10 @@ where
     ///     })
     /// }
     ///
-    /// let state = OwnedState::<[u32]>::create_temporary().expect("Failed to create state");
-    /// state.set(&[1, 2, 3]).expect("Failed to set state data");
+    /// let state = OwnedState::<[u32]>::create_temporary().expect("failed to create state");
+    /// state.set(&[1, 2, 3]).expect("failed to set state data");
     ///
-    /// let new_data = extend(&state).expect("Failed to extend state data");
+    /// let new_data = extend(&state).expect("failed to extend state data");
     /// assert_eq!(*new_data, [1, 2, 3, 42]);
     /// ```
     ///
@@ -224,10 +224,10 @@ where
     ///     })
     /// }
     ///
-    /// let state = OwnedState::<[u32]>::create_temporary().expect("Failed to create state");
-    /// state.set(&[1, 2, 3]).expect("Failed to set state data");
+    /// let state = OwnedState::<[u32]>::create_temporary().expect("failed to create state");
+    /// state.set(&[1, 2, 3]).expect("failed to set state data");
     ///
-    /// let new_data = try_extend(&state, 4).expect("Failed to extend state data");
+    /// let new_data = try_extend(&state, 4).expect("failed to extend state data");
     /// assert_eq!(*new_data, [1, 2, 3, 42]);
     ///
     /// let result = try_extend(&state, 4);

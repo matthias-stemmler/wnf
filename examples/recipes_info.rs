@@ -13,19 +13,19 @@ fn main() {
 
     let descriptor: StateNameDescriptor = state_name
         .try_into()
-        .expect("Failed to convert state name into descriptor");
+        .expect("failed to convert state name into descriptor");
 
     let state = BorrowedState::<u32>::from_state_name(state_name);
 
-    let exists = state.exists().expect("Failed to determine if state name exists");
+    let exists = state.exists().expect("failed to determine if state name exists");
 
     let subscribers_present = state
         .subscribers_present()
-        .expect("Failed to determine if state name has subscribers");
+        .expect("failed to determine if state name has subscribers");
 
     let is_quiescent = state
         .is_quiescent()
-        .expect("Failed to determine if state name is quiescent");
+        .expect("failed to determine if state name is quiescent");
 
     info!(?descriptor, exists, subscribers_present, is_quiescent);
 }

@@ -17,26 +17,26 @@ async fn main() {
         .with_thread_ids(true)
         .init();
 
-    let state = Arc::new(OwnedState::<u32>::create_temporary().expect("Failed to create temporary state"));
+    let state = Arc::new(OwnedState::<u32>::create_temporary().expect("failed to create temporary state"));
     let state2 = Arc::clone(&state);
 
-    state.set(&0).expect("Failed to update state data");
+    state.set(&0).expect("failed to update state data");
 
     let handle = tokio::spawn(async move {
         info!("Waiting ...");
 
         let data = time::timeout(Duration::from_secs(6), state2.wait_until_async(|data| *data > 1))
             .await
-            .expect("Waiting for state update timed out")
-            .expect("Failed to wait for state update");
+            .expect("waiting for state update timed out")
+            .expect("failed to wait for state update");
 
         info!(data, "State updated");
     });
 
     for i in 1..3 {
         time::sleep(Duration::from_secs(1)).await;
-        state.set(&i).expect("Failed to update state data");
+        state.set(&i).expect("failed to update state data");
     }
 
-    handle.await.expect("Failed to join task");
+    handle.await.expect("failed to join task");
 }

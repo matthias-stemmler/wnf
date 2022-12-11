@@ -19,7 +19,7 @@ async fn main() {
     stdin().read_u8().await.unwrap();
 
     for i in 0..=NUM_NOTIFICATIONS {
-        state.set(&i).expect("Failed to set state data");
+        state.set(&i).expect("failed to set state data");
         time::sleep(Duration::from_millis(30)).await;
     }
 
@@ -28,7 +28,7 @@ async fn main() {
     state
         .wait_until_async(|value| *value == 0)
         .await
-        .expect("Failed to wait for state update");
+        .expect("failed to wait for state update");
 
     println!("Thanks, bye");
 }

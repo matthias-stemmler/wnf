@@ -16,18 +16,18 @@ fn main() {
         .with_thread_ids(true)
         .init();
 
-    let state = Arc::new(OwnedState::<u32>::create_temporary().expect("Failed to create temporary state"));
+    let state = Arc::new(OwnedState::<u32>::create_temporary().expect("failed to create temporary state"));
     let state2 = Arc::clone(&state);
 
     let handle = thread::spawn(move || {
         info!("Waiting ...");
         state2
             .wait_blocking(Duration::from_secs(6))
-            .expect("Failed to wait for state update");
+            .expect("failed to wait for state update");
         info!("State updated");
     });
 
     thread::sleep(Duration::from_secs(3));
-    state.set(&0).expect("Failed to update state data");
-    handle.join().expect("Failed to join thread");
+    state.set(&0).expect("failed to update state data");
+    handle.join().expect("failed to join thread");
 }

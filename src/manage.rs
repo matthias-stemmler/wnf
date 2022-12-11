@@ -174,7 +174,7 @@ impl TryIntoSecurityDescriptor for UnspecifiedSecurityDescriptor {
 ///     .lifetime(CreatableStateLifetime::Temporary)
 ///     .scope(DataScope::Machine)
 ///     .create_owned()
-///     .expect("Failed to create state");
+///     .expect("failed to create state");
 /// ```
 ///
 /// If you want to create multiple states from a single builder, clone the builder first:
@@ -189,12 +189,12 @@ impl TryIntoSecurityDescriptor for UnspecifiedSecurityDescriptor {
 ///     .clone()
 ///     .maximum_state_size(0x800)
 ///     .create_owned()
-///     .expect("Failed to create state");
+///     .expect("failed to create state");
 ///
 /// let small_state: OwnedState<u32> = template
 ///     .maximum_state_size(0x400)
 ///     .create_owned()
-///     .expect("Failed to create state");
+///     .expect("failed to create state");
 /// ```
 ///
 /// In order to quickly create a temporary machine-scoped state (e.g. for testing purposes), consider using the
@@ -332,7 +332,7 @@ where
     ///     .lifetime(CreatableStateLifetime::Temporary)
     ///     .scope(DataScope::Machine)
     ///     .create_owned()
-    ///     .expect("Failed to create state")
+    ///     .expect("failed to create state")
     ///     .leak();
     /// ```
     ///

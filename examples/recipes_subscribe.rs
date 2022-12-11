@@ -14,24 +14,24 @@ fn main() {
         .with_thread_ids(true)
         .init();
 
-    let state = OwnedState::<u32>::create_temporary().expect("Failed to create temporary state");
-    state.set(&0).expect("Failed to set state data");
+    let state = OwnedState::<u32>::create_temporary().expect("failed to create temporary state");
+    state.set(&0).expect("failed to set state data");
 
     let (tx, rx) = crossbeam_channel::unbounded();
 
     let subscription = state
         .subscribe(
             move |accessor: DataAccessor<_>| {
-                let (data, change_stamp) = accessor.query().expect("Data is invalid").into_data_change_stamp();
+                let (data, change_stamp) = accessor.query().expect("data are invalid").into_data_change_stamp();
                 info!(data, ?change_stamp);
-                tx.send(data).expect("Failed to send data to channel");
+                tx.send(data).expect("failed to send data to channel");
             },
             SeenChangeStamp::None,
         )
-        .expect("Failed to subscribe to state changes");
+        .expect("failed to subscribe to state changes");
 
     for i in 1..=LAST_DATA {
-        state.set(&i).expect("Failed to set state data");
+        state.set(&i).expect("failed to set state data");
     }
 
     let mut receive_count = 0;
@@ -47,5 +47,5 @@ fn main() {
 
     subscription
         .unsubscribe()
-        .expect("Failed to unsubscribe from state changes");
+        .expect("failed to unsubscribe from state changes");
 }

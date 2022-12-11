@@ -37,10 +37,10 @@ where
     ///     state.as_state().replace(&0)
     /// }
     ///
-    /// let state = OwnedState::create_temporary().expect("Failed to create state");
-    /// state.set(&42).expect("Failed to set state data");
+    /// let state = OwnedState::create_temporary().expect("failed to create state");
+    /// state.set(&42).expect("failed to set state data");
     ///
-    /// let previous_value = reset(&state).expect("Failed to reset state data");
+    /// let previous_value = reset(&state).expect("failed to reset state data");
     /// assert_eq!(previous_value, 42);
     /// ```
     ///
@@ -80,10 +80,10 @@ where
     ///     state.as_state().replace_boxed(&[])
     /// }
     ///
-    /// let state = OwnedState::<[u32]>::create_temporary().expect("Failed to create state");
-    /// state.set(&[1, 2, 3]).expect("Failed to set state data");
+    /// let state = OwnedState::<[u32]>::create_temporary().expect("failed to create state");
+    /// state.set(&[1, 2, 3]).expect("failed to set state data");
     ///
-    /// let previous_value = clear(&state).expect("Failed to clear state data");
+    /// let previous_value = clear(&state).expect("failed to clear state data");
     /// assert_eq!(*previous_value, [1, 2, 3]);
     /// ```
     ///

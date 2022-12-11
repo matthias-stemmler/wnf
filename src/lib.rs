@@ -188,7 +188,7 @@
 #![allow(clippy::wildcard_imports)]
 
 #[cfg(not(windows))]
-compile_error!("The `wnf` crate supports Windows only");
+compile_error!("the `wnf` crate supports Windows only");
 
 #[macro_use]
 extern crate num_derive;

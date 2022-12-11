@@ -12,14 +12,14 @@ fn main() {
     let _subscription = state
         .subscribe(
             |accessor: DataAccessor<'_, _>| {
-                let secs = accessor.get().expect("Failed to query state data");
+                let secs = accessor.get().expect("failed to query state data");
                 let hours = secs / 3600;
                 let mins = (secs - hours * 3600) / 60;
                 println!("Your battery will last for {hours}h{mins}m, press ENTER to exit ...");
             },
             SeenChangeStamp::None,
         )
-        .expect("Failed to subscribe to state changes");
+        .expect("failed to subscribe to state changes");
 
     stdin().read_exact(&mut [0u8]).unwrap();
 }

@@ -7,20 +7,20 @@ use wnf::{ChangeStamp, OwnedState};
 fn main() {
     tracing_subscriber::fmt().with_max_level(LevelFilter::DEBUG).init();
 
-    let state = OwnedState::<u32>::create_temporary().expect("Failed to create temporary state");
+    let state = OwnedState::<u32>::create_temporary().expect("failed to create temporary state");
 
     let value = 42;
     let updated = state
         .update(&value, ChangeStamp::initial())
-        .expect("Failed to set state data");
+        .expect("failed to set state data");
     info!(updated);
 
-    let stamped_data = state.query().expect("Failed to get state data");
+    let stamped_data = state.query().expect("failed to get state data");
     info!(data = stamped_data.data(), change_stamp = %stamped_data.change_stamp());
 
     let value = 42;
     let updated = state
         .update(&value, ChangeStamp::initial())
-        .expect("Failed to set state data");
+        .expect("failed to set state data");
     info!(updated);
 }

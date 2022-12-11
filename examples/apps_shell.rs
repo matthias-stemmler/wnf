@@ -29,7 +29,7 @@ where
 {
     BorrowedState::from_state_name(state_name)
         .subscribe(ApplicationListener(listener), SeenChangeStamp::Current)
-        .expect("Failed to subscribe to state changes")
+        .expect("failed to subscribe to state changes")
 }
 
 struct ApplicationListener<F>(F);
@@ -41,7 +41,7 @@ where
     fn call(&mut self, accessor: DataAccessor<[u16]>) {
         let (data, change_stamp) = accessor
             .query_boxed()
-            .expect("Failed to query state data")
+            .expect("failed to query state data")
             .into_data_change_stamp();
 
         if let Some(application) = OsString::from_wide(&data).to_string_lossy().strip_prefix("e:") {

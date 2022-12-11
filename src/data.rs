@@ -22,8 +22,8 @@ use std::fmt::{Display, Formatter};
 /// }
 ///
 /// // Here we could have used any type `T: NoUninit` in place of `u32`
-/// let state = OwnedState::<u32>::create_temporary().expect("Failed to create state");
-/// state.set(&42).expect("Failed to set state data");
+/// let state = OwnedState::<u32>::create_temporary().expect("failed to create state");
+/// state.set(&42).expect("failed to set state data");
 ///
 /// assert!(can_read(state));
 /// ```

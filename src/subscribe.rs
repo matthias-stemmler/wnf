@@ -106,19 +106,19 @@ where
     /// use wnf::{DataAccessor, OwnedState, SeenChangeStamp};
     ///
     /// let state = OwnedState::create_temporary().unwrap();
-    /// state.set(&0).expect("Failed to set state data");
+    /// state.set(&0).expect("failed to set state data");
     ///
     /// let _subscripton = state
     ///     .subscribe(
     ///         |accessor: DataAccessor<_>| {
-    ///             let value = accessor.get().expect("Failed to get state data");
+    ///             let value = accessor.get().expect("failed to get state data");
     ///             println!("State data updated: {value}");
     ///         },
     ///         SeenChangeStamp::Current,
     ///     )
-    ///     .expect("Failed to subscribe to state updates");
+    ///     .expect("failed to subscribe to state updates");
     ///
-    /// state.set(&1).expect("Failed to set state data");
+    /// state.set(&1).expect("failed to set state data");
     /// ```
     ///
     /// This prints:

@@ -40,7 +40,7 @@ pub fn test_main(tests: Vec<Trial>) -> ExitCode {
         Some("1") => match run_tests_as_system(tests) {
             Ok(conclusion) => conclusion.exit(),
             Err(err) => {
-                eprintln!("Failed to run tests as system: {err}");
+                eprintln!("failed to run tests as system: {err}");
                 ExitCode::FAILURE
             }
         },

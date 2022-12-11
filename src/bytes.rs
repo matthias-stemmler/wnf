@@ -35,9 +35,9 @@ use std::num;
 /// derive_from_bytemuck_v1!(AnyBitPattern for MyType);
 /// derive_from_bytemuck_v1!(NoUninit for MyType);
 ///
-/// let state: OwnedState<MyType> = OwnedState::create_temporary().expect("Failed to create state");
-/// state.set(&MyType(42)).expect("Failed to update state data");
-/// let data = state.get().expect("Failed to query state data");
+/// let state: OwnedState<MyType> = OwnedState::create_temporary().expect("failed to create state");
+/// state.set(&MyType(42)).expect("failed to update state data");
+/// let data = state.get().expect("failed to query state data");
 ///
 /// assert_eq!(data.0, 42);
 /// # }
@@ -57,9 +57,9 @@ use std::num;
 /// derive_from_zerocopy!(AnyBitPattern for MyType);
 /// derive_from_zerocopy!(NoUninit for MyType);
 ///
-/// let state: OwnedState<MyType> = OwnedState::create_temporary().expect("Failed to create state");
-/// state.set(&MyType(42)).expect("Failed to update state data");
-/// let data = state.get().expect("Failed to query state data");
+/// let state: OwnedState<MyType> = OwnedState::create_temporary().expect("failed to create state");
+/// state.set(&MyType(42)).expect("failed to update state data");
+/// let data = state.get().expect("failed to query state data");
 ///
 /// assert_eq!(data.0, 42);
 /// # }
@@ -148,9 +148,9 @@ unsafe impl<T, const N: usize> AnyBitPattern for [T; N] where T: AnyBitPattern {
 /// derive_from_bytemuck_v1!(CheckedBitPattern for MyType);
 /// derive_from_bytemuck_v1!(NoUninit for MyType);
 ///
-/// let state: OwnedState<MyType> = OwnedState::create_temporary().expect("Failed to create state");
-/// state.set(&MyType(true)).expect("Failed to update state data");
-/// let data = state.get().expect("Failed to query state data");
+/// let state: OwnedState<MyType> = OwnedState::create_temporary().expect("failed to create state");
+/// state.set(&MyType(true)).expect("failed to update state data");
+/// let data = state.get().expect("failed to query state data");
 ///
 /// assert!(data.0);
 /// # }
@@ -231,9 +231,9 @@ unsafe impl CheckedBitPattern for bool {
 /// derive_from_bytemuck_v1!(NoUninit for MyType);
 /// derive_from_bytemuck_v1!(AnyBitPattern for MyType);
 ///
-/// let state: OwnedState<MyType> = OwnedState::create_temporary().expect("Failed to create state");
-/// state.set(&MyType(42)).expect("Failed to update state data");
-/// let data = state.get().expect("Failed to query state data");
+/// let state: OwnedState<MyType> = OwnedState::create_temporary().expect("failed to create state");
+/// state.set(&MyType(42)).expect("failed to update state data");
+/// let data = state.get().expect("failed to query state data");
 ///
 /// assert_eq!(data.0, 42);
 /// # }
@@ -253,9 +253,9 @@ unsafe impl CheckedBitPattern for bool {
 /// derive_from_zerocopy!(NoUninit for MyType);
 /// derive_from_zerocopy!(AnyBitPattern for MyType);
 ///
-/// let state: OwnedState<MyType> = OwnedState::create_temporary().expect("Failed to create state");
-/// state.set(&MyType(42)).expect("Failed to update state data");
-/// let data = state.get().expect("Failed to query state data");
+/// let state: OwnedState<MyType> = OwnedState::create_temporary().expect("failed to create state");
+/// state.set(&MyType(42)).expect("failed to update state data");
+/// let data = state.get().expect("failed to query state data");
 ///
 /// assert_eq!(data.0, 42);
 /// # }
@@ -467,7 +467,7 @@ macro_rules! derive_from_bytemuck_v1 {
 
     ($trait:ident for $type:ty) => {
         compile_error!(concat!(
-            "Trait must be one of AnyBitPattern, CheckedBitPattern, NoUninit (found: ",
+            "trait must be one of AnyBitPattern, CheckedBitPattern, NoUninit (found: ",
             stringify!($trait),
             ")"
         ));
@@ -543,7 +543,7 @@ macro_rules! derive_from_zerocopy {
 
     ($trait:ident for $type:ty) => {
         compile_error!(concat!(
-            "Trait must be one of AnyBitPattern, NoUninit (found: ",
+            "trait must be one of AnyBitPattern, NoUninit (found: ",
             stringify!($trait),
             ")"
         ));

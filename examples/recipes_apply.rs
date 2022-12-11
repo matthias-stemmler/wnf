@@ -10,8 +10,8 @@ use wnf::OwnedState;
 fn main() {
     tracing_subscriber::fmt().with_max_level(LevelFilter::DEBUG).init();
 
-    let state = Arc::new(OwnedState::<u32>::create_temporary().expect("Failed to create temporary state"));
-    state.set(&0).expect("Failed to set state data");
+    let state = Arc::new(OwnedState::<u32>::create_temporary().expect("failed to create temporary state"));
+    state.set(&0).expect("failed to set state data");
 
     let mut handles = Vec::new();
 
@@ -22,15 +22,15 @@ fn main() {
             for _ in 0..5 {
                 state
                     .apply(|value| value + 1)
-                    .expect("Failed to apply transformation to state data");
+                    .expect("failed to apply transformation to state data");
             }
         }));
     }
 
     for handle in handles {
-        handle.join().expect("Failed to join thread");
+        handle.join().expect("failed to join thread");
     }
 
-    let data = state.get().expect("Failed to get state data");
+    let data = state.get().expect("failed to get state data");
     info!(data);
 }
