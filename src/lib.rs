@@ -12,7 +12,7 @@
 //! This crate provides safe Rust abstractions over (a part of) this API. If you are looking for raw bindings to the
 //! API, take a look at the [`ntapi`](https://docs.rs/ntapi/latest/ntapi/) crate.
 //!
-//! Note that while great care was taken in making these abstractions memory safe, there cannot be a guarantee due to
+//! Note that while great care was taken in making these abstractions memory-safe, there cannot be a guarantee due to
 //! the undocumented nature of the API.
 //!
 //! This is a Windows-only crate and will fail to compile on other platforms. If you target multiple platforms, it is
@@ -128,8 +128,49 @@
 //!
 //! # Representing state data
 //!
-//! --Traits, Safe transmute, macros for bytemuck/zerocopy--
-//! -- Note that state data should be initialized upon creation
+//! The types [`OwnedState<T>`] and [`BorrowedState<'_, T>`] are generic over a type `T` that describes the shape of the
+//! data associated with the state.
+//!
+//! The state types themselves impose no trait bounds on the data type. However, in order for querying or updating state
+//! data to be memory-safe, the data type needs to satisfy certain conditions:
+//! - Querying state data as a `T` requires that any byte slice whose length is the size of `T` represent a valid `T` or
+//!   that it can at least be checked at runtime whether it represents a valid `T`.
+//! - Updating state data from a `T` requires that the type `T` contain no uninitialized (i.e. padding) bytes.
+//!
+//! These conditions cannot be checked at runtime and hence need to be encoded in the Rust type system.
+//!
+//! Note that querying state data as a `T` also requires that the size of the state data match the size of `T` in the
+//! first place, but this condition can be checked at runtime. In fact, the data type can also be a slice type `[T]`, in
+//! which case the size of the state data is required to be a multiple of the size of `T`.
+//!
+//! Defining how to properly encode the above conditions in the type system is part of the scope of the
+//! [Project "safe transmute"](https://github.com/rust-lang/project-safe-transmute), which is still in
+//! [RFC](https://github.com/jswrenn/project-safe-transmute/blob/rfc/rfcs/0000-safe-transmute.md#safe-transmute-rfc)
+//! stage. However, there are various third-party crates that define (unsafe) traits encoding the above conditions,
+//! among them being the [bytemuck](https://docs.rs/bytemuck/1/bytemuck) and
+//! [zerocopy](https://docs.rs/zerocopy/0/zerocopy) crates. Both of them implement the appropriate traits for many
+//! standard types and also provide macros to derive them for your own types (checking at compile-time whether a type
+//! satisfies the necessary conditions), enabling you to avoid unsafe code in most cases.
+//!
+//! The [`wnf`](crate) crate does not have a hard dependency on any of these crates. Instead, it defines its own
+//! (unsafe) traits that are modelled after the traits from the [bytemuck](https://docs.rs/bytemuck/1/bytemuck) crate
+//! with the same names:
+//! - [`AnyBitPattern`] and [`CheckedBitPattern`] encoding the requirements for querying state data
+//! - [`NoUninit`] encoding the requirements for updating state data
+//!
+//! These traits are already implemented for many standard types. In case your code already makes use of the
+//! [bytemuck](https://docs.rs/bytemuck/1/bytemuck) or [zerocopy](https://docs.rs/zerocopy/0/zerocopy) crate or you want
+//! to take advantage of the derive macros provided by those crates, you can do the following:
+//! - Enable the [`bytemuck_v1`] or [`zerocopy`] feature or the [`wnf`](crate) crate (producing a dependency on
+//!   [bytemuck](https://docs.rs/bytemuck/1/bytemuck) v1, respectively [zerocopy](https://docs.rs/zerocopy/0/zerocopy))
+//! - Implement the appropriate trait from one of these crates for your type, e.g. by using a derive macro
+//! - Derive the corresponding trait from the [`wnf`](crate) crate using the [`derive_from_bytemuck_v1`] respectively
+//!   [`derive_from_zerocopy`] macros. See the documentations of these macros for examples.
+//! 
+//! If you want to be able to support arbitrary state data without any restriction on the size (apart from the upper
+//! bound of 4KB), you can always use a byte slice `[u8]` as the data type. In the rare case that you want to query a
+//! state without caring about the data at all (e.g. if you want to check if you have the right permissions to query the
+//! state), you can use the [`OpaqueData`] type.
 //!
 //! # Tracing
 //!

@@ -163,8 +163,8 @@ impl TryIntoSecurityDescriptor for UnspecifiedSecurityDescriptor {
 ///   [`BoxedSecurityDescriptor::create_everyone_generic_all`]
 /// - [`type_id`](StateCreation::type_id): Optional, default: none
 ///
-/// Due to type state, the [`StateCreation::create_owned`] and [`StateCreation::create_static`] methods are only
-/// available once the mandatory options have been configured.
+/// Note that the [`StateCreation::create_owned`] and [`StateCreation::create_static`] methods are only available once
+/// the mandatory options have been configured.
 ///
 /// # Example
 /// ```
@@ -195,6 +195,10 @@ impl TryIntoSecurityDescriptor for UnspecifiedSecurityDescriptor {
 ///
 /// In order to quickly create a temporary machine-scoped state (e.g. for testing purposes), consider using the
 /// [`OwnedState::create_temporary`] or [`BorrowedState::create_temporary`] methods.
+///
+/// Note that a newly created state is initialized with data of size zero. This means that unless the data type `T` is
+/// zero-sized or a slice type, you need to update the state data with a value of type `T` before querying it for the
+/// first time.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct StateCreation<L, S, SD> {
     // mandatory fields
