@@ -388,7 +388,10 @@ where
     ///
     /// The returned [`DataAccessor<'a, U>`] represents the same underlying data, but treats them as being of a
     /// different type `U`.
-    pub const fn cast<U>(self) -> DataAccessor<'a, U> {
+    pub const fn cast<U>(self) -> DataAccessor<'a, U>
+    where
+        U: ?Sized,
+    {
         DataAccessor {
             data: self.data,
             _marker: PhantomData,

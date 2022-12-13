@@ -1,11 +1,11 @@
 use wnf::{
-    BorrowedState, BoxedSecurityDescriptor, CreatableStateLifetime, DataScope, OpaqueData, OwnedState, StateCreation,
+    BorrowedState, BoxedSecurityDescriptor, CreatableStateLifetime, DataScope, OwnedState, StateCreation,
     StateLifetime, StateNameDescriptor, MAXIMUM_STATE_SIZE,
 };
 
 #[test]
 fn owned_state_create_temporary() {
-    let state = OwnedState::<OpaqueData>::create_temporary().unwrap();
+    let state = OwnedState::<()>::create_temporary().unwrap();
     let state_name_descriptor: StateNameDescriptor = state.state_name().try_into().unwrap();
 
     assert_eq!(state_name_descriptor.version, 1);
@@ -17,7 +17,7 @@ fn owned_state_create_temporary() {
 
 #[test]
 fn borrowed_state_create_temporary() {
-    let state = BorrowedState::<OpaqueData>::create_temporary().unwrap();
+    let state = BorrowedState::<()>::create_temporary().unwrap();
     let state_name_descriptor: StateNameDescriptor = state.state_name().try_into().unwrap();
 
     assert_eq!(state_name_descriptor.version, 1);
@@ -53,7 +53,7 @@ fn create_state_with_scope_test(scope: DataScope) {
     let state = StateCreation::new()
         .lifetime(CreatableStateLifetime::Temporary)
         .scope(scope)
-        .create_owned::<OpaqueData>()
+        .create_owned::<()>()
         .unwrap();
 
     let state_name_descriptor: StateNameDescriptor = state.state_name().try_into().unwrap();
@@ -84,14 +84,14 @@ fn create_state_with_maximum_state_size_at_limit() {
         .lifetime(CreatableStateLifetime::Temporary)
         .scope(DataScope::Machine)
         .maximum_state_size(MAXIMUM_STATE_SIZE)
-        .create_owned::<OpaqueData>()
+        .create_owned::<()>()
         .is_ok());
 
     assert!(StateCreation::new()
         .lifetime(CreatableStateLifetime::Temporary)
         .scope(DataScope::Machine)
         .maximum_state_size(MAXIMUM_STATE_SIZE + 1)
-        .create_owned::<OpaqueData>()
+        .create_owned::<()>()
         .is_err());
 }
 
@@ -187,20 +187,20 @@ fn create_state_with_type_id() {
 
 #[test]
 fn owned_state_delete() {
-    let state = OwnedState::<OpaqueData>::create_temporary().unwrap();
+    let state = OwnedState::<()>::create_temporary().unwrap();
     let state_name = state.state_name();
 
     assert!(state.exists().unwrap());
 
     state.delete().unwrap();
 
-    let borrowed_state_after_deletion = BorrowedState::<OpaqueData>::from_state_name(state_name);
+    let borrowed_state_after_deletion = BorrowedState::<()>::from_state_name(state_name);
     assert!(!borrowed_state_after_deletion.exists().unwrap());
 }
 
 #[test]
 fn borrowed_state_delete() {
-    let state = BorrowedState::<OpaqueData>::create_temporary().unwrap();
+    let state = BorrowedState::<()>::create_temporary().unwrap();
 
     assert!(state.exists().unwrap());
 

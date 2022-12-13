@@ -1,4 +1,4 @@
-use wnf::{CreatableStateLifetime, DataScope, OpaqueData, StateCreation, StateLifetime, StateNameDescriptor};
+use wnf::{CreatableStateLifetime, DataScope, StateCreation, StateLifetime, StateNameDescriptor};
 
 devutils::system_tests![
     can_create_permanent_shared_objects_returns_true_when_run_as_system,
@@ -16,7 +16,7 @@ fn create_state_with_persistent_lifetime() {
     let state = StateCreation::new()
         .lifetime(CreatableStateLifetime::Persistent)
         .scope(DataScope::Machine)
-        .create_owned::<OpaqueData>()
+        .create_owned::<()>()
         .unwrap();
 
     let state_name_descriptor: StateNameDescriptor = state.state_name().try_into().unwrap();
@@ -32,7 +32,7 @@ fn create_state_with_permanent_lifetime_and_non_persistent_data() {
     let state = StateCreation::new()
         .lifetime(CreatableStateLifetime::Permanent { persist_data: false })
         .scope(DataScope::Machine)
-        .create_owned::<OpaqueData>()
+        .create_owned::<()>()
         .unwrap();
 
     let state_name_descriptor: StateNameDescriptor = state.state_name().try_into().unwrap();
@@ -48,7 +48,7 @@ fn create_state_with_permanent_lifetime_and_persistent_data() {
     let state = StateCreation::new()
         .lifetime(CreatableStateLifetime::Permanent { persist_data: true })
         .scope(DataScope::Machine)
-        .create_owned::<OpaqueData>()
+        .create_owned::<()>()
         .unwrap();
 
     let state_name_descriptor: StateNameDescriptor = state.state_name().try_into().unwrap();
@@ -64,7 +64,7 @@ fn create_state_with_process_scope() {
     let state = StateCreation::new()
         .lifetime(CreatableStateLifetime::Persistent)
         .scope(DataScope::Process)
-        .create_owned::<OpaqueData>()
+        .create_owned::<()>()
         .unwrap();
 
     let state_name_descriptor: StateNameDescriptor = state.state_name().try_into().unwrap();

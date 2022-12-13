@@ -55,19 +55,17 @@ pub trait Read<D>: private::Sealed + Send + 'static {
 }
 
 impl Read<OpaqueData> for OpaqueData {
-    unsafe fn from_buffer(_: *const c_void, _: usize) -> io::Result<OpaqueData> {
-        // We just produce an `OpaqueData`, ignoring the buffer
-        Ok(OpaqueData::new())
+    unsafe fn from_buffer(_: *const c_void, size: usize) -> io::Result<OpaqueData> {
+        Ok(OpaqueData::new(size))
     }
 
     unsafe fn from_reader<F, Meta>(mut reader: F) -> io::Result<(OpaqueData, Meta)>
     where
         F: FnMut(*mut c_void, usize) -> io::Result<(usize, Meta)>,
     {
-        // We have to invoke the reader in order to obtain the metadata
         // The precondition of `reader` is satisfied because `NonNull::dangling()` is valid for zero-size accesses
-        let (_, meta) = reader(NonNull::dangling().as_ptr(), 0)?;
-        Ok((OpaqueData::new(), meta))
+        let (size, meta) = reader(NonNull::dangling().as_ptr(), 0)?;
+        Ok((OpaqueData::new(size), meta))
     }
 }
 
@@ -464,7 +462,7 @@ mod tests {
         // - `ptr` and `size` come from a preallocated buffer
         let result = unsafe { OpaqueData::from_buffer(ptr, size) };
 
-        assert!(result.is_ok());
+        assert!(matches!(result, Ok(data) if data.size() == 2));
     }
 
     #[test]
@@ -472,7 +470,7 @@ mod tests {
         // SAFETY: See `reader`
         let result = unsafe { OpaqueData::from_reader(reader(&[0xFF; 2], "Meta")) };
 
-        assert!(matches!(result, Ok((_, "Meta"))));
+        assert!(matches!(result, Ok((data, "Meta")) if data.size() == 2));
     }
 
     #[test]

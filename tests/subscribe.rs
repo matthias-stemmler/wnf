@@ -205,16 +205,26 @@ fn subscribe_opaque_data() {
 
     let _subscription = state.subscribe(
         move |accessor: DataAccessor<_>| {
-            tx.send(accessor.change_stamp()).unwrap();
+            tx.send(accessor.query().unwrap()).unwrap();
         },
         SeenChangeStamp::None,
     );
 
     state.as_state().cast::<u32>().set(&42).unwrap();
-    let change_stamp = rx.recv_timeout(Duration::from_secs(1)).unwrap();
+    let (data, change_stamp) = rx
+        .recv_timeout(Duration::from_secs(1))
+        .unwrap()
+        .into_data_change_stamp();
+
+    assert_eq!(data.size(), 4);
     assert_eq!(change_stamp, 1);
 
     state.as_state().cast::<u16>().set(&43).unwrap();
-    let change_stamp = rx.recv_timeout(Duration::from_secs(1)).unwrap();
+    let (data, change_stamp) = rx
+        .recv_timeout(Duration::from_secs(1))
+        .unwrap()
+        .into_data_change_stamp();
+
+    assert_eq!(data.size(), 2);
     assert_eq!(change_stamp, 2);
 }

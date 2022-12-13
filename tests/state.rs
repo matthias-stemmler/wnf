@@ -1,4 +1,4 @@
-use wnf::{BorrowedState, OpaqueData, OwnedState};
+use wnf::{BorrowedState, OwnedState};
 
 #[test]
 fn owned_state_drop_deletes_state() {
@@ -28,6 +28,6 @@ fn owned_state_cast_does_not_delete_state() {
     let state = OwnedState::<()>::create_temporary().unwrap();
     assert!(state.exists().unwrap());
 
-    let state = state.cast::<OpaqueData>();
+    let state = state.cast::<()>();
     assert!(state.exists().unwrap());
 }

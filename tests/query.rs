@@ -63,5 +63,8 @@ fn query_opaque_data() {
     state.set(&12345678).unwrap();
     let state: OwnedState<OpaqueData> = state.cast();
 
-    assert_eq!(state.query().unwrap().change_stamp(), 1);
+    let (data, change_stamp) = state.query().unwrap().into_data_change_stamp();
+
+    assert_eq!(data.size(), 4);
+    assert_eq!(change_stamp, 1);
 }

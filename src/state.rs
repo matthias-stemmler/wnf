@@ -58,7 +58,10 @@ where
     ///
     /// The returned [`OwnedState<U>`] represents the same underlying state, but treats it as containing data of
     /// a different type `U`.
-    pub fn cast<U>(self) -> OwnedState<U> {
+    pub fn cast<U>(self) -> OwnedState<U>
+    where
+        U: ?Sized,
+    {
         OwnedState::from_raw(self.into_raw().cast())
     }
 
@@ -164,7 +167,10 @@ where
     ///
     /// The returned [`BorrowedState<'a, U>`] represents the same underlying state, but treats it as containing
     /// data of a different type `U`.
-    pub const fn cast<U>(self) -> BorrowedState<'a, U> {
+    pub const fn cast<U>(self) -> BorrowedState<'a, U>
+    where
+        U: ?Sized,
+    {
         BorrowedState::from_raw(self.raw.cast())
     }
 
@@ -380,7 +386,10 @@ where
     ///
     /// The returned [`RawState<U>`] represents the same underlying state, but treats it as containing data of
     /// a different type `U`.
-    pub(crate) const fn cast<U>(self) -> RawState<U> {
+    pub(crate) const fn cast<U>(self) -> RawState<U>
+    where
+        U: ?Sized,
+    {
         RawState::from_state_name_and_type_id(self.state_name, self.type_id)
     }
 }

@@ -6,41 +6,58 @@ use std::borrow::{Borrow, BorrowMut};
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
-/// Placeholder for data of a state that you don't care about
+/// Placeholder for state data whose content is irrelevant
 ///
-/// This type is zero-sized but can be "read" from any state regardless of the size of the state's actual data. This
-/// is useful, for instance, if you want to check if a state can be read from without knowing what its actual data looks
-/// like:
+/// This type can be "read" from any state regardless of the size of the state data. It doesn't contain the actual data
+/// but just their size, which can be obtained via the [`OpaqueData::size`] method. This is useful on different
+/// occasions, for instance:
+/// - If you want to query the size of state data without querying the actual data:
 /// ```
 /// # use std::io;
-/// # use wnf::{AsState, OwnedState, ChangeStamp, OpaqueData, StampedData};
+/// # use wnf::{AsState, OwnedState, OpaqueData};
 /// #
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-/// fn can_read(state: impl AsState) -> bool {
-///     // If we replaced `OpaqueData` by, say, `()`, this would only work if the data was actually zero-sized
-///     // With `OpaqueData`, it works in any case
-///     state.as_state().cast::<OpaqueData>().get().is_ok()
-/// }
+/// let state = OwnedState::<u32>::create_temporary()?;
+/// state.set(&42)?;
 ///
+/// assert_eq!(state.as_state().cast::<OpaqueData>().get()?.size(), 4);
+///
+/// // Less efficient alternative:
+/// assert_eq!(state.as_state().cast::<[u8]>().get_boxed()?.len(), 4);
+/// # Ok(()) }
+/// ```
+/// - If you want to check if a state can be read without querying its actual data:
+/// ```
+/// # use std::io;
+/// # use wnf::{OwnedState, OpaqueData};
+/// #
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// // Here we could have used any type `T: NoUninit` in place of `u32`
 /// let state = OwnedState::<u32>::create_temporary()?;
 /// state.set(&42)?;
 ///
-/// assert!(can_read(state));
+/// let can_read = state.cast::<OpaqueData>().get().is_ok();
+///
+/// assert!(can_read);
 /// # Ok(()) }
 /// ```
 ///
-/// Another use case is reading the change stamp of a state without knowing what the actual data looks like, but that is
+/// Another use case is reading the change stamp of a state without knowing what the actual data look like, but that is
 /// already implemented in [`OwnedState::change_stamp`](crate::state::OwnedState::change_stamp).
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct OpaqueData {
-    _private: (),
+    size: usize,
 }
 
 impl OpaqueData {
     /// Creates a new [`OpaqueData`]
-    pub(crate) const fn new() -> Self {
-        Self { _private: () }
+    pub(crate) const fn new(size: usize) -> Self {
+        Self { size }
+    }
+
+    /// Returns the size in bytes of this [`OpaqueData`]
+    pub const fn size(self) -> usize {
+        self.size
     }
 }
 

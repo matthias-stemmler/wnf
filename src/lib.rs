@@ -161,16 +161,28 @@
 //! These traits are already implemented for many standard types. In case your code already makes use of the
 //! [bytemuck](https://docs.rs/bytemuck/1/bytemuck) or [zerocopy](https://docs.rs/zerocopy/0/zerocopy) crate or you want
 //! to take advantage of the derive macros provided by those crates, you can do the following:
-//! - Enable the [`bytemuck_v1`] or [`zerocopy`] feature or the [`wnf`](crate) crate (producing a dependency on
-//!   [bytemuck](https://docs.rs/bytemuck/1/bytemuck) v1, respectively [zerocopy](https://docs.rs/zerocopy/0/zerocopy))
+//! - Enable the [`bytemuck_v1`] or [`zerocopy`] feature or the [`wnf`](crate) crate (producing a dependency on [bytemuck](https://docs.rs/bytemuck/1/bytemuck)
+//!   v1, respectively [zerocopy](https://docs.rs/zerocopy/0/zerocopy))
 //! - Implement the appropriate trait from one of these crates for your type, e.g. by using a derive macro
 //! - Derive the corresponding trait from the [`wnf`](crate) crate using the [`derive_from_bytemuck_v1`] respectively
 //!   [`derive_from_zerocopy`] macros. See the documentations of these macros for examples.
-//! 
+//!
+//! All methods that query state data require the data type to either be a type `T` that implements
+//! [`CheckedBitPattern`] or to be a slice type `[T]` where the element type `T` implements [`CheckedBitPattern`]. In
+//! addition, they exist in non-boxed and boxed variants, e.g. [`OwnedState::get`] and [`OwnedState::get_boxed`]. The
+//! non-boxed variants query the data by value (i.e. on the stack), but require the data type `T` to be [`Sized`].
+//! The boxed variants work for both sized and unsized data types `T` and query the data as a [`Box<T>`] (i.e. allocated
+//! on the heap). All of this is encapsulated in the [`Read<T>`] trait where
+//! - `T: Read<T>` means that `T` can be read by value
+//! - `T: Read<Box<T>>` means that `T` can be read as a box
+//!
+//! Note that methods that *update* state data don't make a distinction between sized and unsized types/slices or boxed
+//! and non-boxed variants because they take the data by reference.
+//!
 //! If you want to be able to support arbitrary state data without any restriction on the size (apart from the upper
 //! bound of 4KB), you can always use a byte slice `[u8]` as the data type. In the rare case that you want to query a
-//! state without caring about the data at all (e.g. if you want to check if you have the right permissions to query the
-//! state), you can use the [`OpaqueData`] type.
+//! state without caring about the content of the data (e.g. if you just want to query its size or if you want to check
+//! if you have the right permissions to query the state), you can use the [`OpaqueData`] type.
 //!
 //! # Tracing
 //!
