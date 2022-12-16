@@ -26,8 +26,8 @@ wnf = "0.1.0"
 ```
 
 Some functionality of this crate is only available if the corresponding
-[features](https://doc.rust-lang.org/cargo/reference/features.html) are enabled. For example, in order to enable the
-`subscribe` feature:
+[feature flags](https://doc.rust-lang.org/cargo/reference/features.html) are enabled. For example, in order to enable
+the `subscribe` feature:
 
 ```toml
 [dependencies]

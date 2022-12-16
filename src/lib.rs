@@ -186,11 +186,57 @@
 //!
 //! # Tracing
 //!
-//! --TODO--
+//! This crate emits diagnostic information using the [`tracing`](https://docs.rs/tracing/latest/tracing) crate whenever there is an interaction with the WNF
+//! API. For guidance on how to subscribe to this information, consult the [`tracing`](https://docs.rs/tracing/latest/tracing) documentation. The general
+//! structure is like this:
+//! - For every invocation of a WNF API function by the [`wnf`](crate) crate, an [`Event`](https://docs.rs/tracing/latest/tracing/struct.Event.html)
+//!   with the following payload is emitted:
+//!   - The [`target`](https://docs.rs/tracing/latest/tracing/struct.Metadata.html#method.target) is always
+//!     `wnf::ntapi`.
+//!   - The [`level`](https://docs.rs/tracing/latest/tracing/struct.Metadata.html#method.level) is [`DEBUG`](https://docs.rs/tracing/latest/tracing/struct.Level.html#associatedconstant.DEBUG).
+//!   - The message is the name of the WNF API routine.
+//!   - The [`fields`](https://docs.rs/tracing/latest/tracing/struct.Metadata.html#method.fields) consist of three
+//!     groups:
+//!     - `result`: The result (return code) of the invocation
+//!     - `input.*`: Inputs of the invocation, depending on the routine
+//!     - `output.*`: Outputs of the invocation, depending on the routing
+//! - For every invocation of a callback function in the [`wnf`](crate) crate, a [`Span`](https://docs.rs/tracing/latest/tracing/struct.Span.html)
+//!   with the following payload is emitted:
+//!   - The [`target`](https://docs.rs/tracing/latest/tracing/struct.Metadata.html#method.target) is always
+//!     `wnf::ntapi`.
+//!   - The [`level`](https://docs.rs/tracing/latest/tracing/struct.Metadata.html#method.level) is [`DEBUG`](https://docs.rs/tracing/latest/tracing/struct.Level.html#associatedconstant.TRACE).
+//!   - The [`name`](https://docs.rs/tracing/latest/tracing/struct.Metadata.html#method.name) is `WnfUserCallback`.
+//!   - The [`fields`](https://docs.rs/tracing/latest/tracing/struct.Metadata.html#method.fields) are all named
+//!     `input.*` and contain the inputs of the invocation.
+//!
+//! See the `examples` folder in the crate repository for examples on how to subscribe to these events and spans.
 //!
 //! # Cargo features
 //!
-//! --TODO--
+//! This crate has various [feature flags](https://doc.rust-lang.org/cargo/reference/features.html), none of which are
+//! enabled by default, that fall into two groups:
+//!
+//! - Features enabling compatibility with other crates:
+//!   - `bytemuck_v1`: Enables the optional [bytemuck](https://docs.rs/bytemuck/1/bytemuck) dependency and provides the
+//!     [`derive_from_bytemuck_v1`] macro
+//!   - `uuid`: Enables the optional [uuid](https://docs.rs/uuid/1/uuid) dependency and provides conversions between the
+//!     [`uuid::Uuid`](https://docs.rs/uuid/1.2.2/uuid/struct.Uuid.html) and [`wnf::GUID`] types
+//!   - `winapi`: Enables the optional [winapi](https://docs.rs/winapi/latest/winapi) dependency and provides conversions
+//!     between the [`winapi::shared::guiddef::GUID`](https://docs.rs/winapi/latest/winapi/shared/guiddef/struct.GUID.html)
+//!     and [`wnf::GUID`] types
+//!   - `windows`: Provides conversions between the [`windows::core::GUID`](https://docs.rs/windows/latest/windows/core/struct.GUID.html)
+//!     and [`wnf::GUID`] types (the `windows` dependency is not optional because it is used by [`wnf`](crate)
+//!     internally)
+//!   - `windows_permissions`: Enables the optional [windows-permissions](https://docs.rs/windows-permissions/latest/windows_permissions)
+//!     dependency and enables the use of [`windows_permissions::SecurityDescriptor`](https://docs.rs/windows-permissions/latest/windows_permissions/struct.SecurityDescriptor.html)
+//!     when creating a state
+//!   - `zerocopy`: Enables the optional [zerocopy](https://docs.rs/zerocopy/0/zerocopy) dependency and provides the
+//!     [`derive_from_zerocopy`] macro
+//!
+//! - Features enabling functionality that uses the higher-level `Rtl*` functions from `ntdll.dll` (see above):
+//!   - `subscribe`: Enables subscribing to state updates
+//!   - `wait_blocking`: Enables blocking waits for state updates, implies the `subscribe` feature
+//!   - `wait_async`: Enables async waits for state updates, implies the `subscribe` feature
 //!
 //! # Stability
 //!
