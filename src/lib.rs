@@ -184,6 +184,100 @@
 //! state without caring about the content of the data (e.g. if you just want to query its size or if you want to check
 //! if you have the right permissions to query the state), you can use the [`OpaqueData`] type.
 //!
+//! # Examples
+//!
+//! For more detailed examples, see the `examples` folder in the crate repository. Some common use cases:
+//!
+//! ## Creating a state and querying/updating its data
+//!
+//! ```
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! use wnf::{CreatableStateLifetime, DataScope, OwnedState, StateCreation};
+//!
+//! let state: OwnedState<u32> = StateCreation::new()
+//!     .lifetime(CreatableStateLifetime::Temporary)
+//!     .scope(DataScope::Machine)
+//!     .create_owned()?;
+//!
+//! state.set(&42)?;
+//!
+//! assert_eq!(state.get()?, 42);
+//! # Ok(()) }
+//! ```
+//!
+//! ## Reading a wide string from a well-known state
+//!
+//! ```
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! use std::ffi::{OsStr, OsString};
+//! use std::os::windows::ffi::OsStringExt;
+//!
+//! use wnf::BorrowedState;
+//!
+//! const WNF_SHEL_DESKTOP_APPLICATION_STARTED: u64 = 0x0D83063EA3BE5075;
+//!
+//! let state = BorrowedState::<[u16]>::from_state_name(WNF_SHEL_DESKTOP_APPLICATION_STARTED);
+//!
+//! let last_application_started_wide = {
+//!     let data = state.get_boxed()?;
+//!     OsString::from_wide(&data)
+//! };
+//!
+//! println!("{}", last_application_started_wide.to_string_lossy());
+//! # Ok(()) }
+//! ```
+//!
+//! ## Subscribing to a well-known state
+//!
+//! This requires the `subscribe` feature flag.
+//! ```
+//! # #![no_std]
+//! #
+//! # extern crate std as real_std;
+//! #
+//! # mod std {
+//! #     pub(crate) mod io {
+//! #         pub(crate) trait Read {}
+//! #         pub(crate) struct Stdin;
+//! #
+//! #         impl Stdin {
+//! #             pub(crate) fn read_exact(&self, _: &mut [u8]) -> real_std::io::Result<()> {
+//! #                 Ok(())
+//! #             }
+//! #         }
+//! #
+//! #         pub(crate) fn stdin() -> Stdin {
+//! #             Stdin
+//! #         }
+//! #     }
+//! # }
+//! #
+//! # macro_rules! println {
+//! #     ($($arg:tt)*) => { }
+//! # }
+//! #
+//! # fn main() -> Result<(), real_std::boxed::Box<dyn real_std::error::Error>> {
+//! use std::io::{stdin, Read};
+//!
+//! use wnf::{BorrowedState, DataAccessor, OwnedState, SeenChangeStamp};
+//!
+//! const WNF_PO_DISCHARGE_ESTIMATE: u64 = 0x41C6013DA3BC5075;
+//!
+//! let state = BorrowedState::<u64>::from_state_name(WNF_PO_DISCHARGE_ESTIMATE);
+//!
+//! let subscription = state.subscribe(
+//!     |accessor: DataAccessor<'_, _>| {
+//!         println!("Estimated battery duration in seconds: {}", accessor.get().unwrap());
+//!     },
+//!     SeenChangeStamp::Current,
+//! )?;
+//!
+//! stdin().read_exact(&mut [0u8])?; // wait for keypress
+//!
+//! subscription.unsubscribe()?;
+//! # Ok(()) }
+//! ```
+//!
 //! # Tracing
 //!
 //! This crate emits diagnostic information using the [`tracing`](https://docs.rs/tracing/latest/tracing) crate whenever there is an interaction with the WNF
