@@ -425,7 +425,7 @@ where
     /// [`BorrowedState::get`], this does not involve an OS call.
     ///
     /// # Errors
-    /// Returns an error if querying fails, including the case that the queried data is not a valid `T`
+    /// Returns an error if the queried data is not a valid `T`
     pub fn get(self) -> io::Result<T> {
         self.get_as()
     }
@@ -443,7 +443,7 @@ where
     /// [`BorrowedState::query`], this does not involve an OS call.
     ///
     /// # Errors
-    /// Returns an error if querying fails, including the case that the queried data is not a valid `T`
+    /// Returns an error if the queried data is not a valid `T`
     pub fn query(self) -> io::Result<StampedData<T>> {
         self.query_as()
     }
@@ -466,7 +466,7 @@ where
     /// or [`BorrowedState::get_boxed`], this does not involve an OS call.
     ///
     /// # Errors
-    /// Returns an error if querying fails, including the case that the queried data is not a valid `T`
+    /// Returns an error if the queried data is not a valid `T`
     pub fn get_boxed(self) -> io::Result<Box<T>> {
         self.get_as()
     }
@@ -484,7 +484,7 @@ where
     /// [`OwnedState::query_boxed`] or [`BorrowedState::query_boxed`], this does not involve an OS call.
     ///
     /// # Errors
-    /// Returns an error if querying fails, including the case that the queried data is not a valid `T`
+    /// Returns an error if the queried data is not a valid `T`
     pub fn query_boxed(self) -> io::Result<StampedData<Box<T>>> {
         self.query_as()
     }
