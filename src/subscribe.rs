@@ -58,7 +58,7 @@ pub enum SeenChangeStamp {
 /// Types capable of listening to state updates
 ///
 /// Note that there is a blanket implementation of this trait for all closure types
-/// `F: FnMut(DataAccessor<T>)`, so you usually don't need to implement this trait for your own types. It is useful,
+/// `F: FnMut(DataAccessor<'_, T>)`, so you usually don't need to implement this trait for your own types. It is useful,
 /// however, if you need a state listener whose type you can name explicitly. Since closure types are anonymous, you
 /// can instead define your own type and implement [`StateListener<T>`] for it.
 pub trait StateListener<T>
@@ -67,7 +67,8 @@ where
 {
     /// Calls this state listener
     ///
-    /// The provided [`DataAccessor<T>`] can be used to obtain the state data at the time the update took place.
+    /// The provided [`DataAccessor<'_, T>`](DataAccessor) can be used to obtain the state data at the time the update
+    /// took place.
     fn call(&mut self, accessor: DataAccessor<'_, T>);
 }
 
@@ -91,9 +92,9 @@ where
     /// which has an impact on which state updates the listener is notified about. See [`SeenChangeStamp`] for the
     /// available options.
     ///
-    /// Note that the listener is automatically unsubscribed when the returned [`Subscription<'a, F>`] is dropped. In
-    /// this case, errors while unsubscribing are silently ignored. If you want to handle them explicitly, use the
-    /// [`Subscription::unsubscribe`] method, which returns an [`io::Result<()>`].
+    /// Note that the listener is automatically unsubscribed when the returned [`Subscription<'_, F>`](Subscription) is
+    /// dropped. In this case, errors while unsubscribing are silently ignored. If you want to handle them
+    /// explicitly, use the [`Subscription::unsubscribe`] method, which returns an [`io::Result<()>`](io::Result).
     ///
     /// In any case, the listener will not be called anymore after unsubscribing, even when there is an error. However,
     /// in order to maintain memory safety, in the case of an error a value the size of a [`Mutex<Option<F>>`] is leaked
@@ -295,11 +296,11 @@ where
 
 /// Handle to state data passed to state listeners
 ///
-/// Listeners receive a [`DataAccessor<'a, T>`] in their [`StateListener::call`] method. It can be used to obtain
-/// the state data at the time the update took place.
+/// Listeners receive a [`DataAccessor<'a, T>`](DataAccessor) in their [`StateListener::call`] method. It can be used to
+/// obtain the state data at the time the update took place.
 ///
-/// The lifetime parameter `'a` ties a [`DataAccessor<'a, T>`] to the lifetime of the state data, which is only valid
-/// within the scope of the call to the listener.
+/// The lifetime parameter `'a` ties a [`DataAccessor<'a, T>`](DataAccessor) to the lifetime of the state data, which is
+/// only valid within the scope of the call to the listener.
 pub struct DataAccessor<'a, T>
 where
     T: ?Sized,
@@ -384,10 +385,10 @@ impl<'a, T> DataAccessor<'a, T>
 where
     T: ?Sized,
 {
-    /// Casts the data type of this [`DataAccessor<'a, T>`] to a different type `U`
+    /// Casts the data type of this [`DataAccessor<'a, T>`](DataAccessor) to a different type `U`
     ///
-    /// The returned [`DataAccessor<'a, U>`] represents the same underlying data, but treats them as being of a
-    /// different type `U`.
+    /// The returned [`DataAccessor<'a, U>`](DataAccessor) represents the same underlying data, but treats them as being
+    /// of a different type `U`.
     pub const fn cast<U>(self) -> DataAccessor<'a, U>
     where
         U: ?Sized,
@@ -398,11 +399,11 @@ where
         }
     }
 
-    /// Queries the change stamp of this [`DataAccessor<'a, T>`]
+    /// Queries the change stamp of this [`DataAccessor<'_, T>`](DataAccessor)
     ///
     /// The change stamp returned by this method is the change stamp of the underlying state for the update that
-    /// caused the listener call to which this [`DataAccessor<'a, T>`] was passed. Note that in contrast to
-    /// [`OwnedState::change_stamp`] or [`BorrowedState::change_stamp`], this does not involve an OS call.
+    /// caused the listener call to which this [`DataAccessor<'_, T>`](DataAccessor) was passed. Note that in contrast
+    /// to [`OwnedState::change_stamp`] or [`BorrowedState::change_stamp`], this does not involve an OS call.
     pub const fn change_stamp(self) -> ChangeStamp {
         self.data.change_stamp
     }
@@ -412,7 +413,7 @@ impl<T> DataAccessor<'_, T>
 where
     T: Read<T>,
 {
-    /// Queries the data of this [`DataAccessor<'a, T>`]
+    /// Queries the data of this [`DataAccessor<'_, T>`](DataAccessor)
     ///
     /// This produces an owned `T` on the stack and hence requires `T: Sized`. In order to produce a `Box<T>` for
     /// `T: ?Sized`, use the [`get_boxed`](DataAccessor::get_boxed) method.
@@ -421,8 +422,8 @@ where
     /// stamp, use the [`query`](DataAccessor::query) method.
     ///
     /// The data returned by this method is the data of the underlying state for the update that caused the listener
-    /// call to which this [`DataAccessor<'a, T>`] was passed. Note that in contrast to [`OwnedState::get`] or
-    /// [`BorrowedState::get`], this does not involve an OS call.
+    /// call to which this [`DataAccessor<'_, T>`](DataAccessor) was passed. Note that in contrast to
+    /// [`OwnedState::get`] or [`BorrowedState::get`], this does not involve an OS call.
     ///
     /// # Errors
     /// Returns an error if the queried data is not a valid `T`
@@ -430,7 +431,7 @@ where
         self.get_as()
     }
 
-    /// Queries the data of this [`DataAccessor<'a, T>`] together with its change stamp
+    /// Queries the data of this [`DataAccessor<'_, T>`](DataAccessor) together with its change stamp
     ///
     /// This produces an owned `T` on the stack and hence requires `T: Sized`. In order to produce a `Box<T>` for
     /// `T: ?Sized`, use the [`query_boxed`](DataAccessor::query_boxed) method.
@@ -439,8 +440,8 @@ where
     /// only query the data, use the [`get`](DataAccessor::get) method.
     ///
     /// The data returned by this method is the data of the underlying state for the update that caused the listener
-    /// call to which this [`DataAccessor<'a, T>`] was passed. Note that in contrast to [`OwnedState::query`] or
-    /// [`BorrowedState::query`], this does not involve an OS call.
+    /// call to which this [`DataAccessor<'_, T>`](DataAccessor) was passed. Note that in contrast to
+    /// [`OwnedState::query`] or [`BorrowedState::query`], this does not involve an OS call.
     ///
     /// # Errors
     /// Returns an error if the queried data is not a valid `T`
@@ -453,7 +454,7 @@ impl<T> DataAccessor<'_, T>
 where
     T: Read<Box<T>> + ?Sized,
 {
-    /// Queries the data of this [`DataAccessor<'a, T>`] as a box
+    /// Queries the data of this [`DataAccessor<'_, T>`](DataAccessor) as a box
     ///
     /// This produces a [`Box<T>`]. In order to produce an owned `T` on the stack (requiring `T: Sized`), use the
     /// [`get`](DataAccessor::get) method.
@@ -462,8 +463,8 @@ where
     /// stamp, use the [`query_boxed`](DataAccessor::query_boxed) method.
     ///
     /// The data returned by this method is the data of the underlying state for the update that caused the listener
-    /// call to which this [`DataAccessor<'a, T>`] was passed. Note that in contrast to [`OwnedState::get_boxed`]
-    /// or [`BorrowedState::get_boxed`], this does not involve an OS call.
+    /// call to which this [`DataAccessor<'_, T>`](DataAccessor) was passed. Note that in contrast to
+    /// [`OwnedState::get_boxed`] or [`BorrowedState::get_boxed`], this does not involve an OS call.
     ///
     /// # Errors
     /// Returns an error if the queried data is not a valid `T`
@@ -471,7 +472,7 @@ where
         self.get_as()
     }
 
-    /// Queries the data of this [`DataAccessor<'a, T>`] as a box together with its change stamp
+    /// Queries the data of this [`DataAccessor<'_, T>`](DataAccessor) as a box together with its change stamp
     ///
     /// This produces a [`Box<T>`]. In order to produce an owned `T` on the stack (requiring `T: Sized`), use the
     /// [`query`](DataAccessor::query) method.
@@ -480,7 +481,7 @@ where
     /// to only query the data, use the [`get_boxed`](OwnedState::get_boxed) method.
     ///
     /// The data returned by this method is the data of the underlying state for the update that caused the listener
-    /// call to which this [`DataAccessor<'a, T>`] was passed. Note that in contrast to
+    /// call to which this [`DataAccessor<'_, T>`](DataAccessor) was passed. Note that in contrast to
     /// [`OwnedState::query_boxed`] or [`BorrowedState::query_boxed`], this does not involve an OS call.
     ///
     /// # Errors
@@ -494,7 +495,7 @@ impl<T> DataAccessor<'_, T>
 where
     T: ?Sized,
 {
-    /// Queries the data of this [`DataAccessor<'a, T>`] as a value of type `D` without a change stamp
+    /// Queries the data of this [`DataAccessor<'_, T>`](DataAccessor) as a value of type `D` without a change stamp
     ///
     /// If `T: Sized`, then `D` can be either `T` or `Box<T>`.
     /// If `T: !Sized`, then `D` must be `Box<T>`.
@@ -510,7 +511,8 @@ where
         unsafe { T::from_buffer(self.data.buffer, self.data.buffer_size) }
     }
 
-    /// Queries the data of this [`DataAccessor<'a, T>`] as a value of type `D` together with its change stamp
+    /// Queries the data of this [`DataAccessor<'_, T>`](DataAccessor) as a value of type `D` together with its change
+    /// stamp
     ///
     /// If `T: Sized`, then `D` can be either `T` or `Box<T>`.
     /// If `T: !Sized`, then `D` must be `Box<T>`.
@@ -529,10 +531,10 @@ where
 ///
 /// This is returned from [`OwnedState::subscribe`] and [`BorrowedState::subscribe`].
 ///
-/// Note that the listener is automatically unsubscribed when the [`Subscription<'a, F>`] is dropped. In
+/// Note that the listener is automatically unsubscribed when the [`Subscription<'_, F>`](Subscription) is dropped. In
 /// this case, errors while unsubscribing are silently ignored. If you want to handle them explicitly, use the
-/// [`Subscription::unsubscribe`] method, which returns an [`io::Result<()>`]. Note that the listener will not be
-/// called anymore after unsubscribing, even when there is an error.
+/// [`Subscription::unsubscribe`] method, which returns an [`io::Result<()>`](io::Result). Note that the listener will
+/// not be called anymore after unsubscribing, even when there is an error.
 ///
 /// If you want to keep the subscription for as long as the process is running and the state exists, use the
 /// [`Subscription::forget`] method.
@@ -543,18 +545,18 @@ pub struct Subscription<'a, F> {
 }
 
 impl<F> Subscription<'_, F> {
-    /// Forgets this [`Subscription<'_, F>`], effectively keeping it forever
+    /// Forgets this [`Subscription<'_, F>`](Subscription), effectively keeping it forever
     ///
-    /// When a [`Subscription<'a, F>`] is dropped, the listener is unsubscribed. You can avoid this behavior by
-    /// calling this method. It consumes the [`Subscription<'a, F>`] without dropping it, effectively keeping the
-    /// subscription for as long as the process is running and the state exists.
+    /// When a [`Subscription<'_, F>`](Subscription) is dropped, the listener is unsubscribed. You can avoid this
+    /// behavior by calling this method. It consumes the [`Subscription<'_, F>`](Subscription) without dropping it,
+    /// effectively keeping the subscription for as long as the process is running and the state exists.
     pub const fn forget(self) {
         mem::forget(self);
     }
 
-    /// Unsubscribes the listener for thie [`Subscription<'a, F>`]
+    /// Unsubscribes the listener for thie [`Subscription<'_, F>`](Subscription)
     ///
-    /// This happens automatically when the [`Subscription<'a, F>`] is dropped (unless you call
+    /// This happens automatically when the [`Subscription<'_, F>`](Subscription) is dropped (unless you call
     /// [`Subscription::forget`]), so there is usually no need to call this method. Its only purpose is to enable you
     /// to handle errors while unsubscribing. Note that the listener will not be called anymore after unsubscribing,
     /// even when there is an error.
@@ -565,7 +567,7 @@ impl<F> Subscription<'_, F> {
         self.try_unsubscribe()
     }
 
-    /// Creates a new [`Subscription<'a, F>`] from the given context and subscription handle
+    /// Creates a new [`Subscription<'a, F>`](Subscription) from the given context and subscription handle
     ///
     /// Note that the lifetime `'a` is inferred at the call site.
     const fn new(context: Box<SubscriptionContext<F>>, subscription_handle: SubscriptionHandle) -> Self {

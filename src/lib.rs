@@ -31,8 +31,9 @@
 //! - A *permanent* state can be created and stays alive even across system reboots until it is explicitly deleted.
 //! - A *persistent* or *volatile* state can be created and stays alive until the next system reboot or until it is
 //!   explicitly deleted.
-//! - A *temporary* state can be created and stays alive until the system it was created from exits or until it is
+//! - A *temporary* state can be created and stays alive until the process it was created from exits or until it is
 //!   explicitly deleted.
+//!
 //! For details, see [`StateLifetime`].
 //!
 //! A state has an associated payload, called the *state data* or *state value*, up to 4KB in size. Processes can query
@@ -98,24 +99,25 @@
 //!
 //! # Representing states
 //!
-//! There are two types in this crate that represent states: [`OwnedState<T>`] and [`BorrowedState<'_, T>`]. They work
-//! in a similar way as the [`OwnedHandle`](std::os::windows::io::OwnedHandle) and
+//! There are two types in this crate that represent states: [`OwnedState<T>`] and [`BorrowedState<'_,
+//! T>`](BorrowedState). They work in a similar way as the [`OwnedHandle`](std::os::windows::io::OwnedHandle) and
 //! [`BorrowedHandle<'_>`](std::os::windows::io::BorrowedHandle) types from the standard library:
 //! - An [`OwnedState<T>`] has no lifetime, does not implement [`Copy`] or [`Clone`] and deletes the represented state
-//!   on drop
-//! - A [`BorrowedState<'_, T>`] has a lifetime, implements [`Copy`] and [`Clone`] and does not delete the represented
-//!   state on drop
+//!   on drop.
+//! - A [`BorrowedState<'_, T>`](BorrowedState) has a lifetime, implements [`Copy`] and [`Clone`] and does not delete
+//!   the represented state on drop.
 //!
-//! Note that copying/cloning a [`BorrowedState<'_, T>`] just copies the borrow, returning another borrow of the same
-//! underlying state, rather than cloning the state itself.
+//! Note that copying/cloning a [`BorrowedState<'_, T>`](BorrowedState) just copies the borrow, returning another borrow
+//! of the same underlying state, rather than cloning the state itself.
 //!
 //! You can abstract over ownership (i.e. whether a state is owned or borrowed) through the [`AsState`] trait and its
 //! [`as_state`](AsState::as_state) method. This trait is similar to the [`AsHandle`](std::os::windows::io::AsHandle)
-//! trait in the standard library and is implemented by both [`OwnedState<T>`] and [`BorrowedState<'_, T>`] as well as
-//! any type that derefs to one of these types. Calling [`as_state`](AsState::as_state) on an [`OwnedState<T>`]
-//! borrows it as a [`BorrowedState<'_, T>`] while calling it on a [`BorrowedState<'_, T>`] just copies the borrow.
+//! trait in the standard library and is implemented by both [`OwnedState<T>`] and [`BorrowedState<'_,
+//! T>`](BorrowedState) as well as any type that derefs to one of these types. Calling [`as_state`](AsState::as_state)
+//! on an [`OwnedState<T>`] borrows it as a [`BorrowedState<'_, T>`](BorrowedState) while calling it on a
+//! [`BorrowedState<'_, T>`](BorrowedState) just copies the borrow.
 //!
-//! You can obtain an instance of [`OwnedState<T>`] or [`BorrowedState<'_, T>`] in the following ways:
+//! You can obtain an instance of [`OwnedState<T>`] or [`BorrowedState<'_, T>`](BorrowedState) in the following ways:
 //! - Creating a new owned state through the [`StateCreation::create_owned`] method This is common for temporary states,
 //!   for which there is the [`OwnedState::create_temporary`] shortcut method.
 //! - Creating a new state and statically borrow it through the [`StateCreation::create_static`] method This is common
@@ -128,8 +130,8 @@
 //!
 //! # Representing state data
 //!
-//! The types [`OwnedState<T>`] and [`BorrowedState<'_, T>`] are generic over a type `T` that describes the shape of the
-//! data associated with the state.
+//! The types [`OwnedState<T>`] and [`BorrowedState<'_, T>`](BorrowedState) are generic over a type `T` that describes
+//! the shape of the data associated with the state.
 //!
 //! The state types themselves impose no trait bounds on the data type. However, in order for querying or updating state
 //! data to be memory-safe, the data type needs to satisfy certain conditions:
@@ -152,7 +154,7 @@
 //! standard types and also provide macros to derive them for your own types (checking at compile-time whether a type
 //! satisfies the necessary conditions), enabling you to avoid unsafe code in most cases.
 //!
-//! The [`wnf`](crate) crate does not have a hard dependency on any of these crates. Instead, it defines its own
+//! The `wnf` crate does not have a hard dependency on any of these crates. Instead, it defines its own
 //! (unsafe) traits that are modelled after the traits from the [bytemuck](https://docs.rs/bytemuck/1/bytemuck) crate
 //! with the same names:
 //! - [`AnyBitPattern`] and [`CheckedBitPattern`] encoding the requirements for querying state data
@@ -161,10 +163,10 @@
 //! These traits are already implemented for many standard types. In case your code already makes use of the
 //! [bytemuck](https://docs.rs/bytemuck/1/bytemuck) or [zerocopy](https://docs.rs/zerocopy/0/zerocopy) crate or you want
 //! to take advantage of the derive macros provided by those crates, you can do the following:
-//! - Enable the [`bytemuck_v1`] or [`zerocopy`] feature or the [`wnf`](crate) crate (producing a dependency on [bytemuck](https://docs.rs/bytemuck/1/bytemuck)
+//! - Enable the `bytemuck_v1` or `zerocopy` feature of this crate (producing a dependency on [bytemuck](https://docs.rs/bytemuck/1/bytemuck)
 //!   v1, respectively [zerocopy](https://docs.rs/zerocopy/0/zerocopy))
 //! - Implement the appropriate trait from one of these crates for your type, e.g. by using a derive macro
-//! - Derive the corresponding trait from the [`wnf`](crate) crate using the [`derive_from_bytemuck_v1`] respectively
+//! - Derive the corresponding trait from the `wnf` crate using the [`derive_from_bytemuck_v1`] respectively
 //!   [`derive_from_zerocopy`] macros. See the documentations of these macros for examples.
 //!
 //! All methods that query state data require the data type to either be a type `T` that implements
@@ -283,7 +285,7 @@
 //! This crate emits diagnostic information using the [`tracing`](https://docs.rs/tracing/latest/tracing) crate whenever there is an interaction with the WNF
 //! API. For guidance on how to subscribe to this information, consult the [`tracing`](https://docs.rs/tracing/latest/tracing) documentation. The general
 //! structure is like this:
-//! - For every invocation of a WNF API function by the [`wnf`](crate) crate, an [`Event`](https://docs.rs/tracing/latest/tracing/struct.Event.html)
+//! - For every invocation of a WNF API function by the `wnf` crate, an [`Event`](https://docs.rs/tracing/latest/tracing/struct.Event.html)
 //!   with the following payload is emitted:
 //!   - The [`target`](https://docs.rs/tracing/latest/tracing/struct.Metadata.html#method.target) is always
 //!     `wnf::ntapi`.
@@ -294,7 +296,7 @@
 //!     - `result`: The result (return code) of the invocation
 //!     - `input.*`: Inputs of the invocation, depending on the routine
 //!     - `output.*`: Outputs of the invocation, depending on the routing
-//! - For every invocation of a callback function in the [`wnf`](crate) crate, a [`Span`](https://docs.rs/tracing/latest/tracing/struct.Span.html)
+//! - For every invocation of a callback function in the `wnf` crate, a [`Span`](https://docs.rs/tracing/latest/tracing/struct.Span.html)
 //!   with the following payload is emitted:
 //!   - The [`target`](https://docs.rs/tracing/latest/tracing/struct.Metadata.html#method.target) is always
 //!     `wnf::ntapi`.
@@ -314,12 +316,12 @@
 //!   - `bytemuck_v1`: Enables the optional [bytemuck](https://docs.rs/bytemuck/1/bytemuck) dependency and provides the
 //!     [`derive_from_bytemuck_v1`] macro
 //!   - `uuid`: Enables the optional [uuid](https://docs.rs/uuid/1/uuid) dependency and provides conversions between the
-//!     [`uuid::Uuid`](https://docs.rs/uuid/1.2.2/uuid/struct.Uuid.html) and [`wnf::GUID`] types
+//!     [`uuid::Uuid`](https://docs.rs/uuid/1.2.2/uuid/struct.Uuid.html) and [`wnf::GUID`](crate::GUID) types
 //!   - `winapi`: Enables the optional [winapi](https://docs.rs/winapi/latest/winapi) dependency and provides conversions
 //!     between the [`winapi::shared::guiddef::GUID`](https://docs.rs/winapi/latest/winapi/shared/guiddef/struct.GUID.html)
-//!     and [`wnf::GUID`] types
+//!     and [`wnf::GUID`](crate::GUID) types
 //!   - `windows`: Provides conversions between the [`windows::core::GUID`](https://docs.rs/windows/latest/windows/core/struct.GUID.html)
-//!     and [`wnf::GUID`] types (the `windows` dependency is not optional because it is used by [`wnf`](crate)
+//!     and [`wnf::GUID`](crate::GUID) types (the `windows` dependency is not optional because it is used by `wnf`
 //!     internally)
 //!   - `windows_permissions`: Enables the optional [windows-permissions](https://docs.rs/windows-permissions/latest/windows_permissions)
 //!     dependency and enables the use of [`windows_permissions::SecurityDescriptor`](https://docs.rs/windows-permissions/latest/windows_permissions/struct.SecurityDescriptor.html)

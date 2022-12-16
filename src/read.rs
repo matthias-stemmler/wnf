@@ -33,6 +33,7 @@ pub trait Read<D>: private::Sealed + Send + 'static {
     ///
     /// # Errors
     /// Returns an error if the data in the buffer is not a valid `D`
+    #[doc(hidden)]
     unsafe fn from_buffer(ptr: *const c_void, size: usize) -> io::Result<D>;
 
     /// Tries to read a `D` by invoking a reader closure
@@ -49,6 +50,7 @@ pub trait Read<D>: private::Sealed + Send + 'static {
     ///
     /// # Errors
     /// Returns an error if `reader` fails or the read data is not a valid `D`
+    #[doc(hidden)]
     unsafe fn from_reader<F, Meta>(reader: F) -> io::Result<(D, Meta)>
     where
         F: FnMut(*mut c_void, usize) -> io::Result<(usize, Meta)>;

@@ -346,7 +346,7 @@ where
     }
 }
 
-/// Future returned by [`OwnedState::wait_async`]
+/// Future returned by [`OwnedState::wait_async`] and [`BorrowedState::wait_async`]
 #[derive(Debug)]
 #[must_use = "futures do nothing unless you `.await` or poll them"]
 pub struct Wait<'a> {
@@ -374,7 +374,7 @@ impl Future for Wait<'_> {
     }
 }
 
-/// Future returned by [`OwnedState::wait_until_async`]
+/// Future returned by [`OwnedState::wait_until_async`] and [`BorrowedState::wait_until_async`]
 #[derive(Debug)]
 #[must_use = "futures do nothing unless you `.await` or poll them"]
 pub struct WaitUntil<'a, T, F> {
@@ -403,7 +403,7 @@ where
     }
 }
 
-/// Future returned by [`OwnedState::wait_until_boxed_async`]
+/// Future returned by [`OwnedState::wait_until_boxed_async`] and [`BorrowedState::wait_until_boxed_async`]
 #[derive(Debug)]
 #[must_use = "futures do nothing unless you `.await` or poll them"]
 pub struct WaitUntilBoxed<'a, T, F>
@@ -417,7 +417,7 @@ impl<F, T> WaitUntilBoxed<'_, T, F>
 where
     T: ?Sized,
 {
-    /// Creates a new [`WaitUntilBoxed<'_, T, F>`] future for the given raw state and predicate
+    /// Creates a new [`WaitUntilBoxed<'_, T, F>`](WaitUntilBoxed) future for the given raw state and predicate
     const fn new(state: RawState<T>, predicate: F) -> Self {
         Self {
             inner: WaitUntilInternal::new(state, predicate),
@@ -438,7 +438,8 @@ where
     }
 }
 
-/// Future generalizing the behavior of [`Wait<'_>`], [`WaitUntil<'_, T, F>`] and [`WaitUntilBoxed<'_, T, F>`]
+/// Future generalizing the behavior of [`Wait<'_>`](Wait), [`WaitUntil<'_, T, F>`](WaitUntil) and [`WaitUntilBoxed<'_,
+/// T, F>`](WaitUntilBoxed)
 #[derive(Debug)]
 #[must_use = "futures do nothing unless you `.await` or poll them"]
 struct WaitUntilInternal<'a, T, D, F>
@@ -453,7 +454,7 @@ where
 // See <https://doc.rust-lang.org/std/pin/index.html#pinning-is-not-structural-for-field>
 impl<T, D, F> Unpin for WaitUntilInternal<'_, T, D, F> where T: ?Sized {}
 
-/// State of the [`WaitUntilInternal<'a, T, D, F>`] future
+/// State of the [`WaitUntilInternal<'a, T, D, F>`](WaitUntilInternal) future
 #[derive(Debug)]
 enum FutureState<'a, T, D, F>
 where
@@ -488,7 +489,7 @@ impl<D, F, T> WaitUntilInternal<'_, T, D, F>
 where
     T: ?Sized,
 {
-    /// Creates a new [`WaitUntilInternal<'_, T, D, F>`] future for the given raw state and predicate
+    /// Creates a new [`WaitUntilInternal<'_, T, D, F>`](WaitUntilInternal) future for the given raw state and predicate
     const fn new(state: RawState<T>, predicate: F) -> Self {
         Self {
             future_state: Some(FutureState::Initial { state, predicate }),
@@ -572,7 +573,7 @@ where
 /// State listener that saves the result of accessing the state data and wakes a waker
 ///
 /// This is a type that can be named rather than an anonymous closure type so that it can be stored in a
-/// [`FutureState<'a, T, D, F>`] without using a trait object.
+/// [`FutureState<'_, T, D, F>`](FutureState) without using a trait object.
 #[derive(Debug)]
 struct WaitListener<D> {
     shared_state: Arc<Mutex<SharedState<D>>>,

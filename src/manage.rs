@@ -323,7 +323,7 @@ where
         self.create_raw().map(OwnedState::from_raw)
     }
 
-    /// Creates a state from this [`StateCreation`], returning a [`BorrowsState<'static, T>`]
+    /// Creates a state from this [`StateCreation`], returning a [`BorrowedState<'static, T>`](BorrowedState)
     ///
     /// This is equivalent to creating an owned state and immediately leaking it:
     /// ```

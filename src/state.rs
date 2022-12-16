@@ -23,7 +23,7 @@ use crate::type_id::{TypeId, GUID};
 /// external entity, namely a state. It's similar to [`OwnedHandle`](std::os::windows::io::OwnedHandle) in that
 /// regard.
 ///
-/// An [`OwnedState<T>`] can be borrowed as a [`BorrowedState<'a, T>`] using the [`AsState::as_state`]
+/// An [`OwnedState<T>`] can be borrowed as a [`BorrowedState<'_, T>`](BorrowedState) using the [`AsState::as_state`]
 /// method.
 ///
 /// The type parameter `T` is the type of data contained in the state.
@@ -45,8 +45,8 @@ where
 
     /// Leaks this [`OwnedState<T>`]
     ///
-    /// This consumes the [`OwnedState<T>`] without dropping it, returning a [`BorrowedState<'static, T>`] with
-    /// `'static` lifetime that represents the same underlying state.
+    /// This consumes the [`OwnedState<T>`] without dropping it, returning a [`BorrowedState<'static,
+    /// T>`](BorrowedState) with `'static` lifetime that represents the same underlying state.
     ///
     /// Note that while this is named after [`Box::leak`], it doesn't leak memory, but it leaks a state in the sense
     /// that the state doesn't get deleted on drop.
@@ -132,11 +132,11 @@ where
 /// entity, namely a state. It's similar to [`BorrowedHandle<'_>`](std::os::windows::io::BorrowedHandle) in that
 /// regard.
 ///
-/// Calling [`Clone::clone`] on a [`BorrowedState<'a, T>`] just makes a trivial copy, returning another
-/// [`BorrowedState<'a, T>`] with the same lifetime as the original one and representing the same underlying WNF
-/// state. The same applies to the [`ToOwned::to_owned`] method.  If you want to turn a [`BorrowedState<'_, T>`]
-/// into an [`OwnedState<T>`] (which will then delete the underlying state on drop), use the
-/// [`BorrowedState::to_owned_state`] method.
+/// Calling [`Clone::clone`] on a [`BorrowedState<'a, T>`](BorrowedState) just makes a trivial copy, returning another
+/// [`BorrowedState<'a, T>`](BorrowedState) with the same lifetime as the original one and representing the same
+/// underlying WNF state. The same applies to the [`ToOwned::to_owned`] method.  If you want to turn a
+/// [`BorrowedState<'_, T>`](BorrowedState) into an [`OwnedState<T>`] (which will then delete the underlying state on
+/// drop), use the [`BorrowedState::to_owned_state`] method.
 ///
 /// The type parameter `T` is the type of data contained in the state.
 pub struct BorrowedState<'a, T>
@@ -156,7 +156,8 @@ where
         self.raw.state_name()
     }
 
-    /// Turns this [`BorrowedState<'a, T>`] into an [`OwnedState<T>`] representing the same underlying state
+    /// Turns this [`BorrowedState<'_, T>`](BorrowedState) into an [`OwnedState<T>`] representing the same underlying
+    /// state
     ///
     /// Note that the underlying state will be deleted when the [`OwnedState<T>`] is dropped.
     pub const fn to_owned_state(self) -> OwnedState<T> {
@@ -165,8 +166,8 @@ where
 
     /// Casts the data type of this state to a different type `U`
     ///
-    /// The returned [`BorrowedState<'a, U>`] represents the same underlying state, but treats it as containing
-    /// data of a different type `U`.
+    /// The returned [`BorrowedState<'a, U>`](BorrowedState) represents the same underlying state, but treats it as
+    /// containing data of a different type `U`.
     pub const fn cast<U>(self) -> BorrowedState<'a, U>
     where
         U: ?Sized,
@@ -174,9 +175,9 @@ where
         BorrowedState::from_raw(self.raw.cast())
     }
 
-    /// Creates a new [`BorrowedState<'a, T>`] wrapping a given [`RawState<T>`]
+    /// Creates a new [`BorrowedState<'_, T>`](BorrowedState) wrapping a given [`RawState<T>`]
     ///
-    /// The lifetime of the returned [`BorrowedState<'a, T>`] is inferred at the call site.
+    /// The lifetime `'a` of the returned [`BorrowedState<'a, T>`](BorrowedState) is inferred at the call site.
     pub(crate) const fn from_raw(raw: RawState<T>) -> Self {
         Self {
             raw,
@@ -192,8 +193,8 @@ where
     /// Statically borrows the state with the given name
     ///
     /// Note that an underlying state with the given name may or may not exist. The returned
-    /// [`BorrowedState<'static, T>`] having a `'static` lifetime just means that the state is borrowed directly
-    /// from the system rather than from an [`OwnedState<T>`] that will be dropped at some point.
+    /// [`BorrowedState<'static, T>`](BorrowedState) having a `'static` lifetime just means that the state is borrowed
+    /// directly from the system rather than from an [`OwnedState<T>`] that will be dropped at some point.
     pub fn from_state_name(state_name: impl Into<StateName>) -> Self {
         Self::from_raw(RawState::from_state_name_and_type_id(state_name.into(), TypeId::none()))
     }
@@ -201,8 +202,8 @@ where
     /// Statically borrows the state with the given name using the given type id
     ///
     /// Note that an underlying state with the given name may or may not exist. The returned
-    /// [`BorrowedState<'static, T>`] having a `'static` lifetime just means that the state is borrowed directly
-    /// from the system rather than from an [`OwnedState<T>`] that will be dropped at some point.
+    /// [`BorrowedState<'static, T>`](BorrowedState) having a `'static` lifetime just means that the state is borrowed
+    /// directly from the system rather than from an [`OwnedState<T>`] that will be dropped at some point.
     pub fn from_state_name_and_type_id(state_name: impl Into<StateName>, type_id: impl Into<GUID>) -> Self {
         Self::from_raw(RawState::from_state_name_and_type_id(
             state_name.into(),
@@ -262,14 +263,14 @@ where
 
 /// Trait for types that can be borrowed as a state
 ///
-/// This is implemented for both [`OwnedState<T>`] and [`BorrowedState<'a, T>`]. There are two main use cases for
-/// it:
+/// This is implemented for both [`OwnedState<T>`] and [`BorrowedState<'_, T>`](BorrowedState). There are two main use
+/// cases for it:
 ///
 /// - Functions that can accept either a reference to an owned or a borrowed state: Even though a
-/// [`BorrowedState<'a, T>`] plays the role of a reference to a F state, it's not technically a reference. As a
-/// consequence, there is no deref coercion for states, i.e. you cannot just pass an [`&'a OwnedState<T>`] where
-/// a [`BorrowedState<'a, T>`] is expected. In order to accept both types, functions can instead take a reference to
-/// a generic type implementing [`AsState`]:
+/// [`BorrowedState<'_, T>`](BorrowedState) plays the role of a reference to a state, it's not technically a reference.
+/// As a consequence, there is no deref coercion for states, i.e. you cannot just pass an [`&'a
+/// OwnedState<T>`](OwnedState) where a [`BorrowedState<'a, T>`](BorrowedState) is expected. In order to accept both
+/// types, functions can instead take a reference to a generic type implementing [`AsState`]:
 /// ```
 /// # use std::io;
 /// # use wnf::{AsState, OwnedState};
@@ -305,8 +306,8 @@ where
 /// ```
 ///
 /// When comparing [`OwnedState<T>`] with [`OwnedHandle`](std::os::windows::io::OwnedHandle) and
-/// [`BorrowedState<'a, T>`] with [`BorrowedHandle<'a>`](std::os::windows::io::BorrowedHandle), this trait plays the
-/// role of the [`AsHandle`](std::os::windows::io::AsHandle) trait.
+/// [`BorrowedState<'_, T>`](BorrowedState) with [`BorrowedHandle<'_>`](std::os::windows::io::BorrowedHandle), this
+/// trait plays the role of the [`AsHandle`](std::os::windows::io::AsHandle) trait.
 ///
 /// This trait is sealed and cannot by implemented outside of the `wnf` crate.
 pub trait AsState: private::Sealed {
