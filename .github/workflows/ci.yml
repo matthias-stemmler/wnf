@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  - pull_request
+  - workflow_call
+  - workflow_dispatch
+
+env:
+  RUSTFLAGS: --deny warnings
+
+jobs:
+  clippy:
+    name: Clippy
+    uses: ./.github/workflows/clippy.yml
+
+  doc:
+    name: Doc
+    uses: ./.github/workflows/doc.yml
+
+  feature-powerset:
+    name: Feature powerset
+    uses: ./.github/workflows/feature-powerset.yml
+
+  fmt-check:
+    name: Format check
+    uses: ./.github/workflows/fmt-check.yml
+
+  minimal-versions:
+    name: Minimal versions
+    uses: ./.github/workflows/minimal-versions.yml
+
+  miri:
+    name: Miri
+    uses: ./.github/workflows/miri.yml
+
+  msrv:
+    name: MSRV
+    uses: ./.github/workflows/msrv.yml
+
+  test:
+    name: Test
+    uses: ./.github/workflows/test.yml
+
+  udeps:
+    name: Unused dependencies
+    uses: ./.github/workflows/udeps.yml

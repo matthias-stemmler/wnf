@@ -364,7 +364,6 @@
 #![deny(clippy::future_not_send)]
 #![deny(clippy::missing_safety_doc)]
 #![deny(clippy::non_send_fields_in_send_ty)]
-#![deny(clippy::pedantic)]
 #![deny(clippy::undocumented_unsafe_blocks)]
 #![deny(rustdoc::bare_urls)]
 #![deny(rustdoc::broken_intra_doc_links)]
@@ -372,15 +371,6 @@
 #![deny(rustdoc::invalid_rust_codeblocks)]
 #![deny(rustdoc::missing_crate_level_docs)]
 #![deny(rustdoc::private_intra_doc_links)]
-#![allow(clippy::borrow_as_ptr)]
-#![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::inline_always)]
-#![allow(clippy::let_underscore_drop)]
-#![allow(clippy::missing_errors_doc)]
-#![allow(clippy::module_name_repetitions)]
-#![allow(clippy::must_use_candidate)]
-#![allow(clippy::ptr_as_ptr)]
-#![allow(clippy::wildcard_imports)]
 
 #[cfg(not(windows))]
 compile_error!("the `wnf` crate supports Windows only");

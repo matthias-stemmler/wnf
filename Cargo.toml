@@ -2,7 +2,7 @@
 
 [package]
 name = "wnf"
-version = "0.1.0"
+version = "0.0.0"
 authors = ["Matthias Stemmler <matthias.stemmler@gmail.com>"]
 edition = "2021"
 rust-version = "1.62" # should be the same as in devutils, docs and MSRV job
@@ -64,44 +64,55 @@ tracing-subscriber = { version = "0.3", default-features = false, features = ["f
 
 [[test]]
 name = "system"
+path = "tests/system.rs"
 harness = false
 
 [[example]]
 name = "apps_battery"
+path = "examples/apps_battery.rs"
 required-features = ["subscribe"]
 
 [[example]]
 name = "apps_notifications"
+path = "examples/apps_notifications.rs"
 required-features = ["wait_async"]
 
 [[example]]
 name = "apps_shell"
+path = "examples/apps_shell.rs"
 required-features = ["subscribe"]
 
 [[example]]
 name = "recipes_subscribe"
+path = "examples/recipes_subscribe.rs"
 required-features = ["subscribe"]
 
 [[example]]
 name = "recipes_wait_async"
+path = "examples/recipes_wait_async.rs"
 required-features = ["wait_async"]
 
 [[example]]
 name = "recipes_wait_blocking"
+path = "examples/recipes_wait_blocking.rs"
 required-features = ["wait_blocking"]
 
 [[example]]
 name = "recipes_wait_until_async"
+path = "examples/recipes_wait_until_async.rs"
 required-features = ["wait_async"]
 
 [[example]]
 name = "recipes_wait_until_blocking"
+path = "examples/recipes_wait_until_blocking.rs"
 required-features = ["wait_blocking"]
 
 [[example]]
 name = "recipes_wait_until_boxed_async"
+path = "examples/recipes_wait_until_boxed_async.rs"
 required-features = ["wait_async"]
 
 [[example]]
 name = "recipes_wait_until_boxed_blocking"
+path = "examples/recipes_wait_until_boxed_blocking.rs"
 required-features = ["wait_blocking"]

@@ -1,0 +1,10 @@
+# TODO remove this file
+
+[registry]
+default = "shipyard"
+
+[registries]
+shipyard = { index = "https://git.shipyard.rs/matthias-stemmler/crate-index.git" }
+
+[net]
+git-fetch-with-cli = true

@@ -230,7 +230,7 @@ impl SystemRunner {
     }
 
     fn rerun_as_admin(&self) -> io::Result<AdminProcess> {
-        let child = admin_process::Command::new(&env::current_exe()?)
+        let child = admin_process::Command::new(env::current_exe()?)
             .arg(self.state.next().unwrap().to_arg())
             .args(&self.args)
             .spawn()?;
@@ -250,7 +250,7 @@ impl SystemRunner {
     }
 
     fn rerun(&self) -> io::Result<PayloadProcess> {
-        let child = Command::new(&env::current_exe()?)
+        let child = Command::new(env::current_exe()?)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())

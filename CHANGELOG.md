@@ -7,4 +7,4 @@
 Initial version
 
 <!-- next-url -->
-[unreleased]: https://github.com/matthias-stemmler/wnf "Unreleased"
+[Unreleased]: https://github.com/matthias-stemmler/wnf "Unreleased"

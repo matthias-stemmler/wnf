@@ -1,0 +1,202 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+      - hotfix/**
+  workflow_call:
+  workflow_dispatch:
+
+env:
+  RELEASE_CONFIG_FILE: release.json
+  RUSTFLAGS: --deny warnings
+  # renovate: datasource=crate depName=cargo-release
+  VERSION_CARGO_RELEASE: 0.24.1
+
+jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+
+  find-release:
+    name: Find release
+    runs-on: windows-latest
+
+    steps:
+      - name: Get merged PR
+        id: get-merged-pr
+        uses: actions-ecosystem/action-get-merged-pull-request@v1.0.1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+    outputs:
+      is-release: ${{ contains(steps.get-merged-pr.outputs.labels, 'release:pending') }}
+      pr-number: ${{ steps.get-merged-pr.outputs.number }}
+      release-notes: ${{ steps.get-merged-pr.outputs.body }}
+
+  update-pending-release:
+    name: Update pending release
+    runs-on: windows-latest
+    needs: find-release
+    if: needs.find-release.outputs.is-release == 'false'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Determine version bump
+        id: determine-version-bump
+        run: |
+          $level = Get-Content -Path $Env:RELEASE_CONFIG_FILE `
+            | ConvertFrom-Json `
+            | %{$_.versionBumpLevel}
+
+          if (@('major', 'minor').contains($level)) {
+            if ($Env:GITHUB_REF_NAME -ne 'main') {
+              throw "Version bump level '$level' is only allowed on main branch"
+            }
+          } elseif (-Not @('patch', 'none').contains($level)) {
+              throw "Invalid version bump level '$level'"
+          }
+
+          "Level: $level"
+          "level=$level" >> $Env:GITHUB_OUTPUT
+
+      - name: Install stable toolchain
+        if: steps.determine-version-bump.outputs.level != 'none'
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo-release
+        id: cache-cargo-release
+        if: steps.determine-version-bump.outputs.level != 'none'
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/
+          key: cargo-release-${{ env.VERSION_CARGO_RELEASE }}
+
+      - name: Install cargo-release
+        if: steps.determine-version-bump.outputs.level != 'none' && !steps.cache-cargo-release.outputs.cache-hit
+        run: cargo install cargo-release@${{ env.VERSION_CARGO_RELEASE }}
+
+      - name: Pre-release
+        id: pre-release
+        if: steps.determine-version-bump.outputs.level != 'none'
+        env:
+          LEVEL: ${{ steps.determine-version-bump.outputs.level }}
+        run: |
+          # Reset version bump file
+          $config = Get-Content $Env:RELEASE_CONFIG_FILE | ConvertFrom-Json
+          $config.versionBumpLevel = 'none'
+          $config | ConvertTo-Json > $Env:RELEASE_CONFIG_FILE
+
+          # Bump version
+          cargo release version $Env:LEVEL --execute --no-confirm
+
+          # Apply pre-release replacements
+          cargo release replace --execute --no-confirm
+
+          # Determine new version
+          $version = cargo metadata --no-deps --format-version 1 `
+            | ConvertFrom-Json `
+            | %{$_.packages} `
+            | where { $_.name -eq 'wnf' } `
+            | %{$_.version} `
+
+          "version=$version" >> $Env:GITHUB_OUTPUT
+
+          # Determine release notes from changelog
+          'Release notes:'
+          '--'
+          'RELEASE_NOTES<<EOF' >> $Env:GITHUB_ENV
+          foreach ($line in Get-Content CHANGELOG.md) {
+            if ($line -match "^\s*(?:##\s*\[(.*)\]|<!-- next-url -->)") {
+              $include = $Matches.1 -eq $version
+            }
+
+            if ($include) {
+              $line
+              $line >> $Env:GITHUB_ENV
+            }
+          }
+          'EOF' >> $Env:GITHUB_ENV
+          '--'
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v4
+        with:
+          # use PAT instead of GITHUB_TOKEN so created PR can trigger workflows
+          # see https://github.com/peter-evans/create-pull-request/issues/48
+          token: ${{ secrets.RELEASE_GITHUB_TOKEN }}
+          branch: release/${{ github.ref_name }}
+          author: Matthias Stemmler <matthias.stemmler@gmail.com>
+          commit-message: "Bump version to ${{ steps.pre-release.outputs.version }}"
+          delete-branch: true
+          labels: release:pending
+          title: Release v${{ steps.pre-release.outputs.version }}
+          body: ${{ env.RELEASE_NOTES }}
+
+  publish-release:
+    name: Publish release
+    runs-on: windows-latest
+    needs:
+      - ci
+      - find-release
+    if: needs.find-release.outputs.is-release == 'true'
+    environment: crates.io
+    concurrency: production
+
+    steps:
+      # TODO: use stable
+      - name: Install nightly toolchain
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # TODO remove
+      - uses: de-vri-es/setup-git-credentials@v2
+        with:
+          credentials: ${{ secrets.GIT_CREDENTIALS }}
+
+      - name: Publish release
+        id: publish
+        env:
+          # TODO shipyard -> crates.io
+          CARGO_REGISTRIES_SHIPYARD_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+        run: |
+          # Determine version
+          $version = cargo metadata --no-deps --format-version 1 `
+            | ConvertFrom-Json `
+            | %{$_.packages} `
+            | where { $_.name -eq 'wnf' } `
+            | %{$_.version} `
+
+          "version=$version" >> $Env:GITHUB_OUTPUT
+
+          # Publish
+          # TODO remove -Z registry-auth
+          cargo publish --all-features -Z registry-auth
+
+      - name: Create tag and GitHub release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: v${{ steps.publish.outputs.version }}
+          tag_name: v${{ steps.publish.outputs.version }}
+          body: |
+            **Published crate:** 
+            https://crates.io/crates/wnf/${{ steps.publish.outputs.version }}
+
+            ${{ needs.find-release.outputs.release-notes }}
+
+      - name: Remove `release:pending` label from pull request
+        uses: actions-ecosystem/action-remove-labels@v1
+        with:
+          number: ${{ needs.find-release.outputs.pr-number }}
+          labels: release:pending
+
+      - name: Add `release:published` label to pull request
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          number: ${{ needs.find-release.outputs.pr-number }}
+          labels: release:published
