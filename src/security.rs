@@ -32,16 +32,16 @@ pub struct SecurityDescriptor {
     _opaque: [u8; 0],
 }
 
-impl Drop for SecurityDescriptor {
-    fn drop(&mut self) {
-        unreachable!("SecurityDescriptor is an opaque type");
-    }
-}
-
 impl SecurityDescriptor {
     /// Returns a mutable raw pointer to the security descriptor for use in FFI
     pub(crate) fn as_ptr(&self) -> PSECURITY_DESCRIPTOR {
         PSECURITY_DESCRIPTOR(self as *const Self as *mut c_void)
+    }
+}
+
+impl Drop for SecurityDescriptor {
+    fn drop(&mut self) {
+        unreachable!("SecurityDescriptor is an opaque type");
     }
 }
 

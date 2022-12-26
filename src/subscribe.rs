@@ -18,6 +18,33 @@ use crate::read::Read;
 use crate::state::{BorrowedState, OwnedState, RawState};
 use crate::state_name::StateName;
 
+/// Types capable of listening to state updates
+///
+/// Note that there is a blanket implementation of this trait for all closure types
+/// `F: FnMut(DataAccessor<'_, T>)`, so you usually don't need to implement this trait for your own types. It is useful,
+/// however, if you need a state listener whose type you can name explicitly. Since closure types are anonymous, you
+/// can instead define your own type and implement [`StateListener<T>`] for it.
+pub trait StateListener<T>
+where
+    T: ?Sized,
+{
+    /// Calls this state listener
+    ///
+    /// The provided [`DataAccessor<'_, T>`](DataAccessor) can be used to obtain the state data at the time the update
+    /// took place.
+    fn call(&mut self, accessor: DataAccessor<'_, T>);
+}
+
+impl<F, T> StateListener<T> for F
+where
+    F: FnMut(DataAccessor<'_, T>),
+    T: ?Sized,
+{
+    fn call(&mut self, accessor: DataAccessor<'_, T>) {
+        self(accessor);
+    }
+}
+
 /// The change stamp that a state listener has last seen
 ///
 /// The [`OwnedState::subscribe`] and [`BorrowedState::subscribe`] methods expect an argument of this type to
@@ -53,33 +80,6 @@ pub enum SeenChangeStamp {
     ///
     /// This is most useful if you have queried the state data before and are already holding a change stamp.
     Value(ChangeStamp),
-}
-
-/// Types capable of listening to state updates
-///
-/// Note that there is a blanket implementation of this trait for all closure types
-/// `F: FnMut(DataAccessor<'_, T>)`, so you usually don't need to implement this trait for your own types. It is useful,
-/// however, if you need a state listener whose type you can name explicitly. Since closure types are anonymous, you
-/// can instead define your own type and implement [`StateListener<T>`] for it.
-pub trait StateListener<T>
-where
-    T: ?Sized,
-{
-    /// Calls this state listener
-    ///
-    /// The provided [`DataAccessor<'_, T>`](DataAccessor) can be used to obtain the state data at the time the update
-    /// took place.
-    fn call(&mut self, accessor: DataAccessor<'_, T>);
-}
-
-impl<F, T> StateListener<T> for F
-where
-    F: FnMut(DataAccessor<'_, T>),
-    T: ?Sized,
-{
-    fn call(&mut self, accessor: DataAccessor<'_, T>) {
-        self(accessor);
-    }
 }
 
 impl<T> OwnedState<T>
@@ -294,44 +294,6 @@ where
     }
 }
 
-/// Handle to state data passed to state listeners
-///
-/// Listeners receive a [`DataAccessor<'a, T>`](DataAccessor) in their [`StateListener::call`] method. It can be used to
-/// obtain the state data at the time the update took place.
-///
-/// The lifetime parameter `'a` ties a [`DataAccessor<'a, T>`](DataAccessor) to the lifetime of the state data, which is
-/// only valid within the scope of the call to the listener.
-pub struct DataAccessor<'a, T>
-where
-    T: ?Sized,
-{
-    data: ScopedData,
-    _marker: PhantomData<&'a fn() -> T>,
-}
-
-// We cannot derive this because that would impose an unnecessary trait bound `T: Copy`
-impl<T> Copy for DataAccessor<'_, T> where T: ?Sized {}
-
-// We cannot derive this because that would impose an unnecessary trait bound `T: Clone`
-impl<T> Clone for DataAccessor<'_, T>
-where
-    T: ?Sized,
-{
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-// We cannot derive this because that would impose an unnecessary trait bound `T: Debug`
-impl<T> Debug for DataAccessor<'_, T>
-where
-    T: ?Sized,
-{
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("DataAccessor").field("data", &self.data).finish()
-    }
-}
-
 /// State data that is only valid within a certain scope
 ///
 /// This is used to tie the lifetime `'a` of a [`DataAccessor<'a, T>`] to the scope of a call to the listener.
@@ -379,6 +341,21 @@ impl ScopedData {
             _marker: PhantomData,
         }
     }
+}
+
+/// Handle to state data passed to state listeners
+///
+/// Listeners receive a [`DataAccessor<'a, T>`](DataAccessor) in their [`StateListener::call`] method. It can be used to
+/// obtain the state data at the time the update took place.
+///
+/// The lifetime parameter `'a` ties a [`DataAccessor<'a, T>`](DataAccessor) to the lifetime of the state data, which is
+/// only valid within the scope of the call to the listener.
+pub struct DataAccessor<'a, T>
+where
+    T: ?Sized,
+{
+    data: ScopedData,
+    _marker: PhantomData<&'a fn() -> T>,
 }
 
 impl<'a, T> DataAccessor<'a, T>
@@ -524,6 +501,29 @@ where
             self.get_as()?,
             self.data.change_stamp,
         ))
+    }
+}
+
+// We cannot derive this because that would impose an unnecessary trait bound `T: Copy`
+impl<T> Copy for DataAccessor<'_, T> where T: ?Sized {}
+
+// We cannot derive this because that would impose an unnecessary trait bound `T: Clone`
+impl<T> Clone for DataAccessor<'_, T>
+where
+    T: ?Sized,
+{
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+// We cannot derive this because that would impose an unnecessary trait bound `T: Debug`
+impl<T> Debug for DataAccessor<'_, T>
+where
+    T: ?Sized,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("DataAccessor").field("data", &self.data).finish()
     }
 }
 
@@ -720,21 +720,6 @@ impl Display for SubscriptionHandle {
 /// sequentially on a single thread. However, we don't have to assume this because we need the mutex for case 1) anyway.
 struct SubscriptionContext<F>(Mutex<Option<F>>);
 
-// We cannot derive this because that would impose an unnecessary trait bound `F: Debug`
-impl<F> Debug for SubscriptionContext<F> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        struct Placeholder;
-
-        impl Debug for Placeholder {
-            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                f.write_str("<context>")
-            }
-        }
-
-        f.debug_tuple("SubscriptionContext").field(&Placeholder).finish()
-    }
-}
-
 impl<F> SubscriptionContext<F> {
     /// Creates a new context from the given listener
     fn new(listener: F) -> Self {
@@ -763,6 +748,21 @@ impl<F> SubscriptionContext<F> {
                 op(listener);
             }
         }
+    }
+}
+
+// We cannot derive this because that would impose an unnecessary trait bound `F: Debug`
+impl<F> Debug for SubscriptionContext<F> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        struct Placeholder;
+
+        impl Debug for Placeholder {
+            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                f.write_str("<context>")
+            }
+        }
+
+        f.debug_tuple("SubscriptionContext").field(&Placeholder).finish()
     }
 }
 

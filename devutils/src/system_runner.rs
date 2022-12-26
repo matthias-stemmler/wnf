@@ -167,11 +167,11 @@ impl SystemRunner {
     }
 
     pub(crate) fn ensure_running_as_system(&self) -> io::Result<()> {
-        let payload_stdout = Pipe::for_name(self.state.pipeline_id.to_pipe_name("payload_stdout"));
-        let payload_stderr = Pipe::for_name(self.state.pipeline_id.to_pipe_name("payload_stderr"));
-        let payload_stdin = Pipe::for_name(self.state.pipeline_id.to_pipe_name("payload_stdin"));
-        let admin_stderr = Pipe::for_name(self.state.pipeline_id.to_pipe_name("admin_stderr"));
-        let system_stderr = Pipe::for_name(self.state.pipeline_id.to_pipe_name("system_stderr"));
+        let payload_stdout = Pipe::with_name(self.state.pipeline_id.to_pipe_name("payload_stdout"));
+        let payload_stderr = Pipe::with_name(self.state.pipeline_id.to_pipe_name("payload_stderr"));
+        let payload_stdin = Pipe::with_name(self.state.pipeline_id.to_pipe_name("payload_stdin"));
+        let admin_stderr = Pipe::with_name(self.state.pipeline_id.to_pipe_name("admin_stderr"));
+        let system_stderr = Pipe::with_name(self.state.pipeline_id.to_pipe_name("system_stderr"));
 
         match self.state.stage {
             Stage::Initial => {
@@ -320,7 +320,7 @@ mod stdio {
     }
 
     impl Pipe {
-        pub(super) fn for_name(name: String) -> Self {
+        pub(super) fn with_name(name: String) -> Self {
             Self { name }
         }
 

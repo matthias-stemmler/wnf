@@ -8,20 +8,6 @@ use tracing::debug;
 use crate::ntapi;
 use crate::state::{BorrowedState, OwnedState, RawState};
 
-/// Different classes of information on a state
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[repr(u32)]
-enum NameInfoClass {
-    /// Whether a state with a given name exists
-    StateNameExist = 0,
-
-    /// Whether a state has at least one subscriber
-    SubscribersPresent = 1,
-
-    /// Whether a state is "quiescent", i.e. none of the listeners subscribed to it are currently running
-    IsQuiescent = 2,
-}
-
 impl<T> OwnedState<T>
 where
     T: ?Sized,
@@ -143,4 +129,18 @@ where
             Err(io::Error::from_raw_os_error(result.0))
         }
     }
+}
+
+/// Different classes of information on a state
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[repr(u32)]
+enum NameInfoClass {
+    /// Whether a state with a given name exists
+    StateNameExist = 0,
+
+    /// Whether a state has at least one subscriber
+    SubscribersPresent = 1,
+
+    /// Whether a state is "quiescent", i.e. none of the listeners subscribed to it are currently running
+    IsQuiescent = 2,
 }
