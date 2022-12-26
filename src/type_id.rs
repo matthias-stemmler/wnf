@@ -64,6 +64,7 @@ impl From<GUID> for u128 {
     }
 }
 
+/// Converting between [`GUID`] and [`windows::core::GUID`](https://docs.rs/windows/0/windows/core/struct.GUID.html)
 #[cfg(feature = "windows")]
 mod impl_windows {
     use super::*;
@@ -81,6 +82,8 @@ mod impl_windows {
     }
 }
 
+/// Converting between [`GUID`] and
+/// [`winapi::shared::guiddef::GUID`](https://docs.rs/winapi/0/winapi/shared/guiddef/struct.GUID.html)
 #[cfg(feature = "winapi")]
 mod impl_winapi {
     use super::*;
@@ -103,6 +106,7 @@ mod impl_winapi {
     }
 }
 
+/// Converting between [`GUID`] and [`uuid::Uuid`](https://docs.rs/uuid/1/uuid/struct.Uuid.html)
 #[cfg(feature = "uuid")]
 mod impl_uuid {
     use super::*;
@@ -125,7 +129,7 @@ mod impl_uuid {
 pub(crate) struct TypeId(Option<windows::core::GUID>);
 
 impl TypeId {
-    /// Creates a [`TypeId`] containing no GUID for use in an untyped state
+    /// Creates a [`TypeId`] containing no [`GUID`] for use in an untyped state
     pub(crate) const fn none() -> Self {
         Self(None)
     }
@@ -135,9 +139,9 @@ impl TypeId {
         Self(Some(guid.0))
     }
 
-    /// Returns a raw pointer to the underlying GUID, or a null pointer if there is none
+    /// Returns a raw pointer to the underlying [`GUID`], or a null pointer if there is none
     ///
-    /// It is guaranteed that the returned pointer is either a null pointer or points to a valid GUID as long the
+    /// It is guaranteed that the returned pointer is either a null pointer or points to a valid [`GUID`] as long the
     /// instance of [`TypeId`] is live. The returned pointer can be passed to WNF APIs expecting an optional type id.
     pub(crate) const fn as_ptr(&self) -> *const windows::core::GUID {
         match self.0.as_ref() {

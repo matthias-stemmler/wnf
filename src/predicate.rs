@@ -35,8 +35,10 @@ where
     }
 }
 
-/// A special predicate that evaluates to `false` initially, but to `true` when the state data is changed,
-/// regardless of the actual data
+/// A special predicate that evaluates to `true` only when it is evaluated on change
+///
+/// This predicate evaluates to `false` initially, but to `true` when the state data is changed, regardless of the
+/// actual data
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct ChangedPredicate;
 

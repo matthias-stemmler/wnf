@@ -42,8 +42,8 @@ use std::num;
 /// assert_eq!(data.0, 42);
 /// # Ok (()) }
 /// ```
-/// - Derive the [`AsBytes`](https://docs.rs/zerocopy/0.6.1/zerocopy/trait.AsBytes.html) trait of the
-/// [`zerocopy`](https://docs.rs/zerocopy/0.6.1/zerocopy) crate and derive this trait from it via the
+/// - Derive the [`AsBytes`](https://docs.rs/zerocopy/0/zerocopy/trait.AsBytes.html) trait of the
+/// [`zerocopy`](https://docs.rs/zerocopy/0/zerocopy) crate and derive this trait from it via the
 /// [`derive_from_zerocopy`](crate::derive_from_zerocopy) macro:
 /// ```
 /// # #[macro_use] extern crate wnf;

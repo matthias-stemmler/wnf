@@ -296,8 +296,8 @@ where
 
 /// State data that is only valid within a certain scope
 ///
-/// This is used to tie the lifetime `'a` of a [`DataAccessor<'a, T>`] to the scope of a call to the listener.
-/// This is not to be confused with [`DataScope`].
+/// This is used to tie the lifetime `'a` of a [`DataAccessor<'a, T>`](DataAccessor) to the scope of a call to the
+/// listener. This is not to be confused with [`DataScope`](crate::DataScope).
 #[derive(Clone, Copy, Debug)]
 struct ScopedData {
     buffer: *const c_void,
@@ -641,9 +641,9 @@ impl<F> Hash for Subscription<'_, F> {
     }
 }
 
-/// The inner value of a [`Subscription<'a, F>`]
+/// The inner value of a [`Subscription<'_, F>`](Subscription)
 ///
-/// Unlike [`Subscription<'a, F>`], this does not have a lifetime and is not optional.
+/// Unlike [`Subscription<'_, F>`](Subscription), this does not have a lifetime and is not optional.
 struct SubscriptionInner<F> {
     context: ManuallyDrop<Box<SubscriptionContext<F>>>,
     subscription_handle: SubscriptionHandle,
@@ -675,6 +675,7 @@ impl<F> Hash for SubscriptionInner<F> {
     }
 }
 
+/// The handle to a subscription as returned from the WNF API
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[repr(transparent)]
 struct SubscriptionHandle(*mut c_void);
@@ -690,7 +691,7 @@ unsafe impl Send for SubscriptionHandle {}
 unsafe impl Sync for SubscriptionHandle {}
 
 impl SubscriptionHandle {
-    /// Creates a NULL [`SubscriptionHandle`]
+    /// Creates a `NULL` [`SubscriptionHandle`]
     const fn null() -> Self {
         Self(ptr::null_mut())
     }

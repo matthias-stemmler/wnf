@@ -1,4 +1,6 @@
 //! Methods for querying state data
+//!
+//! This module only adds inherent impls to [`OwnedState<T>`] and [`BorrowedState<'_, T>`](BorrowedState).
 
 use std::{io, ptr};
 

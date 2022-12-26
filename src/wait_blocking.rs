@@ -1,4 +1,6 @@
 //! Methods for synchronously waiting for state updates
+//!
+//! This module only adds inherent impls to [`OwnedState<T>`] and [`BorrowedState<'_, T>`](BorrowedState).
 
 #![deny(unsafe_code)]
 

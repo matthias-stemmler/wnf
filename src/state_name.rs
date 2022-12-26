@@ -7,8 +7,7 @@ use std::fmt::{self, Binary, Display, Formatter, LowerHex, Octal, UpperHex};
 use num_traits::FromPrimitive;
 use thiserror::Error;
 
-/// This is the magic number used by WNF to convert between the opaque value of a state name and its corresponding
-/// transparent value that contains information about the state name encoded into its bits.
+/// The magic number for converting between opaque and transparent values of state names
 ///
 /// For reference, see e.g. <https://blog.quarkslab.com/playing-with-the-windows-notification-facility-wnf.html>
 const STATE_NAME_XOR_KEY: u64 = 0x41C6_4E6D_A3BC_0074;

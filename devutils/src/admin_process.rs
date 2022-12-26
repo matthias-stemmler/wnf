@@ -148,7 +148,7 @@ where
 
         for character in arg.as_ref().encode_wide() {
             if character == 0 {
-                return Err(io::Error::new(ErrorKind::InvalidInput, "argument contains NULL byte"));
+                return Err(io::Error::new(ErrorKind::InvalidInput, "argument contains `NULL` byte"));
             }
 
             if character == '\\' as u16 {

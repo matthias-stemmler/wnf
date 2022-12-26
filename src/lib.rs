@@ -320,7 +320,7 @@
 //!   - `bytemuck_v1`: Enables the optional [bytemuck](https://docs.rs/bytemuck/1/bytemuck) dependency and provides the
 //!     [`derive_from_bytemuck_v1`] macro
 //!   - `uuid`: Enables the optional [uuid](https://docs.rs/uuid/1/uuid) dependency and provides conversions between the
-//!     [`uuid::Uuid`](https://docs.rs/uuid/1.2.2/uuid/struct.Uuid.html) and [`wnf::GUID`](crate::GUID) types
+//!     [`uuid::Uuid`](https://docs.rs/uuid/1/uuid/struct.Uuid.html) and [`wnf::GUID`](crate::GUID) types
 //!   - `winapi`: Enables the optional [winapi](https://docs.rs/winapi/latest/winapi) dependency and provides conversions
 //!     between the [`winapi::shared::guiddef::GUID`](https://docs.rs/winapi/latest/winapi/shared/guiddef/struct.GUID.html)
 //!     and [`wnf::GUID`](crate::GUID) types

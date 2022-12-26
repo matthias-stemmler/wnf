@@ -1,4 +1,6 @@
 //! Methods for updating state data
+//!
+//! This module only adds inherent impls to [`OwnedState<T>`] and [`BorrowedState<'_, T>`](BorrowedState).
 
 use std::ffi::c_void;
 use std::{io, mem, ptr};

@@ -20,7 +20,9 @@ impl CWideString {
         Self(OsStr::new(s).encode_wide().chain(Some(0)).collect())
     }
 
-    /// Returns a raw pointer to the underlying `u16` slice as a [`PCWSTR`] that can be passed to Windows API functions
+    /// Returns a raw pointer to the underlying `u16` slice as a
+    /// [`PCWSTR`](https://docs.rs/windows/0/windows/core/struct.PCWSTR.html) that can be passed to Windows API
+    /// functions
     ///
     /// The returned pointer is guaranteed to point to a valid null-terminated wide string as long as the instance of
     /// [`CWideString`] is live.
@@ -46,14 +48,14 @@ mod tests {
 
         let len = (0..(isize::MAX as usize) / 2)
             .find(|&idx| {
-                // SAFETY: By the guarantees of `as_pcwstr` and because we haven't found a NULL element yet,
+                // SAFETY: By the guarantees of `as_pcwstr` and because we haven't found a `NULL` element yet,
                 // - both `ptr` and the offset pointer are in bounds of the same allocated object
                 // - the computed offset `idx * 2` does not overflow an `isize`
                 // - the computed sum does not overflow a `usize`
                 let element_ptr = unsafe { ptr.add(idx) };
 
                 // SAFETY:
-                // By the guarantees of `as_pcwstr` and because we haven't found a NULL element yet, `element_ptr`
+                // By the guarantees of `as_pcwstr` and because we haven't found a `NULL` element yet, `element_ptr`
                 // points to a valid `u16`
                 let element = unsafe { *element_ptr };
 

@@ -124,7 +124,7 @@ impl FromStr for BoxedSecurityDescriptor {
 
         Ok(Self {
             ptr: NonNull::new(psecurity_descriptor.0 as *mut SecurityDescriptor)
-                .expect("ConvertStringSecurityDescriptorToSecurityDescriptorW returned NULL security descriptor"),
+                .expect("ConvertStringSecurityDescriptorToSecurityDescriptorW returned `NULL` security descriptor"),
         })
     }
 }
@@ -167,6 +167,8 @@ impl AsRef<SecurityDescriptor> for BoxedSecurityDescriptor {
     }
 }
 
+/// Borrowing security descriptors from
+/// [`windows_permissions`](https://docs.rs/windows_permissions/latest/windows_permissions)
 #[cfg(feature = "windows_permissions")]
 mod impl_windows_permissions {
     use super::*;
