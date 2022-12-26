@@ -4,7 +4,7 @@
 //! [![license](https://img.shields.io/crates/l/wnf.svg)](https://github.com/matthias-stemmler/wnf/blob/main/LICENSE-APACHE)
 //! [![rustc 1.62+](https://img.shields.io/badge/rustc-1.62+-lightgrey.svg)](https://blog.rust-lang.org/2022/06/30/Rust-1.62.0.html)
 //!
-//! Safe Rust bindings for the Windows Notification Facility
+//! Safe bindings for the Windows Notification Facility
 //!
 //! The *Windows Notification Facility (WNF)* is a registrationless publisher/subscriber mechanism that was introduced
 //! in Windows 8 and forms an undocumented part of the Windows API.

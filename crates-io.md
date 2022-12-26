@@ -1,4 +1,4 @@
-# wnf - Safe Rust bindings for the Windows Notification Facility
+# Safe bindings for the Windows Notification Facility
 
 [![GitHub](https://img.shields.io/badge/GitHub-informational?logo=GitHub&labelColor=555555)](https://github.com/matthias-stemmler/wnf)
 [![crates.io](https://img.shields.io/crates/v/wnf.svg)](https://crates.io/crates/wnf)
@@ -47,7 +47,7 @@ wnf = "0.0.0"
 
 For a detailed explanation on how to use this crate, see the [crate documentation][docs].
 
-For examples, see the [examples] folder.
+For examples, see the [examples] folder in the crate repository.
 
 ## Minimum Supported Rust Version (MSRV) Policy
 
