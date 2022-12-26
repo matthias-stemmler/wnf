@@ -425,7 +425,7 @@ where
     }
 }
 
-impl<T, F> Future for WaitUntilBoxed<'_, T, F>
+impl<F, T> Future for WaitUntilBoxed<'_, T, F>
 where
     F: FnMut(&T) -> bool,
     T: Read<Box<T>> + ?Sized,
@@ -452,7 +452,7 @@ where
 // This is not auto-implemented because `F` might be `!Unpin`
 // We can implement it manually because `F` is never pinned, i.e. pinning is non-structural for `F`
 // See <https://doc.rust-lang.org/std/pin/index.html#pinning-is-not-structural-for-field>
-impl<T, D, F> Unpin for WaitUntilInternal<'_, T, D, F> where T: ?Sized {}
+impl<D, F, T> Unpin for WaitUntilInternal<'_, T, D, F> where T: ?Sized {}
 
 /// State of the [`WaitUntilInternal<'a, T, D, F>`](WaitUntilInternal) future
 #[derive(Debug)]
@@ -586,7 +586,7 @@ impl<D> WaitListener<D> {
     }
 }
 
-impl<T, D> StateListener<T> for WaitListener<D>
+impl<D, T> StateListener<T> for WaitListener<D>
 where
     D: Send + 'static,
     T: Read<D> + ?Sized,

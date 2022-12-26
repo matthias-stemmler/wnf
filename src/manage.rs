@@ -1,6 +1,7 @@
 //! Methods for creating and deleting states
 
 use std::borrow::Borrow;
+use std::fmt::{self, Debug, Formatter};
 use std::io;
 
 use tracing::debug;
@@ -22,7 +23,7 @@ pub const MAXIMUM_STATE_SIZE: usize = 0x1000;
 ///
 /// The lifetime of a state must be specified upon its creation. When creating a state via a
 /// [`StateCreation`], this is used as a type parameter to indicate that the lifetime has not been specified yet.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct UnspecifiedLifetime {
     _private: (),
 }
@@ -33,11 +34,18 @@ impl UnspecifiedLifetime {
     }
 }
 
+impl Debug for UnspecifiedLifetime {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // Hide the `_private` field
+        f.debug_struct("UnspecifiedLifetime").finish()
+    }
+}
+
 /// Marker type for an unspecified scope when creating a state
 ///
 /// The scope of a state must be specified upon its creation. When creating a state via a [`StateCreation`],
 /// this is used as a type parameter to indicate that the scope has not been specified yet.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct UnspecifiedScope {
     _private: (),
 }
@@ -48,13 +56,20 @@ impl UnspecifiedScope {
     }
 }
 
+impl Debug for UnspecifiedScope {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // Hide the `_private` field
+        f.debug_struct("UnspecifiedScope").finish()
+    }
+}
+
 /// Marker type for an unspecified security descriptor when creating a state
 ///
 /// The security descriptor of a state can optionally be specified upon its creation. When creating a state via
 /// a [`StateCreation`], this is used as a type parameter to indicate that no security descriptor has been specified.
 /// In this case, a default security descriptor (see [`BoxedSecurityDescriptor::create_everyone_generic_all`]) will be
 /// used.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct UnspecifiedSecurityDescriptor {
     _private: (),
 }
@@ -62,6 +77,13 @@ pub struct UnspecifiedSecurityDescriptor {
 impl UnspecifiedSecurityDescriptor {
     const fn new() -> Self {
         Self { _private: () }
+    }
+}
+
+impl Debug for UnspecifiedSecurityDescriptor {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // Hide the `_private` field
+        f.debug_struct("UnspecifiedSecurityDescriptor").finish()
     }
 }
 

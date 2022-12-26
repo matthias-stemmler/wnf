@@ -414,8 +414,7 @@ where
     T: ?Sized,
 {
     fn eq(&self, other: &Self) -> bool {
-        // We don't compare the type id because a state is already uniquely identified by its name
-        self.state_name == other.state_name
+        self.state_name == other.state_name && self.type_id == other.type_id
     }
 }
 
@@ -432,6 +431,7 @@ where
         H: Hasher,
     {
         self.state_name.hash(state);
+        self.type_id.hash(state);
     }
 }
 

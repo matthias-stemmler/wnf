@@ -620,12 +620,7 @@ impl<F> Drop for Subscription<'_, F> {
 // We cannot derive this because that would impose an unnecessary trait bound `F: Debug`
 impl<F> Debug for Subscription<'_, F> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Subscription")
-            .field(
-                "subscription_handle",
-                &self.inner.as_ref().map(|inner| inner.subscription_handle),
-            )
-            .finish()
+        f.debug_struct("Subscription").field("inner", &self.inner).finish()
     }
 }
 
@@ -658,6 +653,7 @@ struct SubscriptionInner<F> {
 impl<F> Debug for SubscriptionInner<F> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("SubscriptionInner")
+            .field("context", &self.context)
             .field("subscription_handle", &self.subscription_handle)
             .finish()
     }
@@ -727,7 +723,15 @@ struct SubscriptionContext<F>(Mutex<Option<F>>);
 // We cannot derive this because that would impose an unnecessary trait bound `F: Debug`
 impl<F> Debug for SubscriptionContext<F> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("SubscriptionContext").field(&"..").finish()
+        struct Placeholder;
+
+        impl Debug for Placeholder {
+            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                f.write_str("<context>")
+            }
+        }
+
+        f.debug_tuple("SubscriptionContext").field(&Placeholder).finish()
     }
 }
 
