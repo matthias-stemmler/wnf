@@ -18,7 +18,7 @@ use crate::read::Read;
 use crate::state::{BorrowedState, OwnedState, RawState};
 use crate::state_name::StateName;
 
-/// Types capable of listening to state updates
+/// A trait for types that are capable of listening to state updates
 ///
 /// Note that there is a blanket implementation of this trait for all closure types
 /// `F: FnMut(DataAccessor<'_, T>)`, so you usually don't need to implement this trait for your own types. It is useful,
@@ -343,7 +343,7 @@ impl ScopedData {
     }
 }
 
-/// Handle to state data passed to state listeners
+/// A handle to state data passed to state listeners
 ///
 /// Listeners receive a [`DataAccessor<'a, T>`](DataAccessor) in their [`StateListener::call`] method. It can be used to
 /// obtain the state data at the time the update took place.

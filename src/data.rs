@@ -6,7 +6,7 @@ use std::borrow::{Borrow, BorrowMut};
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
-/// Placeholder for state data whose content is irrelevant
+/// A placeholder for state data whose content is irrelevant
 ///
 /// This type can be "read" from any state regardless of the size of the state data. It doesn't contain the actual data
 /// but just their size, which can be obtained via the [`OpaqueData::size`] method. This is useful on different
@@ -158,7 +158,7 @@ impl BorrowMut<u32> for ChangeStamp {
     }
 }
 
-/// State data of type `T` together with a change stamp
+/// State data together with a change stamp
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct StampedData<T> {
     data: T,

@@ -19,7 +19,7 @@ use crate::type_id::{TypeId, GUID};
 /// specified.
 pub const MAXIMUM_STATE_SIZE: usize = 0x1000;
 
-/// Marker type for an unspecified lifetime when creating a state
+/// A marker type for an unspecified lifetime when creating a state
 ///
 /// The lifetime of a state must be specified upon its creation. When creating a state via a
 /// [`StateCreation`], this is used as a type parameter to indicate that the lifetime has not been specified yet.
@@ -41,7 +41,7 @@ impl Debug for UnspecifiedLifetime {
     }
 }
 
-/// Marker type for an unspecified scope when creating a state
+/// A marker type for an unspecified scope when creating a state
 ///
 /// The scope of a state must be specified upon its creation. When creating a state via a [`StateCreation`],
 /// this is used as a type parameter to indicate that the scope has not been specified yet.
@@ -63,7 +63,7 @@ impl Debug for UnspecifiedScope {
     }
 }
 
-/// Marker type for an unspecified security descriptor when creating a state
+/// A marker type for an unspecified security descriptor when creating a state
 ///
 /// The security descriptor of a state can optionally be specified upon its creation. When creating a state via
 /// a [`StateCreation`], this is used as a type parameter to indicate that no security descriptor has been specified.
@@ -127,7 +127,7 @@ impl From<CreatableStateLifetime> for StateLifetime {
     }
 }
 
-/// Trait for types that can be fallibly converted into something that can be borrowed as a [`SecurityDescriptor`]
+/// A trait for types that can be fallibly converted into a [`SecurityDescriptor`]
 ///
 /// This trait is implemented for
 /// - all types that implement [`Borrow<SecurityDescriptor>`]
@@ -169,7 +169,7 @@ impl TryIntoSecurityDescriptor for UnspecifiedSecurityDescriptor {
     }
 }
 
-/// Builder type for creating states
+/// A builder type for creating states
 ///
 /// You can use this type to create a state by applying the following steps:
 /// 1. Create a new builder using [`StateCreation::new`]
@@ -181,7 +181,7 @@ impl TryIntoSecurityDescriptor for UnspecifiedSecurityDescriptor {
 /// - [`lifetime`](StateCreation::lifetime): Mandatory
 /// - [`scope`](StateCreation::scope): Mandatory
 /// - [`maximum_state_size`](StateCreation::maximum_state_size): Optional, default: `0x1000`
-/// - [`security_descriptor`](StateCreation::security_descriptor): Optional, default:
+/// - [`security_descriptor`](StateCreation::security_descriptor): Optional, default: see
 ///   [`BoxedSecurityDescriptor::create_everyone_generic_all`]
 /// - [`type_id`](StateCreation::type_id): Optional, default: none
 ///
@@ -397,6 +397,11 @@ where
     /// Creates an [`OwnedState<T>`] with temporary lifetime and machine scope
     ///
     /// This is a convenience method for quickly creating a state, e.g. for testing purposes.
+    /// For more precise control over the created state, use the [`StateCreation`] builder.
+    ///
+    /// Note that a newly created state is initialized with data of size zero. This means that unless the data type `T`
+    /// is zero-sized or a slice type, you need to update the state data with a value of type `T` before querying it
+    /// for the first time.
     ///
     /// # Errors
     /// Returns an error if creating the state fails
@@ -423,9 +428,15 @@ impl<T> BorrowedState<'static, T>
 where
     T: ?Sized,
 {
-    /// Creates a [`BorrowedState<'static, T>`] with temporary lifetime and machine scope
+    /// Creates a [`BorrowedState<'static, T>`](BorrowedState::create_temporary) with temporary lifetime and machine
+    /// scope
     ///
     /// This is a convenience method for quickly creating a state, e.g. for testing purposes.
+    /// For more precise control over the created state, use the [`StateCreation`] builder.
+    ///
+    /// Note that a newly created state is initialized with data of size zero. This means that unless the data type `T`
+    /// is zero-sized or a slice type, you need to update the state data with a value of type `T` before querying it
+    /// for the first time.
     ///
     /// # Errors
     /// Returns an error if creating the state fails

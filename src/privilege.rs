@@ -11,8 +11,7 @@ use windows::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
 
 use crate::util::CWideString;
 
-/// Returns whether the `SeCreatePermanentPrivilege` privilege is enabled in the access token associated with the
-/// current process
+/// Returns whether the current process has the `SeCreatePermanentPrivilege` privilege
 ///
 /// This privilege is necessary for creating states with the
 /// [`StateLifetime::Permanent`](crate::state_name::StateLifetime::Permanent) or

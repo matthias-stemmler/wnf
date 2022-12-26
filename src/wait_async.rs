@@ -346,7 +346,7 @@ where
     }
 }
 
-/// Future returned by [`OwnedState::wait_async`] and [`BorrowedState::wait_async`]
+/// The future returned by [`wait_async`](`OwnedState::wait_async`) methods
 #[derive(Debug)]
 #[must_use = "futures do nothing unless you `.await` or poll them"]
 pub struct Wait<'a> {
@@ -374,7 +374,7 @@ impl Future for Wait<'_> {
     }
 }
 
-/// Future returned by [`OwnedState::wait_until_async`] and [`BorrowedState::wait_until_async`]
+/// The future returned by [`wait_until_async`](`OwnedState::wait_until_async`) methods
 #[derive(Debug)]
 #[must_use = "futures do nothing unless you `.await` or poll them"]
 pub struct WaitUntil<'a, T, F> {
@@ -403,7 +403,7 @@ where
     }
 }
 
-/// Future returned by [`OwnedState::wait_until_boxed_async`] and [`BorrowedState::wait_until_boxed_async`]
+/// The future returned by [`wait_until_boxed_async`](`OwnedState::wait_until_boxed_async`) methods
 #[derive(Debug)]
 #[must_use = "futures do nothing unless you `.await` or poll them"]
 pub struct WaitUntilBoxed<'a, T, F>

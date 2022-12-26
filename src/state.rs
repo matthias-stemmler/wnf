@@ -261,7 +261,7 @@ where
     }
 }
 
-/// Trait for types that can be borrowed as a state
+/// A trait for types that can be borrowed as a state
 ///
 /// This is implemented for both [`OwnedState<T>`] and [`BorrowedState<'_, T>`](BorrowedState). There are two main use
 /// cases for it:

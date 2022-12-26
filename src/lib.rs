@@ -36,12 +36,12 @@
 //!
 //! For details, see [`StateLifetime`].
 //!
-//! A state has an associated payload, called the *state data* or *state value*, up to 4KB in size. Processes can query
-//! and update these data and subscribe to changes of the data. Furthermore, a state has an associated *change stamp*,
-//! which starts at zero when the state is created and increases by one on every update of the data.
+//! A state has an associated payload, called the *state data* or *state value*, of up to 4KB in size. Processes can
+//! query and update these data and subscribe to changes of the data. Furthermore, a state has an associated *change
+//! stamp*, which starts at zero when the state is created and increases by one on every update of the data.
 //!
-//! A state that lives across system reboots (i.e. with well-known or permanent lifetime) can be configured to persist
-//! its data across reboots. Otherwise, the state itself stays alive but its data is reset on reboots.
+//! A state that lives across system reboots (i.e. with *well-known* or *permanent* lifetime) can be configured to
+//! persist its data across reboots. Otherwise, the state itself stays alive but its data is reset on reboots.
 //!
 //! A state can have different *data scopes* that control whether it maintains multiple independent instances of its
 //! data that are scoped in different ways. See [`DataScope`] for the available options.
@@ -51,8 +51,10 @@
 //! provided. This can be useful if you maintain your own type registry or just want to avoid accidental updates with
 //! invalid data.
 //!
-//! Access to a state is secured by a standard Windows Security Descriptor. In addition, creating a permanent or
-//! persistent state or a state with "process" scope requires the `SeCreatePermanentPrivilege` privilege.
+//! Access to a state is secured by a standard
+//! [Windows Security Descriptor](https://learn.microsoft.com/en-us/windows/win32/secauthz/security-descriptors). In
+//! addition, creating a *permanent* or *persistent* state or a state with *process* scope requires the
+//! `SeCreatePermanentPrivilege` privilege.
 //!
 //! The WNF mechanism, though officially undocumented, has been described by various sources. Its API is part of the
 //! Windows Native API exposed through `ntdll.dll` and has been (partly) reverse engineered and described. For details,
@@ -78,7 +80,7 @@
 //! - `RtlSubscribeWnfStateChangeNotification`
 //! - `RtlUnsubscribeWnfStateChangeNotification`
 //!
-//! The other featurs use more low-level functions from `ntdll.dll` whose names start with `Nt*`:
+//! The other features use more low-level functions from `ntdll.dll` whose names start with `Nt*`:
 //! - `NtCreateWnfStateName`
 //! - `NtDeleteWnfStateName`
 //! - `NtQueryWnfStateNameInformation`
@@ -86,10 +88,10 @@
 //! - `NtUpdateWnfStateData`
 //!
 //! In addition, this crate provides some higher-level abstractions:
-//! - Applying a transformation to state data
-//! - Replacing state data
-//! - Waiting for updates of state data (in both blocking and async variants)
-//! - Waiting until state data satisfy a certain condition (in both blocking and async variants)
+//! - Apply a transformation to state data
+//! - Replace state data
+//! - Wait for updates of state data (in both blocking and async variants)
+//! - Wait until state data satisfy a certain condition (in both blocking and async variants)
 //!
 //! The following WNF features are currently not supported:
 //! - Subscriptions in meta-notification mode, i.e. subscribing to consumers becoming active or inactive or publishers
@@ -104,7 +106,7 @@
 //! [`BorrowedHandle<'_>`](std::os::windows::io::BorrowedHandle) types from the standard library:
 //! - An [`OwnedState<T>`] has no lifetime, does not implement [`Copy`] or [`Clone`] and deletes the represented state
 //!   on drop.
-//! - A [`BorrowedState<'_, T>`](BorrowedState) has a lifetime, implements [`Copy`] and [`Clone`] and does not delete
+//! - A [`BorrowedState<'_, T>`](BorrowedState) has a lifetime, implements [`Copy`] and [`Clone`] and does *not* delete
 //!   the represented state on drop.
 //!
 //! Note that copying/cloning a [`BorrowedState<'_, T>`](BorrowedState) just copies the borrow, returning another borrow
@@ -118,11 +120,11 @@
 //! [`BorrowedState<'_, T>`](BorrowedState) just copies the borrow.
 //!
 //! You can obtain an instance of [`OwnedState<T>`] or [`BorrowedState<'_, T>`](BorrowedState) in the following ways:
-//! - Creating a new owned state through the [`StateCreation::create_owned`] method This is common for temporary states,
-//!   for which there is the [`OwnedState::create_temporary`] shortcut method.
-//! - Creating a new state and statically borrow it through the [`StateCreation::create_static`] method This is common
+//! - Create a new owned state through the [`StateCreation::create_owned`] method<br> This is common for temporary
+//!   states, for which there is also the [`OwnedState::create_temporary`] shortcut method.
+//! - Create a new state and statically borrow it through the [`StateCreation::create_static`] method<br> This is common
 //!   for permanent or persistent states.
-//! - Statically borrowing an existing state through the [`BorrowedState::from_state_name`] method This is common for
+//! - Statically borrow an existing state through the [`BorrowedState::from_state_name`] method<br> This is common for
 //!   well-known states.
 //!
 //! An owned state can be "leaked" as a statically borrowed state through the [`OwnedState::leak`] method, while a
@@ -139,7 +141,7 @@
 //!   that it can at least be checked at runtime whether it represents a valid `T`.
 //! - Updating state data from a `T` requires that the type `T` contain no uninitialized (i.e. padding) bytes.
 //!
-//! These conditions cannot be checked at runtime and hence need to be encoded in the Rust type system.
+//! These conditions cannot be checked at runtime and hence need to be encoded in the type system.
 //!
 //! Note that querying state data as a `T` also requires that the size of the state data match the size of `T` in the
 //! first place, but this condition can be checked at runtime. In fact, the data type can also be a slice type `[T]`, in
@@ -151,27 +153,29 @@
 //! stage. However, there are various third-party crates that define (unsafe) traits encoding the above conditions,
 //! among them being the [bytemuck](https://docs.rs/bytemuck/1/bytemuck) and
 //! [zerocopy](https://docs.rs/zerocopy/0/zerocopy) crates. Both of them implement the appropriate traits for many
-//! standard types and also provide macros to derive them for your own types (checking at compile-time whether a type
-//! satisfies the necessary conditions), enabling you to avoid unsafe code in most cases.
+//! standard types and also provide macros to derive them for your own types, checking at compile-time whether a type
+//! satisfies the necessary conditions and enabling you to avoid unsafe code in most cases.
 //!
 //! The `wnf` crate does not have a hard dependency on any of these crates. Instead, it defines its own
 //! (unsafe) traits that are modelled after the traits from the [bytemuck](https://docs.rs/bytemuck/1/bytemuck) crate
 //! with the same names:
-//! - [`AnyBitPattern`] and [`CheckedBitPattern`] encoding the requirements for querying state data
-//! - [`NoUninit`] encoding the requirements for updating state data
+//! - [`AnyBitPattern`] and [`CheckedBitPattern`] encode the requirements for querying state data
+//! - [`NoUninit`] encodes the requirements for updating state data
 //!
-//! These traits are already implemented for many standard types. In case your code already makes use of the
-//! [bytemuck](https://docs.rs/bytemuck/1/bytemuck) or [zerocopy](https://docs.rs/zerocopy/0/zerocopy) crate or you want
-//! to take advantage of the derive macros provided by those crates, you can do the following:
-//! - Enable the `bytemuck_v1` or `zerocopy` feature of this crate (producing a dependency on [bytemuck](https://docs.rs/bytemuck/1/bytemuck)
-//!   v1, respectively [zerocopy](https://docs.rs/zerocopy/0/zerocopy))
+//! These traits are already implemented for many standard types. In case your code already makes use of one of the
+//! [bytemuck](https://docs.rs/bytemuck/1/bytemuck) or [zerocopy](https://docs.rs/zerocopy/0/zerocopy) crates or you want
+//! to take advantage of the derive macros provided by either of those crates, you can do the following:
+//! - Enable the `bytemuck_v1` resp. `zerocopy` feature of this crate (producing a dependency on [bytemuck](https://docs.rs/bytemuck/1/bytemuck)
+//!   v1 resp. [zerocopy](https://docs.rs/zerocopy/0/zerocopy))
 //! - Implement the appropriate trait from one of these crates for your type, e.g. by using a derive macro
-//! - Derive the corresponding trait from the `wnf` crate using the [`derive_from_bytemuck_v1`] respectively
+//! - Derive the corresponding trait from the `wnf` crate using the [`derive_from_bytemuck_v1`] resp.
 //!   [`derive_from_zerocopy`] macros. See the documentations of these macros for examples.
 //!
-//! All methods that query state data require the data type to either be a type `T` that implements
-//! [`CheckedBitPattern`] or to be a slice type `[T]` where the element type `T` implements [`CheckedBitPattern`]. In
-//! addition, they exist in non-boxed and boxed variants, e.g. [`OwnedState::get`] and [`OwnedState::get_boxed`]. The
+//! All methods that query state data require the data type to
+//! - either be a type `T` that implements [`CheckedBitPattern`]
+//! - or be a slice type `[T]` where the element type `T` implements [`CheckedBitPattern`]
+//!
+//! In addition, they exist in non-boxed and boxed variants, e.g. [`OwnedState::get`] and [`OwnedState::get_boxed`]. The
 //! non-boxed variants query the data by value (i.e. on the stack), but require the data type `T` to be [`Sized`].
 //! The boxed variants work for both sized and unsized data types `T` and query the data as a [`Box<T>`] (i.e. allocated
 //! on the heap). All of this is encapsulated in the [`Read<T>`] trait where
@@ -183,8 +187,8 @@
 //!
 //! If you want to be able to support arbitrary state data without any restriction on the size (apart from the upper
 //! bound of 4KB), you can always use a byte slice `[u8]` as the data type. In the rare case that you want to query a
-//! state without caring about the content of the data (e.g. if you just want to query its size or if you want to check
-//! if you have the right permissions to query the state), you can use the [`OpaqueData`] type.
+//! state without caring about the content of the data at all, you can use the [`OpaqueData`] type. This is useful e.g.
+//! if you just want to query the size or if you want to check if you have the right permissions to query the state.
 //!
 //! # Examples
 //!
@@ -231,7 +235,7 @@
 //!
 //! ## Subscribing to a well-known state
 //!
-//! This requires the `subscribe` feature flag.
+//! This requires the `subscribe` feature flag to be enabled.
 //! ```
 //! # #![no_std]
 //! #
@@ -295,12 +299,12 @@
 //!     groups:
 //!     - `result`: The result (return code) of the invocation
 //!     - `input.*`: Inputs of the invocation, depending on the routine
-//!     - `output.*`: Outputs of the invocation, depending on the routing
+//!     - `output.*`: Outputs of the invocation, depending on the routine
 //! - For every invocation of a callback function in the `wnf` crate, a [`Span`](https://docs.rs/tracing/latest/tracing/struct.Span.html)
 //!   with the following payload is emitted:
 //!   - The [`target`](https://docs.rs/tracing/latest/tracing/struct.Metadata.html#method.target) is always
 //!     `wnf::ntapi`.
-//!   - The [`level`](https://docs.rs/tracing/latest/tracing/struct.Metadata.html#method.level) is [`DEBUG`](https://docs.rs/tracing/latest/tracing/struct.Level.html#associatedconstant.TRACE).
+//!   - The [`level`](https://docs.rs/tracing/latest/tracing/struct.Metadata.html#method.level) is [`TRACE`](https://docs.rs/tracing/latest/tracing/struct.Level.html#associatedconstant.TRACE).
 //!   - The [`name`](https://docs.rs/tracing/latest/tracing/struct.Metadata.html#method.name) is `WnfUserCallback`.
 //!   - The [`fields`](https://docs.rs/tracing/latest/tracing/struct.Metadata.html#method.fields) are all named
 //!     `input.*` and contain the inputs of the invocation.
@@ -310,7 +314,7 @@
 //! # Cargo features
 //!
 //! This crate has various [feature flags](https://doc.rust-lang.org/cargo/reference/features.html), none of which are
-//! enabled by default, that fall into two groups:
+//! enabled by default. They fall into two groups:
 //!
 //! - Features enabling compatibility with other crates:
 //!   - `bytemuck_v1`: Enables the optional [bytemuck](https://docs.rs/bytemuck/1/bytemuck) dependency and provides the
@@ -321,7 +325,7 @@
 //!     between the [`winapi::shared::guiddef::GUID`](https://docs.rs/winapi/latest/winapi/shared/guiddef/struct.GUID.html)
 //!     and [`wnf::GUID`](crate::GUID) types
 //!   - `windows`: Provides conversions between the [`windows::core::GUID`](https://docs.rs/windows/latest/windows/core/struct.GUID.html)
-//!     and [`wnf::GUID`](crate::GUID) types (the `windows` dependency is not optional because it is used by `wnf`
+//!     and [`wnf::GUID`](crate::GUID) types (the `windows` dependency is not optional because it is also used by `wnf`
 //!     internally)
 //!   - `windows_permissions`: Enables the optional [windows-permissions](https://docs.rs/windows-permissions/latest/windows_permissions)
 //!     dependency and enables the use of [`windows_permissions::SecurityDescriptor`](https://docs.rs/windows-permissions/latest/windows_permissions/struct.SecurityDescriptor.html)

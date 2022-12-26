@@ -12,7 +12,7 @@ use thiserror::Error;
 use crate::bytes::CheckedBitPattern;
 use crate::data::OpaqueData;
 
-/// Trait for types that can be read from state data
+/// A trait for types that can be read from state data
 ///
 /// A type `T` implements [`Read<D>`] if the data of a state of type `T` (i.e., an
 /// [`OwnedState<T>`](crate::state::OwnedState) or a [`BorrowedState<'_, T>`](crate::state::BorrowedState))
@@ -404,7 +404,7 @@ where
     }
 }
 
-/// Error reading state data as some data type `T: Sized` or slice data type `[T]`
+/// An error reading state data
 #[derive(Clone, Copy, Debug, Eq, Error, Hash, PartialEq)]
 pub enum ReadError {
     /// The size of the data doesn't match the size of the data type `T`

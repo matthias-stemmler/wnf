@@ -13,7 +13,7 @@ use thiserror::Error;
 /// For reference, see e.g. <https://blog.quarkslab.com/playing-with-the-windows-notification-facility-wnf.html>
 const STATE_NAME_XOR_KEY: u64 = 0x41C6_4E6D_A3BC_0074;
 
-/// Lifetime of a state
+/// The lifetime of a state
 ///
 /// This property of a state controls at what point in time it is automatically deleted as well as if and how it is
 /// persisted.
@@ -64,7 +64,7 @@ pub enum StateLifetime {
     Temporary = 3,
 }
 
-/// Data scope of a state
+/// The data scope of a state
 ///
 /// This property of a state controls whether it maintains multiple instances of its data that are scoped in different
 /// ways.
@@ -96,7 +96,7 @@ pub enum DataScope {
     PhysicalMachine = 5,
 }
 
-/// Descriptor of a state name
+/// The descriptor of a state name
 ///
 /// This contains the properties of a [`StateName`] that are encoded in the bits of its transparent value.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -252,7 +252,7 @@ impl TryFrom<StateName> for StateNameDescriptor {
     }
 }
 
-/// Error converting a [`StateNameDescriptor`] into a [`StateName`]
+/// An error converting a [`StateNameDescriptor`] into a [`StateName`]
 #[derive(Clone, Copy, Debug, Error, Eq, Hash, PartialEq)]
 pub enum StateNameFromDescriptorError {
     /// The [`StateNameDescriptor::version`] is invalid (must be less than `2^4`)
@@ -264,7 +264,7 @@ pub enum StateNameFromDescriptorError {
     InvalidUniqueId(u32),
 }
 
-/// Error converting a [`StateName`] into a [`StateNameDescriptor`]
+/// An error converting a [`StateName`] into a [`StateNameDescriptor`]
 #[derive(Clone, Copy, Debug, Error, Eq, Hash, PartialEq)]
 pub enum StateNameDescriptorFromStateNameError {
     /// The data scope encoded in the state name is invalid (must be in `0..=5`)

@@ -7,7 +7,7 @@ use std::marker::{PhantomData, PhantomPinned};
 use std::mem::ManuallyDrop;
 use std::num;
 
-/// Marker trait for types for which any bit pattern is valid
+/// A marker trait for types for which any bit pattern is valid
 ///
 /// This is modelled after the [`AnyBitPattern`](https://docs.rs/bytemuck/1/bytemuck/trait.AnyBitPattern.html) trait of
 /// the [`bytemuck`](https://docs.rs/bytemuck/1/bytemuck) crate.
@@ -119,7 +119,7 @@ unsafe impl<T> AnyBitPattern for num::Wrapping<T> where T: AnyBitPattern {}
 // SAFETY: Each array element is a valid `T`
 unsafe impl<T, const N: usize> AnyBitPattern for [T; N] where T: AnyBitPattern {}
 
-/// Trait for types that can be checked for valid bit patterns at runtime
+/// A trait for types that can be checked for valid bit patterns at runtime
 ///
 /// This is modelled after the [`CheckedBitPattern`](bytemuck_v1::CheckedBitPattern) trait of the
 /// [`bytemuck`](https://docs.rs/bytemuck/1/bytemuck) crate.
@@ -207,7 +207,7 @@ unsafe impl CheckedBitPattern for bool {
     }
 }
 
-/// Marker trait for types without uninitialized (padding) bytes
+/// A marker trait for types without uninitialized (padding) bytes
 ///
 /// This is modelled after the [`NoUninit`](https://docs.rs/bytemuck/1/bytemuck/trait.NoUninit.html) trait of the
 /// [`bytemuck`](https://docs.rs/bytemuck/1/bytemuck) crate.
