@@ -15,8 +15,8 @@ use crate::type_id::{TypeId, GUID};
 /// The maximum size of a state in bytes
 ///
 /// The maximum size of a state can be specified upon creation of the state and can be anything between `0` and
-/// `4KB`, which is the value of this constant. It is also used as the default value when the maximum state size is not
-/// specified.
+/// `4 KB`, which is the value of this constant. This value is also used as the default value when the maximum state
+/// size is not specified.
 pub const MAXIMUM_STATE_SIZE: usize = 0x1000;
 
 /// A marker type for an unspecified lifetime when creating a state
@@ -97,16 +97,16 @@ impl Debug for UnspecifiedSecurityDescriptor {
 ///   [`StateLifetime::WellKnown`](crate::state_name::StateLifetime::WellKnown)) lifetimes.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum CreatableStateLifetime {
-    /// Lifetime of a "permanent" state, see [`StateLifetime::Permanent`]
+    /// Lifetime of a *permanent* state, see [`StateLifetime::Permanent`]
     Permanent {
         /// Whether the state data (not the state itself) are persisted across system reboots
         persist_data: bool,
     },
 
-    /// Lifetime of a "persistent" state (also known as "volatile"), see [`StateLifetime::Persistent`]
+    /// Lifetime of a *persistent* state (also known as *volatile*), see [`StateLifetime::Persistent`]
     Persistent,
 
-    /// Lifetime of a "temporary" state, see [`StateLifetime::Temporary`]
+    /// Lifetime of a *temporary* state, see [`StateLifetime::Temporary`]
     Temporary,
 }
 

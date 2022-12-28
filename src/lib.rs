@@ -27,7 +27,7 @@
 //! referred to as a *state*.
 //!
 //! A state can have different *lifetimes*:
-//! - A *well-known state* is provisioned with the system and cannot be created or deleted.
+//! - A *well-known* state is provisioned with the system and cannot be created or deleted.
 //! - A *permanent* state can be created and stays alive even across system reboots until it is explicitly deleted.
 //! - A *persistent* or *volatile* state can be created and stays alive until the next system reboot or until it is
 //!   explicitly deleted.
@@ -36,7 +36,7 @@
 //!
 //! For details, see [`StateLifetime`].
 //!
-//! A state has an associated payload, called the *state data* or *state value*, of up to 4KB in size. Processes can
+//! A state has an associated payload, called the *state data* or *state value*, of up to 4 KB in size. Processes can
 //! query and update these data and subscribe to changes of the data. Furthermore, a state has an associated *change
 //! stamp*, which starts at zero when the state is created and increases by one on every update of the data.
 //!
@@ -186,7 +186,7 @@
 //! and non-boxed variants because they take the data by reference.
 //!
 //! If you want to be able to support arbitrary state data without any restriction on the size (apart from the upper
-//! bound of 4KB), you can always use a byte slice `[u8]` as the data type. In the rare case that you want to query a
+//! bound of 4 KB), you can always use a byte slice `[u8]` as the data type. In the rare case that you want to query a
 //! state without caring about the content of the data at all, you can use the [`OpaqueData`] type. This is useful e.g.
 //! if you just want to query the size or if you want to check if you have the right permissions to query the state.
 //!

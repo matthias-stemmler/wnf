@@ -31,8 +31,8 @@ where
     /// This is a blocking method. If you are in an async context, use [`wait_async`](OwnedState::wait_async).
     ///
     /// # Errors
-    /// Returns an error if querying, subscribing to or unsubscribing from the state fails or if the timeout has elapsed
-    /// In the latter case, [`io::Error::kind`] returns [`ErrorKind::TimedOut`]
+    /// Returns an error if querying, subscribing to or unsubscribing from the state fails or if the timeout has
+    /// elapsed. In the latter case, [`io::Error::kind`] returns [`ErrorKind::TimedOut`].
     pub fn wait_blocking(&self, timeout: Duration) -> io::Result<()> {
         self.raw.wait_blocking(timeout)
     }
@@ -90,8 +90,8 @@ where
     /// [`wait_until_async`](OwnedState::wait_until_async).
     ///
     /// # Errors
-    /// Returns an error if querying, subscribing to or unsubscribing from the state fails or if the timeout has elapsed
-    /// In the latter case, [`io::Error::kind`] returns [`ErrorKind::TimedOut`]
+    /// Returns an error if querying, subscribing to or unsubscribing from the state fails or if the timeout has
+    /// elapsed. In the latter case, [`io::Error::kind`] returns [`ErrorKind::TimedOut`].
     pub fn wait_until_blocking<F>(&self, predicate: F, timeout: Duration) -> io::Result<T>
     where
         F: FnMut(&T) -> bool,
@@ -160,8 +160,8 @@ where
     /// [`wait_until_boxed_async`](OwnedState::wait_until_boxed_async).
     ///
     /// # Errors
-    /// Returns an error if querying, subscribing to or unsubscribing from the state fails or if the timeout has elapsed
-    /// In the latter case, [`io::Error::kind`] returns [`ErrorKind::TimedOut`]
+    /// Returns an error if querying, subscribing to or unsubscribing from the state fails or if the timeout has
+    /// elapsed. In the latter case, [`io::Error::kind`] returns [`ErrorKind::TimedOut`].
     pub fn wait_until_boxed_blocking<F>(&self, predicate: F, timeout: Duration) -> io::Result<Box<T>>
     where
         F: FnMut(&T) -> bool,

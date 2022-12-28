@@ -12,7 +12,7 @@ Windows 8 and forms an undocumented part of the Windows API.
 This crate provides safe Rust abstractions over (a part of) this API. If you are looking for raw bindings to the API,
 take a look at the [`ntapi`](https://docs.rs/ntapi/latest/ntapi/) crate.
 
-Note that while great care was taken in making these abstractions memory safe, there cannot be a guarantee due to the
+Note that while great care was taken in making these abstractions memory-safe, there cannot be a guarantee due to the
 undocumented nature of the API.
 
 ## Installation

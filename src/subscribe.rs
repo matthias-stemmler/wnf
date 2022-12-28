@@ -398,7 +398,7 @@ where
     /// This returns the data of the accessor without a change stamp. In order to query both the data and the change
     /// stamp, use the [`query`](DataAccessor::query) method.
     ///
-    /// The data returned by this method is the data of the underlying state for the update that caused the listener
+    /// The data returned by this method are the data of the underlying state for the update that caused the listener
     /// call to which this [`DataAccessor<'_, T>`](DataAccessor) was passed. Note that in contrast to
     /// [`OwnedState::get`] or [`BorrowedState::get`], this does not involve an OS call.
     ///
@@ -408,15 +408,15 @@ where
         self.get_as()
     }
 
-    /// Queries the data of this [`DataAccessor<'_, T>`](DataAccessor) together with its change stamp
+    /// Queries the data of this [`DataAccessor<'_, T>`](DataAccessor) together with their change stamp
     ///
     /// This produces an owned `T` on the stack and hence requires `T: Sized`. In order to produce a `Box<T>` for
     /// `T: ?Sized`, use the [`query_boxed`](DataAccessor::query_boxed) method.
     ///
-    /// This returns the data of the accessor together with its change stamp as a [`StampedData<T>`]. In order to
+    /// This returns the data of the accessor together with their change stamp as a [`StampedData<T>`]. In order to
     /// only query the data, use the [`get`](DataAccessor::get) method.
     ///
-    /// The data returned by this method is the data of the underlying state for the update that caused the listener
+    /// The data returned by this method are the data of the underlying state for the update that caused the listener
     /// call to which this [`DataAccessor<'_, T>`](DataAccessor) was passed. Note that in contrast to
     /// [`OwnedState::query`] or [`BorrowedState::query`], this does not involve an OS call.
     ///
@@ -439,7 +439,7 @@ where
     /// This returns the data of the accessor without a change stamp. In order to query both the data and the change
     /// stamp, use the [`query_boxed`](DataAccessor::query_boxed) method.
     ///
-    /// The data returned by this method is the data of the underlying state for the update that caused the listener
+    /// The data returned by this method are the data of the underlying state for the update that caused the listener
     /// call to which this [`DataAccessor<'_, T>`](DataAccessor) was passed. Note that in contrast to
     /// [`OwnedState::get_boxed`] or [`BorrowedState::get_boxed`], this does not involve an OS call.
     ///
@@ -449,15 +449,15 @@ where
         self.get_as()
     }
 
-    /// Queries the data of this [`DataAccessor<'_, T>`](DataAccessor) as a box together with its change stamp
+    /// Queries the data of this [`DataAccessor<'_, T>`](DataAccessor) as a box together with their change stamp
     ///
     /// This produces a [`Box<T>`]. In order to produce an owned `T` on the stack (requiring `T: Sized`), use the
     /// [`query`](DataAccessor::query) method.
     ///
-    /// This returns the data of the accessor together with its change stamp as a [`StampedData<Box<T>>`]. In order
+    /// This returns the data of the accessor together with their change stamp as a [`StampedData<Box<T>>`]. In order
     /// to only query the data, use the [`get_boxed`](OwnedState::get_boxed) method.
     ///
-    /// The data returned by this method is the data of the underlying state for the update that caused the listener
+    /// The data returned by this method are the data of the underlying state for the update that caused the listener
     /// call to which this [`DataAccessor<'_, T>`](DataAccessor) was passed. Note that in contrast to
     /// [`OwnedState::query_boxed`] or [`BorrowedState::query_boxed`], this does not involve an OS call.
     ///

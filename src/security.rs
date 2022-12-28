@@ -16,7 +16,7 @@ use crate::util::CWideString;
 
 /// A Windows security descriptor
 ///
-/// Since the layout of security descriptors is unstable, this is an *opaque type*, meaning it is only meant to be used
+/// Since the layout of security descriptors is unstable, this is an *opaque type*, i.e. it is only meant to be used
 /// behind a reference or pointer.
 ///
 /// You can configure the security descriptor of a state upon creation through the
@@ -25,8 +25,8 @@ use crate::util::CWideString;
 /// See RFC [1861-extern-types](https://rust-lang.github.io/rfcs/1861-extern-types.html) for some background on opaque
 /// types.
 ///
-/// See <https://learn.microsoft.com/en-us/windows/win32/secauthz/security-descriptors> for details about security
-/// descriptors.
+/// See [Security Descriptors](https://learn.microsoft.com/en-us/windows/win32/secauthz/security-descriptors) for
+/// details about security descriptors.
 #[repr(C)]
 pub struct SecurityDescriptor {
     _opaque: [u8; 0],
@@ -98,7 +98,9 @@ impl FromStr for BoxedSecurityDescriptor {
 
     /// Parses a [`BoxedSecurityDescriptor`] from a Security Descriptor String
     ///
-    /// See <https://learn.microsoft.com/en-us/windows/win32/secauthz/security-descriptor-string-format> for details.
+    /// See
+    /// [Security Descriptor String Format](https://learn.microsoft.com/en-us/windows/win32/secauthz/security-descriptor-string-format)
+    /// for details.
     fn from_str(s: &str) -> io::Result<Self> {
         let mut psecurity_descriptor = PSECURITY_DESCRIPTOR::default();
         let string_security_descriptor = CWideString::new(s);

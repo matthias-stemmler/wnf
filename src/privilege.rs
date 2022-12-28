@@ -15,7 +15,8 @@ use crate::util::CWideString;
 ///
 /// This privilege is necessary for creating states with the
 /// [`StateLifetime::Permanent`](crate::state_name::StateLifetime::Permanent) or
-/// [`StateLifetime::Persistent`](crate::state_name::StateLifetime::Persistent) lifetimes.
+/// [`StateLifetime::Persistent`](crate::state_name::StateLifetime::Persistent) lifetime or with the
+/// [`DataScope::Process`](crate::DataScope::Process) scope.
 ///
 /// # Errors
 /// Returns an error if checking the privilege fails

@@ -37,17 +37,17 @@ mod ntexapi {
         /// # Arguments
         /// - (out) `state_name`: Pointer to a `u64` buffer the state name will be written to
         /// - (in) `name_lifetime`: The lifetime of the state; at least the following values are valid:
-        ///   - `0`: "Well-known"
-        ///   - `1`: "Permanent"
-        ///   - `2`: "Persistent"
-        ///   - `3`: "Temporary"
+        ///   - `0`: Well-known
+        ///   - `1`: Permanent
+        ///   - `2`: Persistent
+        ///   - `3`: Temporary
         /// - (in) `data_scope`: The data scope of the state; at least the following values are valid:
-        ///   - `0`: "System"
-        ///   - `1`: "Session"
-        ///   - `2`: "User"
-        ///   - `3`: "Process"
-        ///   - `4`: "Machine"
-        ///   - `5`: "Physical Machine"
+        ///   - `0`: System
+        ///   - `1`: Session
+        ///   - `2`: User
+        ///   - `3`: Process
+        ///   - `4`: Machine
+        ///   - `5`: Physical Machine
         /// - (in) `persist_data`: Whether the state should have persistent data (`1`) or not (`0`)
         /// - (in) `type_id`: Pointer to a GUID used as the type ID, can be a null pointer
         /// - (in) `maximum_state_size`: The maximal allowed size of the state in bytes, must be between `0` and

@@ -19,7 +19,7 @@ const STATE_NAME_XOR_KEY: u64 = 0x41C6_4E6D_A3BC_0074;
 #[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, PartialEq)]
 #[repr(u8)]
 pub enum StateLifetime {
-    /// Lifetime of a "well-known" state
+    /// Lifetime of a *well-known* state
     ///
     /// A state with this lifetime cannot be created or deleted through the WNF API, but instead is provisioned with
     /// the system. It lives forever.
@@ -28,7 +28,7 @@ pub enum StateLifetime {
     /// `HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Notifications`
     WellKnown = 0,
 
-    /// Lifetime of a "permanent"  state
+    /// Lifetime of a *permanent*  state
     ///
     /// A state with this lifetime can be created and deleted through the WNF API at any time and is never deleted
     /// automatically.
@@ -39,7 +39,7 @@ pub enum StateLifetime {
     /// `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Notifications`
     Permanent = 1,
 
-    /// Lifetime of a "persistent" state (also known as "volatile")
+    /// Lifetime of a *persistent* state (also known as *volatile*)
     ///
     /// A state with this lifetime can be created and deleted through the WNF API at any time and is automatically
     /// deleted on system reboot.
@@ -54,7 +54,7 @@ pub enum StateLifetime {
     /// `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\VolatileNotifications`
     Persistent = 2,
 
-    /// Lifetime of a "temporary" state
+    /// Lifetime of a *temporary* state
     ///
     /// A state with this lifetime can be created and deleted through the WNF API at any time and is automatically
     /// deleted when the process it was created from exits.
@@ -70,25 +70,25 @@ pub enum StateLifetime {
 #[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, PartialEq)]
 #[repr(u8)]
 pub enum DataScope {
-    /// "System" data scope
+    /// *System* data scope
     System = 0,
 
-    /// "Session" data scope
+    /// *Session* data scope
     Session = 1,
 
-    /// "User" data scope
+    /// *User* data scope
     User = 2,
 
-    /// "Process" data scope
+    /// *Process* data scope
     Process = 3,
 
-    /// "Machine" data scope
+    /// *Machine* data scope
     ///
     /// This seems to be the widest available data scope that all reverse engineering resources agree on. It is a good
     /// default choice if you don't care about data scope.
     Machine = 4,
 
-    /// "Physical Machine" data scope
+    /// *Physical Machine* data scope
     ///
     /// This is only mentioned by some reverse engineering resources, not all of them. However, there exist
     /// (well-known) state names with this data scope.
