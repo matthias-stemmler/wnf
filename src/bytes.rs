@@ -121,7 +121,8 @@ unsafe impl<T, const N: usize> AnyBitPattern for [T; N] where T: AnyBitPattern {
 
 /// A trait for types that can be checked for valid bit patterns at runtime
 ///
-/// This is modelled after the [`CheckedBitPattern`](bytemuck_v1::CheckedBitPattern) trait of the
+/// This is modelled after the
+/// [`CheckedBitPattern`](https://docs.rs/bytemuck/1/bytemuck/checked/trait.CheckedBitPattern.html) trait of the
 /// [`bytemuck`](https://docs.rs/bytemuck/1/bytemuck) crate.
 ///
 /// In order for reading a value of a type `T` from a WNF state to be sound, `T` is required to implement
@@ -133,8 +134,8 @@ unsafe impl<T, const N: usize> AnyBitPattern for [T; N] where T: AnyBitPattern {
 /// This trait is already implemented by the `wnf` crate for many primitive types and types from the standard
 /// library. There are several ways to implement it for your own types:
 /// - Implement it directly, requiring `unsafe` code
-/// - Derive the [`CheckedBitPattern`](https://docs.rs/bytemuck/1/bytemuck/checked/trait.CheckedBitPattern.html) trait of
-///   the [`bytemuck`](https://docs.rs/bytemuck/1/bytemuck) crate and derive this trait from it via the
+/// - Derive the [`CheckedBitPattern`](https://docs.rs/bytemuck/1/bytemuck/checked/trait.CheckedBitPattern.html) trait
+///   of the [`bytemuck`](https://docs.rs/bytemuck/1/bytemuck) crate and derive this trait from it via the
 ///   [`derive_from_bytemuck_v1`](crate::derive_from_bytemuck_v1) macro:
 /// ```
 /// # #[macro_use] extern crate wnf;
@@ -380,7 +381,7 @@ pub mod __reexports {
 ///
 /// If you have a type that implements
 /// [`bytemuck::AnyBitPattern`](https://docs.rs/bytemuck/1/bytemuck/trait.AnyBitPattern.html),
-/// [`bytemuck::CheckedBitPattern`](https://docs.rs/bytemuck/1/bytemuck/trait.CheckedBitPattern.html) or
+/// [`bytemuck::CheckedBitPattern`](https://docs.rs/bytemuck/1/bytemuck/checked/trait.CheckedBitPattern.html) or
 /// [`bytemuck::NoUninit`](https://docs.rs/bytemuck/1/bytemuck/trait.NoUninit.html), you can derive the corresponding
 /// `wnf` traits as follows:
 /// ```

@@ -125,7 +125,7 @@ where
 ///
 /// This has a lifetime parameter to tie it to something that owns the state, typically an [`OwnedState<T>`].
 ///
-/// Unlike [`OwnedState`], this implements [`Copy`] (and [`Clone`]) and does not delete the represented state on
+/// Unlike [`OwnedState<T>`], this implements [`Copy`] (and [`Clone`]) and does not delete the represented state on
 /// drop.
 ///
 /// While borrowing in Rust usually refers to borrowing memory, this applies the idea of borrowing to an external
