@@ -134,8 +134,8 @@ unsafe impl<T, const N: usize> AnyBitPattern for [T; N] where T: AnyBitPattern {
 /// This trait is already implemented by the `wnf` crate for many primitive types and types from the standard
 /// library. There are several ways to implement it for your own types:
 /// - Implement it directly, requiring `unsafe` code
-/// - Derive the [`CheckedBitPattern`](https://docs.rs/bytemuck/1/bytemuck/checked/trait.CheckedBitPattern.html) trait
-///   of the [`bytemuck`](https://docs.rs/bytemuck/1/bytemuck) crate and derive this trait from it via the
+/// - Derive the [`CheckedBitPattern`](https://docs.rs/bytemuck/1/bytemuck/checked/trait.CheckedBitPattern.html) trait of
+///   the [`bytemuck`](https://docs.rs/bytemuck/1/bytemuck) crate and derive this trait from it via the
 ///   [`derive_from_bytemuck_v1`](crate::derive_from_bytemuck_v1) macro:
 /// ```
 /// # #[macro_use] extern crate wnf;
