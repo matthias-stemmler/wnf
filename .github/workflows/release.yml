@@ -147,23 +147,16 @@ jobs:
     concurrency: production
 
     steps:
-      # TODO: use stable
-      - name: Install nightly toolchain
-        uses: dtolnay/rust-toolchain@nightly
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Checkout
         uses: actions/checkout@v3
 
-      # TODO remove
-      - uses: de-vri-es/setup-git-credentials@v2
-        with:
-          credentials: ${{ secrets.GIT_CREDENTIALS }}
-
       - name: Publish release
         id: publish
         env:
-          # TODO shipyard -> crates.io
-          CARGO_REGISTRIES_SHIPYARD_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
         run: |
           # Determine version
           $version = cargo metadata --no-deps --format-version 1 `
@@ -175,8 +168,7 @@ jobs:
           "version=$version" >> $Env:GITHUB_OUTPUT
 
           # Publish
-          # TODO remove -Z registry-auth
-          cargo publish --all-features -Z registry-auth
+          cargo publish --all-features
 
       - name: Create tag and GitHub release
         uses: softprops/action-gh-release@v1
