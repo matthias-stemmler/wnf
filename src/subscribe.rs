@@ -796,6 +796,6 @@ mod tests {
         assert_impl_all!(SendNotSync: Send);
         assert_not_impl_any!(SendNotSync: Sync);
 
-        assert_impl_all!(Subscription<'_, ()>: Send, Sync);
+        assert_impl_all!(Subscription<'_, SendNotSync>: Send, Sync);
     }
 }
