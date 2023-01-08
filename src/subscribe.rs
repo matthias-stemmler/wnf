@@ -554,7 +554,7 @@ impl<F> Subscription<'_, F> {
         mem::forget(self);
     }
 
-    /// Unsubscribes the listener for thie [`Subscription<'_, F>`](Subscription)
+    /// Unsubscribes the listener for this [`Subscription<'_, F>`](Subscription)
     ///
     /// This happens automatically when the [`Subscription<'_, F>`](Subscription) is dropped (unless you call
     /// [`Subscription::forget`]), so there is usually no need to call this method. Its only purpose is to enable you
