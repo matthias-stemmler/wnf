@@ -127,7 +127,10 @@ impl From<CreatableStateLifetime> for StateLifetime {
     }
 }
 
-/// A trait for types that can be fallibly converted into a [`SecurityDescriptor`]
+/// A trait for types that can be fallibly converted into a security descriptor
+///
+/// Since [`SecurityDescriptor`] is an opaque type, this does not mean (fallibly) converting into an actual
+/// [`SecurityDescriptor`] but fallibly converting into some type that can be borrowed as a [`SecurityDescriptor`].
 ///
 /// This trait is implemented for
 /// - all types that implement [`Borrow<SecurityDescriptor>`]
