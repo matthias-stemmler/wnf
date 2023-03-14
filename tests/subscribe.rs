@@ -80,7 +80,7 @@ fn subscribe_boxed_slice() {
     drop(tx);
 
     for i in 1..3 {
-        state.set(&(0..i).into_iter().collect::<Vec<_>>()).unwrap();
+        state.set(&(0..i).collect::<Vec<_>>()).unwrap();
 
         for _ in 0..NUM_SUBSCRIPTIONS {
             let (data, change_stamp) = rx
