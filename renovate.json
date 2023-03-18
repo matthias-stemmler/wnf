@@ -1,26 +1,49 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:base"],
+  "extends": [
+    "config:base"
+  ],
   "packageRules": [
     {
-      "matchFiles": ["Cargo.toml"],
-      "matchDepTypes": ["dependencies"],
+      "matchFiles": [
+        "Cargo.toml"
+      ],
+      "matchDepTypes": [
+        "dependencies"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "pinDigest",
+        "digest",
+        "lockFileMaintenance",
+        "rollback",
+        "bump",
+        "replacement"
+      ],
       "enabled": false,
       "description": "Production dependencies of library should be minimal"
     },
     {
-      "matchPackageNames": ["windows"],
+      "matchPackageNames": [
+        "windows"
+      ],
       "allowedVersions": "<=0.42",
       "description": "windows >=0.43 has MSRV 1.64"
     },
     {
-      "matchManagers": ["regex"],
+      "matchManagers": [
+        "regex"
+      ],
       "rangeStrategy": "bump"
     }
   ],
   "regexManagers": [
     {
-      "fileMatch": ["^\\.github\\/workflows\\/.*\\.yml$"],
+      "fileMatch": [
+        "^\\.github\\/workflows\\/.*\\.yml$"
+      ],
       "matchStrings": [
         "\\s*renovate:\\s*datasource=(?<datasource>.*?)\\s*depName=(?<depName>.*?)\\s*\\n.*?:\\s*(?<currentValue>.*)\\s*"
       ]
