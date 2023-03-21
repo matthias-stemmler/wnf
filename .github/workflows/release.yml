@@ -12,7 +12,7 @@ env:
   RELEASE_CONFIG_FILE: release.json
   RUSTFLAGS: --deny warnings
   # renovate: datasource=crate depName=cargo-release
-  VERSION_CARGO_RELEASE: 0.24.6
+  VERSION_CARGO_RELEASE: 0.24.7
 
 jobs:
   ci:
