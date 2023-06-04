@@ -7,7 +7,7 @@ on:
 env:
   RUSTFLAGS: --deny warnings
   # renovate: datasource=crate depName=cargo-udeps
-  VERSION_CARGO_UDEPS: 0.1.39
+  VERSION_CARGO_UDEPS: 0.1.40
 
 jobs:
   udeps:
