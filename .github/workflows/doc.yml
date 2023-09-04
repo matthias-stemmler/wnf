@@ -17,7 +17,7 @@ jobs:
         uses: dtolnay/rust-toolchain@nightly
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Build docs
         run: cargo rustdoc --all-features --target x86_64-pc-windows-msvc -- --cfg docsrs
