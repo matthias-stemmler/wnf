@@ -17,7 +17,7 @@ jobs:
     steps:
       - name: Cache cargo-hack
         id: cache-cargo-hack
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.cargo/
           key: cargo-hack-${{ env.VERSION_CARGO_HACK }}
