@@ -171,7 +171,7 @@ jobs:
           cargo publish --all-features
 
       - name: Create tag and GitHub release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           name: v${{ steps.publish.outputs.version }}
           tag_name: v${{ steps.publish.outputs.version }}
