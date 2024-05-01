@@ -56,7 +56,7 @@ features = [
 [dev-dependencies]
 async-channel = { version = "2", default-features = false }
 bytemuck-v1 = { package = "bytemuck", version = "1", features = ["derive"] }
-crossbeam-channel = "0.5"
+crossbeam-channel = "0.5.12"
 devutils = { path = "devutils" }
 static_assertions = "1"
 tokio = { version = "1", features = ["io-std", "io-util", "macros", "rt-multi-thread", "time"] }
