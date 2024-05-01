@@ -54,7 +54,7 @@ features = [
 ]
 
 [dev-dependencies]
-async-channel = { version = "2", default-features = false }
+async-channel = { version = "2.2.1", default-features = false }
 bytemuck-v1 = { package = "bytemuck", version = "1", features = ["derive"] }
 crossbeam-channel = "0.5"
 devutils = { path = "devutils" }
