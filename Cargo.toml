@@ -59,7 +59,7 @@ bytemuck-v1 = { package = "bytemuck", version = "1", features = ["derive"] }
 crossbeam-channel = "0.5"
 devutils = { path = "devutils" }
 static_assertions = "1"
-tokio = { version = "1", features = ["io-std", "io-util", "macros", "rt-multi-thread", "time"] }
+tokio = { version = "1.37.0", features = ["io-std", "io-util", "macros", "rt-multi-thread", "time"] }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt"] }
 
 [[test]]
