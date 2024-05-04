@@ -417,7 +417,7 @@ pub mod __reexports {
 #[macro_export]
 macro_rules! derive_from_bytemuck_v1 {
     (AnyBitPattern for $type:ty) => {
-        const _: fn() = || {
+        const _: () = {
             use $crate::__reexports::bytemuck::v1 as bytemuck_v1;
 
             const fn assert_impl_any_bit_pattern<T: ?Sized + bytemuck_v1::AnyBitPattern>() {}
@@ -431,7 +431,7 @@ macro_rules! derive_from_bytemuck_v1 {
     };
 
     (CheckedBitPattern for $type:ty) => {
-        const _: fn() = || {
+        const _: () = {
             use $crate::__reexports::bytemuck::v1 as bytemuck_v1;
 
             const fn assert_impl_checked_bit_pattern<T: ?Sized + bytemuck_v1::CheckedBitPattern>() {}
@@ -461,7 +461,7 @@ macro_rules! derive_from_bytemuck_v1 {
     };
 
     (NoUninit for $type:ty) => {
-        const _: fn() = || {
+        const _: () = {
             use $crate::__reexports::bytemuck::v1 as bytemuck_v1;
 
             const fn assert_impl_no_uninit<T: ?Sized + bytemuck_v1::NoUninit>() {}
@@ -522,7 +522,7 @@ macro_rules! derive_from_bytemuck_v1 {
 #[macro_export]
 macro_rules! derive_from_zerocopy {
     (AnyBitPattern for $type:ty) => {
-        const _: fn() = || {
+        const _: () = {
             use $crate::__reexports::zerocopy;
 
             const fn assert_impl_from_bytes<T: ?Sized + zerocopy::FromBytes>() {}
@@ -540,7 +540,7 @@ macro_rules! derive_from_zerocopy {
     };
 
     (NoUninit for $type:ty) => {
-        const _: fn() = || {
+        const _: () = {
             use $crate::__reexports::zerocopy;
 
             const fn assert_impl_as_bytes<T: ?Sized + zerocopy::AsBytes>() {}
