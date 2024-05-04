@@ -8,9 +8,9 @@ use std::ops::Deref;
 use std::ptr::NonNull;
 use std::str::FromStr;
 
+use windows::Win32::Foundation::{LocalFree, HLOCAL};
 use windows::Win32::Security::Authorization::{ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION};
 use windows::Win32::Security::PSECURITY_DESCRIPTOR;
-use windows::Win32::System::Memory::LocalFree;
 
 use crate::util::CWideString;
 
@@ -111,18 +111,14 @@ impl FromStr for BoxedSecurityDescriptor {
         // - The pointer in the third argument is valid for writes of `PSECURITY_DESCRIPTOR` because it comes from a
         //   live mutable reference
         // - The pointer in the fourth argument can be `NULL` according to documentation
-        let result = unsafe {
+        unsafe {
             ConvertStringSecurityDescriptorToSecurityDescriptorW(
                 string_security_descriptor.as_pcwstr(),
                 SDDL_REVISION,
                 &mut psecurity_descriptor,
                 None,
             )
-        };
-
-        if !result.as_bool() {
-            return Err(io::Error::last_os_error());
-        }
+        }?;
 
         Ok(Self {
             ptr: NonNull::new(psecurity_descriptor.0 as *mut SecurityDescriptor)
@@ -139,7 +135,7 @@ impl Drop for BoxedSecurityDescriptor {
         // - `self.ptr` points to a local memory object because it was returned from
         //   `ConvertStringSecurityDescriptorToSecurityDescriptorW`
         // - `self.ptr` has not been freed yet
-        unsafe { LocalFree(self.ptr.as_ptr() as isize) };
+        unsafe { LocalFree(HLOCAL(self.ptr.as_ptr() as *mut c_void)) };
     }
 }
 

@@ -55,13 +55,6 @@
       "description": "Production dependencies of library should be minimal, so only do major and minor upgrades for dependencies with unstable (0.x) versions"
     },
     {
-      "matchPackageNames": [
-        "windows"
-      ],
-      "allowedVersions": "<=0.42",
-      "description": "windows >=0.43 has MSRV 1.64"
-    },
-    {
       "matchManagers": [
         "regex"
       ],

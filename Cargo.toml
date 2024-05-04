@@ -44,11 +44,10 @@ windows-permissions = { version = "0.2", optional = true }
 zerocopy = { version = "0.6", optional = true }
 
 [dependencies.windows]
-version = "0.42"
+version = "0.56"
 features = [
     "Win32_Foundation",
     "Win32_Security_Authorization",
-    "Win32_System_Memory",
     "Win32_System_SystemServices",
     "Win32_System_Threading",
 ]
