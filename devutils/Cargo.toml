@@ -6,7 +6,7 @@ rust-version = "1.62" # should be the same as in wnf, docs and MSRV job
 publish = false
 
 [dependencies]
-interprocess = { version = "1.2.1", default-features = false }
+interprocess = { version = "2.0.0", default-features = false }
 libtest-mimic = "0.7"
 
 [dependencies.windows]
