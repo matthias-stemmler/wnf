@@ -51,7 +51,7 @@ use std::num;
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// use wnf::{derive_from_zerocopy, OwnedState};
 ///
-/// #[derive(zerocopy::AsBytes, zerocopy::FromBytes, Copy, Clone)]
+/// #[derive(zerocopy::AsBytes, zerocopy::FromBytes, zerocopy::FromZeroes, Copy, Clone)]
 /// #[repr(transparent)]
 /// struct MyType(u32);
 ///
@@ -251,7 +251,7 @@ unsafe impl CheckedBitPattern for bool {
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// use wnf::{derive_from_zerocopy, OwnedState};
 ///
-/// #[derive(zerocopy::FromBytes, zerocopy::AsBytes, Copy, Clone)]
+/// #[derive(zerocopy::FromBytes, zerocopy::FromZeroes, zerocopy::AsBytes, Copy, Clone)]
 /// #[repr(transparent)]
 /// struct MyType(u32);
 ///
@@ -439,6 +439,7 @@ macro_rules! derive_from_bytemuck_v1 {
 
             #[derive(Clone, Copy)]
             #[repr(transparent)]
+            #[allow(non_camel_case_types)]
             struct __wnf_derive_from_bytemuck_v1_Bits(<$type as bytemuck_v1::CheckedBitPattern>::Bits);
 
             // SAFETY:
@@ -505,7 +506,7 @@ macro_rules! derive_from_bytemuck_v1 {
 /// # fn main() {
 /// use wnf::derive_from_zerocopy;
 ///
-/// #[derive(zerocopy::FromBytes, Copy, Clone)]
+/// #[derive(zerocopy::FromBytes, zerocopy::FromZeroes, Copy, Clone)]
 /// #[repr(C)]
 /// struct Foo(u8, u16);
 ///
