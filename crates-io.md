@@ -22,7 +22,7 @@ table of your `Cargo.toml`:
 
 ```toml
 [dependencies]
-wnf = "0.1.1"
+wnf = "0.2.0"
 ```
 
 Some functionality of this crate is only available if the corresponding
@@ -31,7 +31,7 @@ Some functionality of this crate is only available if the corresponding
 
 ```toml
 [dependencies]
-wnf = { version = "0.1.1", features = ["subscribe"] }
+wnf = { version = "0.2.0", features = ["subscribe"] }
 ```
 
 This is a Windows-only crate and will fail to compile on other platforms. If you target multiple platforms, it is
@@ -40,7 +40,7 @@ recommended that you declare it as a
 
 ```toml
 [target.'cfg(windows)'.dependencies]
-wnf = "0.1.1"
+wnf = "0.2.0"
 ```
 
 ## Usage
@@ -79,5 +79,5 @@ Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
 dual licensed as above, without any additional terms or conditions.
 
-[examples]: https://github.com/matthias-stemmler/wnf/tree/v0.1.1/examples
-[docs]: https://docs.rs/wnf/0.1.1/wnf/
+[examples]: https://github.com/matthias-stemmler/wnf/tree/v0.2.0/examples
+[docs]: https://docs.rs/wnf/0.2.0/wnf/
