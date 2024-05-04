@@ -309,11 +309,12 @@ impl PayloadProcess {
 }
 
 mod stdio {
-    use std::ffi::OsStr;
+    use std::ffi::OsString;
     use std::io::{ErrorKind, Read, Write};
     use std::{io, thread};
 
-    use interprocess::os::windows::named_pipe::{ByteReaderPipeStream, ByteWriterPipeStream, PipeListenerOptions};
+    use interprocess::os::windows::named_pipe::pipe_mode::{Bytes, None};
+    use interprocess::os::windows::named_pipe::{PipeListenerOptions, PipeStream};
 
     #[derive(Debug)]
     pub(super) struct Pipe {
@@ -330,8 +331,8 @@ mod stdio {
             W: Write + Send + 'static,
         {
             let listener = PipeListenerOptions::new()
-                .name(OsStr::new(&self.name))
-                .create::<ByteReaderPipeStream>()?;
+                .path(local_pipe_path(&self.name))
+                .create::<Bytes, None>()?;
 
             thread::spawn(move || copy(&mut listener.accept()?, &mut writer));
             Ok(())
@@ -342,24 +343,24 @@ mod stdio {
             R: Read + Send + 'static,
         {
             let listener = PipeListenerOptions::new()
-                .name(OsStr::new(&self.name))
-                .create::<ByteWriterPipeStream>()?;
+                .path(local_pipe_path(&self.name))
+                .create::<None, Bytes>()?;
 
             thread::spawn(move || copy(&mut reader, &mut listener.accept()?));
             Ok(())
         }
 
         pub(super) fn connect_reading(&self) -> io::Result<ReadClient> {
-            ByteReaderPipeStream::connect(&self.name).map(ReadClient)
+            PipeStream::<Bytes, None>::connect_by_path(local_pipe_path(&self.name)).map(ReadClient)
         }
 
         pub(super) fn connect_writing(&self) -> io::Result<WriteClient> {
-            ByteWriterPipeStream::connect(&self.name).map(WriteClient)
+            PipeStream::<None, Bytes>::connect_by_path(local_pipe_path(&self.name)).map(WriteClient)
         }
     }
 
     #[derive(Debug)]
-    pub(super) struct ReadClient(ByteReaderPipeStream);
+    pub(super) struct ReadClient(PipeStream<Bytes, None>);
 
     impl ReadClient {
         pub(super) fn redirect_to<W>(mut self, mut writer: W)
@@ -371,7 +372,7 @@ mod stdio {
     }
 
     #[derive(Debug)]
-    pub(super) struct WriteClient(ByteWriterPipeStream);
+    pub(super) struct WriteClient(PipeStream<None, Bytes>);
 
     impl WriteClient {
         pub(super) fn redirect_from<R>(mut self, mut reader: R)
@@ -402,5 +403,9 @@ mod stdio {
             Err(err) if err.kind() == ErrorKind::BrokenPipe => Ok(()),
             Err(err) => Err(err),
         }
+    }
+
+    fn local_pipe_path(pipe_name: &str) -> OsString {
+        OsString::from(format!(r#"\\.\pipe\{}"#, pipe_name))
     }
 }
