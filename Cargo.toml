@@ -41,7 +41,7 @@ tracing = { version = "0.1.24", default-features = false, features = ["log"] }
 uuid = { version = "1", optional = true }
 winapi = { version = "0.3", optional = true }
 windows-permissions = { version = "0.2", optional = true }
-zerocopy = { version = "0.6", optional = true }
+zerocopy = { version = "0.7", optional = true }
 
 [dependencies.windows]
 version = "0.56"
