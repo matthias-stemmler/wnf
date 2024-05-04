@@ -4,6 +4,7 @@
 
 ### Changed
 
+- [BREAKING] Updated `windows` dependency to `0.56`
 - Updated `num-derive` dependency to `0.4`
 
 ### Fixed

@@ -1,9 +1,9 @@
 use std::ffi::c_void;
 
 use windows::core::PWSTR;
+use windows::Win32::Foundation::{LocalFree, HLOCAL};
 use windows::Win32::Security::Authorization::{ConvertSecurityDescriptorToStringSecurityDescriptorW, SDDL_REVISION};
 use windows::Win32::Security::{DACL_SECURITY_INFORMATION, PSECURITY_DESCRIPTOR};
-use windows::Win32::System::Memory::LocalFree;
 use wnf::{BoxedSecurityDescriptor, SecurityDescriptor};
 
 #[test]
@@ -19,7 +19,7 @@ fn create_everyone_generic_all() {
             //   `ConvertSecurityDescriptorToStringSecurityDescriptorW`
             // - `self.0` has not been freed yet
             unsafe {
-                LocalFree(self.0.as_ptr() as isize);
+                LocalFree(HLOCAL(self.0.as_ptr() as *mut c_void));
             }
         }
     }
@@ -32,19 +32,16 @@ fn create_everyone_generic_all() {
     //   reference
     // - The pointer in the fourth argument is valid for writes of `PWSTR` because it comes from a live mutable
     //   reference
-    let result = unsafe {
+    unsafe {
         ConvertSecurityDescriptorToStringSecurityDescriptorW(
             PSECURITY_DESCRIPTOR(&*security_descriptor as *const SecurityDescriptor as *mut c_void),
             SDDL_REVISION,
-            DACL_SECURITY_INFORMATION.0,
+            DACL_SECURITY_INFORMATION,
             &mut sd_wide_string_ptr,
             None,
         )
-    };
-
-    let successful = result.as_bool();
-
-    assert!(successful);
+    }
+    .expect("ConvertSecurityDescriptorToStringSecurityDescriptorW failed");
 
     // Create a guard to ensure the string is dropped
     let _sd_wide_string = LocalWideString(sd_wide_string_ptr);

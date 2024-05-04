@@ -79,10 +79,7 @@ impl Command {
         // SAFETY:
         // The pointer is valid for reads and writes of `SHELLEXECUTEINFOW` because it comes from a live mutable
         // reference
-        let result = unsafe { ShellExecuteExW(&mut shell_execute_info) };
-        if !result.as_bool() {
-            return Err(io::Error::last_os_error());
-        }
+        unsafe { ShellExecuteExW(&mut shell_execute_info) }?;
 
         if shell_execute_info.hProcess.is_invalid() {
             return Err(io::Error::new(ErrorKind::Other, "failed to spawn admin process"));
@@ -112,17 +109,11 @@ impl Process {
         // - The handle in the first argument has not been closed
         // - The pointer in the second argument is valid for writes of `u32` because it comes from a live mutable
         // reference
-        let result = unsafe { GetExitCodeProcess(self.0, &mut exit_code) };
-        if !result.as_bool() {
-            return Err(io::Error::last_os_error());
-        }
+        unsafe { GetExitCodeProcess(self.0, &mut exit_code) }?;
 
         // SAFETY:
         // The handle has not been closed
-        let result = unsafe { CloseHandle(self.0) };
-        if !result.as_bool() {
-            return Err(io::Error::last_os_error());
-        }
+        unsafe { CloseHandle(self.0) }?;
 
         Ok(exit_code as i32)
     }
