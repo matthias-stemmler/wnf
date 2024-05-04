@@ -9,8 +9,10 @@
       "matchFiles": [
         "Cargo.toml"
       ],
-      "matchDepTypes": [
-        "dependencies"
+      "matchPackageNames": [
+        "bytemuck",
+        "thiserror",
+        "uuid"
       ],
       "matchUpdateTypes": [
         "minor",
@@ -24,7 +26,33 @@
         "replacement"
       ],
       "enabled": false,
-      "description": "Production dependencies of library should be minimal"
+      "description": "Production dependencies of library should be minimal, so only do major upgrades for dependencies with stable versions"
+    },
+    {
+      "matchFiles": [
+        "Cargo.toml"
+      ],
+      "matchPackageNames": [
+        "num-derive",
+        "num-traits",
+        "tracing",
+        "winapi",
+        "windows-permissions",
+        "zerocopy",
+        "windows"
+      ],
+      "matchUpdateTypes": [
+        "patch",
+        "pin",
+        "pinDigest",
+        "digest",
+        "lockFileMaintenance",
+        "rollback",
+        "bump",
+        "replacement"
+      ],
+      "enabled": false,
+      "description": "Production dependencies of library should be minimal, so only do major and minor upgrades for dependencies with unstable (0.x) versions"
     },
     {
       "matchPackageNames": [
