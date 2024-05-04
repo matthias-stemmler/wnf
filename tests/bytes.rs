@@ -37,7 +37,7 @@ fn derive_no_uninit_from_bytemuck() {
 
 #[test]
 fn derive_any_bit_pattern_from_zerocopy() {
-    #[derive(zerocopy::FromBytes, Clone, Copy)]
+    #[derive(zerocopy::FromBytes, zerocopy::FromZeroes, Clone, Copy)]
     #[repr(C)]
     struct Test(u8, u16);
 
