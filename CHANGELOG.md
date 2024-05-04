@@ -2,6 +2,14 @@
 
 ## [Unreleased] - (release date)
 
+### Changed
+
+- Updated `num-derive` dependency to `0.4`
+
+### Fixed
+
+- Use anon-const in `derive_from_*` macros to avoid [RFC 3373](https://rust-lang.github.io/rfcs/3373-avoid-nonlocal-definitions-in-fns.html) warnings
+
 ## [0.1.1] - 2023-01-08
 
 ### Changed
