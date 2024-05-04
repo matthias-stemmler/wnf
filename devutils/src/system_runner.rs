@@ -24,6 +24,7 @@
 #![deny(unsafe_code)]
 
 use std::ffi::{OsStr, OsString};
+use std::fmt::{self, Display, Formatter};
 use std::io::{ErrorKind, Read, Write};
 use std::process::{Child, Command, Stdio};
 use std::{env, io, process};
@@ -54,9 +55,9 @@ impl PipelineId {
     }
 }
 
-impl ToString for PipelineId {
-    fn to_string(&self) -> String {
-        self.0.to_string()
+impl Display for PipelineId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
@@ -135,7 +136,7 @@ impl State {
     }
 
     fn to_arg(self) -> String {
-        format!("__system_runner__.{}.{}", self.pipeline_id.to_string(), self.stage.id())
+        format!("__system_runner__.{}.{}", self.pipeline_id, self.stage.id())
     }
 }
 

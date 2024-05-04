@@ -550,7 +550,7 @@ where
 
                         None => {
                             if !waker.will_wake(cx.waker()) {
-                                *waker = cx.waker().clone();
+                                waker.clone_from(cx.waker());
                             }
                         }
                     }
