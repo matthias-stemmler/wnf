@@ -4,7 +4,7 @@
 [![crates.io](https://img.shields.io/crates/v/wnf.svg)](https://crates.io/crates/wnf)
 [![docs.rs](https://img.shields.io/docsrs/wnf)](https://docs.rs/wnf/latest/wnf/)
 [![license](https://img.shields.io/crates/l/wnf.svg)](https://github.com/matthias-stemmler/wnf/blob/main/LICENSE-APACHE)
-[![rustc 1.62+](https://img.shields.io/badge/rustc-1.62+-lightgrey.svg)](https://blog.rust-lang.org/2022/06/30/Rust-1.62.0.html)
+[![rustc 1.70+](https://img.shields.io/badge/rustc-1.70+-lightgrey.svg)](https://blog.rust-lang.org/2023/06/01/Rust-1.70.0.html)
 
 The _Windows Notification Facility (WNF)_ is a registrationless publisher/subscriber mechanism that was introduced in
 Windows 8 and forms an undocumented part of the Windows API.
@@ -51,7 +51,7 @@ For examples, see the [examples](examples) folder.
 
 ## Minimum Supported Rust Version (MSRV) Policy
 
-The current MSRV of this crate is `1.62`.
+The current MSRV of this crate is `1.70`.
 
 Increasing the MSRV of this crate is _not_ considered a breaking change.
 However, in such cases there will be at least a minor version bump. Each version
