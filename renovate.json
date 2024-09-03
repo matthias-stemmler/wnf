@@ -58,7 +58,7 @@
       "matchManagers": [
         "custom.regex"
       ],
-      "rangeStrategy": "bump"
+      "rangeStrategy": "pin"
     }
   ],
   "customManagers": [
