@@ -266,11 +266,11 @@ where
 /// This is implemented for both [`OwnedState<T>`] and [`BorrowedState<'_, T>`](BorrowedState). There are two main use
 /// cases for it:
 ///
-/// - Functions that can accept either a reference to an owned or a borrowed state: Even though a
-/// [`BorrowedState<'_, T>`](BorrowedState) plays the role of a reference to a state, it's not technically a reference.
-/// As a consequence, there is no deref coercion for states, i.e. you cannot just pass an [`&'a
-/// OwnedState<T>`](OwnedState) where a [`BorrowedState<'a, T>`](BorrowedState) is expected. In order to accept both
-/// types, functions can instead take a reference to a generic type implementing [`AsState`]:
+/// - Functions that can accept either a reference to an owned or a borrowed state: Even though a [`BorrowedState<'_,
+///   T>`](BorrowedState) plays the role of a reference to a state, it's not technically a reference. As a consequence,
+///   there is no deref coercion for states, i.e. you cannot just pass an [`&'a OwnedState<T>`](OwnedState) where a
+///   [`BorrowedState<'a, T>`](BorrowedState) is expected. In order to accept both types, functions can instead take a
+///   reference to a generic type implementing [`AsState`]:
 /// ```
 /// # use std::io;
 /// # use wnf::{AsState, OwnedState};
