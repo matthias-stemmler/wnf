@@ -1,7 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:base"
+    "config:recommended"
   ],
   "rangeStrategy": "update-lockfile",
   "packageRules": [
@@ -56,13 +56,14 @@
     },
     {
       "matchManagers": [
-        "regex"
+        "custom.regex"
       ],
       "rangeStrategy": "bump"
     }
   ],
-  "regexManagers": [
+  "customManagers": [
     {
+      "customType": "regex",
       "fileMatch": [
         "^\\.github\\/workflows\\/.*\\.yml$"
       ],
