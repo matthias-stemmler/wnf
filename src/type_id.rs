@@ -11,8 +11,7 @@ use std::{fmt, io, ptr};
 /// It provides [`From<T>`] implementations for various types `T` from foreign crates that also represent GUIDs.
 /// These implementations are available when the respective Cargo features are enabled:
 /// - Feature `windows`: [`From<windows::core::GUID>`](https://docs.rs/windows/latest/windows/core/struct.GUID.html)
-/// - Feature `winapi`:
-/// [`From<winapi::shared::guiddef::GUID>`](https://docs.rs/winapi/latest/winapi/shared/guiddef/struct.GUID.html)
+/// - Feature `winapi`: [`From<winapi::shared::guiddef::GUID>`](https://docs.rs/winapi/latest/winapi/shared/guiddef/struct.GUID.html)
 /// - Feature `uuid`: [`From<uuid::Uuid>`](https://docs.rs/uuid/1/uuid)
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct GUID(windows::core::GUID);

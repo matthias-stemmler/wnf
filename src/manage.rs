@@ -138,8 +138,8 @@ impl From<CreatableStateLifetime> for StateLifetime {
 ///
 /// This allows the [`StateCreation::create_owned`] and [`StateCreation::create_static`] methods to be called after
 /// - either setting a security descriptor explicitly through [`StateCreation::security_descriptor`]
-/// - or leaving the security descriptor unspecified (in which case a default security descriptor will be used)
-/// while avoiding initial creation of a default security descriptor if one is specified explicitly later.
+/// - or leaving the security descriptor unspecified (in which case a default security descriptor will be used) while
+///   avoiding initial creation of a default security descriptor if one is specified explicitly later.
 ///
 /// This trait is sealed and cannot be implemented outside of `wnf`.
 pub trait TryIntoSecurityDescriptor: private::Sealed {
