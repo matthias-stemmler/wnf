@@ -7,7 +7,7 @@ publish = false
 
 [dependencies]
 interprocess = { version = "2.0.0", default-features = false }
-libtest-mimic = "0.7"
+libtest-mimic = "0.8"
 
 [dependencies.windows]
 version = "0.58"
