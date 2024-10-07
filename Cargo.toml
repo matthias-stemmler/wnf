@@ -41,7 +41,7 @@ tracing = { version = "0.1.24", default-features = false, features = ["log"] }
 uuid = { version = "1", optional = true }
 winapi = { version = "0.3", optional = true }
 windows-permissions = { version = "0.2", optional = true }
-zerocopy = { version = "0.7", optional = true }
+zerocopy = { version = "0.8", optional = true }
 
 [dependencies.windows]
 version = "0.58"
@@ -60,7 +60,7 @@ devutils = { path = "devutils" }
 static_assertions = "1"
 tokio = { version = "1", features = ["io-std", "io-util", "macros", "rt-multi-thread", "time"] }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt"] }
-zerocopy = { version = "0.7", features = ["derive"] }
+zerocopy = { version = "0.8", features = ["derive"] }
 
 [[test]]
 name = "system"
