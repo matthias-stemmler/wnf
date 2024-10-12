@@ -3,10 +3,10 @@ name: Audit
 on:
   push:
     paths:
-      - "Cargo.toml"
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
   schedule:
-    - cron: "0 0 * * *"
-  workflow_call:
+    - cron: "0 0 * * SAT"
   workflow_dispatch:
 
 env:
@@ -18,11 +18,10 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@stable
-
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Run audit
-        run: cargo audit
+        uses: rustsec/audit-check@v1.4.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
