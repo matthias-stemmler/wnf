@@ -65,6 +65,11 @@
       "matchPackageNames": ["zerocopy", "zerocopy-derive"],
       "groupName": "zerocopy monorepo",
       "groupSlug": "zerocopy-monorepo"
+    },
+    {
+      "matchPackageNames": ["rustsec/audit-check"],
+      "allowedVersions": "<2",
+      "description": "v2 does not handle missing lockfiles correctly"
     }
   ],
   "customManagers": [
