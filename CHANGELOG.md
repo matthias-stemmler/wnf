@@ -2,6 +2,10 @@
 
 ## [Unreleased] - (release date)
 
+### Changed
+
+- [BREAKING] Updated `zerocopy` dependency to `0.8`
+
 ## [0.4.0] - 2024-07-07
 
 ### Changed
