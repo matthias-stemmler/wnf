@@ -60,7 +60,8 @@ devutils = { path = "devutils" }
 static_assertions = "1"
 tokio = { version = "1", features = ["io-std", "io-util", "macros", "rt-multi-thread", "time"] }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt"] }
-zerocopy = { version = "0.8", features = ["derive"] }
+zerocopy = { version = "0.8" }
+zerocopy-derive = { version = "0.8" }
 
 [[test]]
 name = "system"

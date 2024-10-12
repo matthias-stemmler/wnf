@@ -39,6 +39,7 @@
         "winapi",
         "windows-permissions",
         "zerocopy",
+        "zerocopy-derive",
         "windows"
       ],
       "matchUpdateTypes": [
@@ -59,6 +60,11 @@
         "custom.regex"
       ],
       "rangeStrategy": "bump"
+    },
+    {
+      "matchPackageNames": ["zerocopy", "zerocopy-derive"],
+      "groupName": "zerocopy monorepo",
+      "groupSlug": "zerocopy-monorepo"
     }
   ],
   "customManagers": [

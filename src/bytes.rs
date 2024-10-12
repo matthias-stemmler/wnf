@@ -42,7 +42,7 @@ use std::num;
 /// assert_eq!(data.0, 42);
 /// # Ok (()) }
 /// ```
-/// - Derive the [`AsBytes`](https://docs.rs/zerocopy/0/zerocopy/trait.AsBytes.html) trait of the [`zerocopy`](https://docs.rs/zerocopy/0/zerocopy)
+/// - Derive the [`IntoBytes`](https://docs.rs/zerocopy/0/zerocopy/trait.IntoBytes.html) trait of the [`zerocopy`](https://docs.rs/zerocopy/0/zerocopy)
 ///   crate and derive this trait from it via the [`derive_from_zerocopy`](crate::derive_from_zerocopy) macro:
 /// ```
 /// # #[macro_use] extern crate wnf;
@@ -50,7 +50,7 @@ use std::num;
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// use wnf::{derive_from_zerocopy, OwnedState};
 ///
-/// #[derive(zerocopy::AsBytes, zerocopy::FromBytes, zerocopy::FromZeroes, Copy, Clone)]
+/// #[derive(zerocopy_derive::IntoBytes, zerocopy_derive::FromBytes, Copy, Clone)]
 /// #[repr(transparent)]
 /// struct MyType(u32);
 ///
@@ -249,7 +249,7 @@ unsafe impl CheckedBitPattern for bool {
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// use wnf::{derive_from_zerocopy, OwnedState};
 ///
-/// #[derive(zerocopy::FromBytes, zerocopy::FromZeroes, zerocopy::AsBytes, Copy, Clone)]
+/// #[derive(zerocopy_derive::FromBytes, zerocopy_derive::IntoBytes, Copy, Clone)]
 /// #[repr(transparent)]
 /// struct MyType(u32);
 ///
@@ -496,7 +496,7 @@ macro_rules! derive_from_bytemuck_v1 {
 /// implementation.
 ///
 /// If you have a type that implements [`zerocopy::FromBytes`](https://docs.rs/zerocopy/0/zerocopy/trait.FromBytes.html)
-/// or [`zerocopy::AsBytes`](https://docs.rs/zerocopy/0/zerocopy/trait.AsBytes.html), you can derive the corresponding
+/// or [`zerocopy::IntoBytes`](https://docs.rs/zerocopy/0/zerocopy/trait.IntoBytes.html), you can derive the corresponding
 /// `wnf` traits as follows:
 /// ```
 /// # #[macro_use] extern crate wnf;
@@ -504,13 +504,13 @@ macro_rules! derive_from_bytemuck_v1 {
 /// # fn main() {
 /// use wnf::derive_from_zerocopy;
 ///
-/// #[derive(zerocopy::FromBytes, zerocopy::FromZeroes, Copy, Clone)]
+/// #[derive(zerocopy_derive::FromBytes, Copy, Clone)]
 /// #[repr(C)]
 /// struct Foo(u8, u16);
 ///
 /// derive_from_zerocopy!(AnyBitPattern for Foo);
 ///
-/// #[derive(zerocopy::AsBytes, Copy, Clone)]
+/// #[derive(zerocopy_derive::IntoBytes, Copy, Clone)]
 /// #[repr(C)]
 /// struct Bar(bool);
 ///
@@ -542,11 +542,11 @@ macro_rules! derive_from_zerocopy {
         const _: () = {
             use $crate::__reexports::zerocopy;
 
-            const fn assert_impl_as_bytes<T: ?Sized + zerocopy::AsBytes>() {}
-            assert_impl_as_bytes::<$type>();
+            const fn assert_impl_into_bytes<T: ?Sized + zerocopy::IntoBytes>() {}
+            assert_impl_into_bytes::<$type>();
 
             // SAFETY:
-            // - the above asserts that $type : zerocopy::AsBytes
+            // - the above asserts that $type : zerocopy::IntoBytes
             // - this implies the safety conditions of wnf::NoUninit
             unsafe impl $crate::NoUninit for $type {}
         };
