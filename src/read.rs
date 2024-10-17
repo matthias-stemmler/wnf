@@ -153,7 +153,7 @@ where
             ));
         }
 
-        // Ideally, we would use `Box::new_uninit`, but that is unstable
+        // When MSRV 1.82 is acceptable, we can use `Box::new_uninit` instead
         let bits = if mem::size_of::<T::Bits>() == 0 {
             // SAFETY:
             // The all-zero byte pattern is a valid `T::Bits` because `T::Bits` is zero-sized
@@ -203,7 +203,7 @@ where
     where
         F: FnMut(*mut c_void, usize) -> io::Result<(usize, Meta)>,
     {
-        // Ideally, we would use `Box::new_uninit`, but that is unstable
+        // When MSRV 1.82 is acceptable, we can use `Box::new_uninit` instead
         let mut bits = if mem::size_of::<T::Bits>() == 0 {
             Box::new(MaybeUninit::uninit())
         } else {
