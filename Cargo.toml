@@ -2,7 +2,7 @@
 
 [package]
 name = "wnf"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["Matthias Stemmler <matthias.stemmler@gmail.com>"]
 edition = "2021"
 rust-version = "1.70" # should be the same as in devutils, docs and MSRV job
