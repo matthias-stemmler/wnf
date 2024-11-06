@@ -36,7 +36,7 @@ zerocopy = ["dep:zerocopy"]
 bytemuck-v1 = { package = "bytemuck", version = "1", optional = true }
 num-derive = "0.4"
 num-traits = { version = "0.2", default-features = false }
-thiserror = "1"
+thiserror = "2"
 tracing = { version = "0.1.24", default-features = false, features = ["log"] }
 uuid = { version = "1", optional = true }
 winapi = { version = "0.3", optional = true }
