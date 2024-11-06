@@ -2,6 +2,10 @@
 
 ## [Unreleased] - (release date)
 
+### Changed
+
+- Updated `thiserror` dependency to `2`
+
 ## [0.5.0] - 2024-10-12
 
 ### Changed
