@@ -2,6 +2,10 @@
 
 ## [Unreleased] - (release date)
 
+### Changed
+
+- Updated `num-derive` dependency to `0.4.2`
+
 ## [0.5.1] - 2024-11-06
 
 ### Changed
