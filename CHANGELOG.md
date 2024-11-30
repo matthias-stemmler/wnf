@@ -2,6 +2,8 @@
 
 ## [Unreleased] - (release date)
 
+## [0.5.2] - 2024-11-30
+
 ### Changed
 
 - Updated `num-derive` dependency to `0.4.2`
@@ -56,7 +58,8 @@
 Initial version
 
 <!-- next-url -->
-[Unreleased]: https://github.com/matthias-stemmler/wnf/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/matthias-stemmler/wnf/compare/v0.5.2...HEAD
+[0.5.2]: https://github.com/matthias-stemmler/wnf/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/matthias-stemmler/wnf/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/matthias-stemmler/wnf/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/matthias-stemmler/wnf/compare/v0.3.0...v0.4.0
