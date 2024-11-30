@@ -34,7 +34,7 @@ zerocopy = ["dep:zerocopy"]
 
 [dependencies]
 bytemuck-v1 = { package = "bytemuck", version = "1", optional = true }
-num-derive = "0.4"
+num-derive = "0.4.2"
 num-traits = { version = "0.2", default-features = false }
 thiserror = "2"
 tracing = { version = "0.1.24", default-features = false, features = ["log"] }
