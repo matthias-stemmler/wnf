@@ -1,3 +1,6 @@
+// #[derive(bytemuck::CheckedBitPattern)] uses #[cfg(target_arch = "spirv")]
+#![allow(unexpected_cfgs)]
+
 extern crate bytemuck_v1 as bytemuck;
 
 use wnf::{derive_from_bytemuck_v1, derive_from_zerocopy, AnyBitPattern, CheckedBitPattern, NoUninit};
