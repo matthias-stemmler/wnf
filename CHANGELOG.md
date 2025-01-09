@@ -2,6 +2,8 @@
 
 ## [Unreleased] - (release date)
 
+## [0.6.0] - 2025-01-09
+
 ### Changed
 
 - [BREAKING] Updated `windows` dependency to `0.59`
@@ -64,7 +66,8 @@
 Initial version
 
 <!-- next-url -->
-[Unreleased]: https://github.com/matthias-stemmler/wnf/compare/v0.5.2...HEAD
+[Unreleased]: https://github.com/matthias-stemmler/wnf/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/matthias-stemmler/wnf/compare/v0.5.2...v0.6.0
 [0.5.2]: https://github.com/matthias-stemmler/wnf/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/matthias-stemmler/wnf/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/matthias-stemmler/wnf/compare/v0.4.0...v0.5.0

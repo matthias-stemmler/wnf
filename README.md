@@ -22,7 +22,7 @@ table of your `Cargo.toml`:
 
 ```toml
 [dependencies]
-wnf = "0.5.2"
+wnf = "0.6.0"
 ```
 
 Some functionality of this crate is only available if the corresponding
@@ -31,7 +31,7 @@ the `subscribe` feature:
 
 ```toml
 [dependencies]
-wnf = { version = "0.5.2", features = ["subscribe"] }
+wnf = { version = "0.6.0", features = ["subscribe"] }
 ```
 
 This is a Windows-only crate and will fail to compile on other platforms. If you target multiple platforms, it is
@@ -40,7 +40,7 @@ recommended that you declare it as a
 
 ```toml
 [target.'cfg(windows)'.dependencies]
-wnf = "0.5.2"
+wnf = "0.6.0"
 ```
 
 ## Usage
