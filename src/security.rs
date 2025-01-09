@@ -135,7 +135,7 @@ impl Drop for BoxedSecurityDescriptor {
         // - `self.ptr` points to a local memory object because it was returned from
         //   `ConvertStringSecurityDescriptorToSecurityDescriptorW`
         // - `self.ptr` has not been freed yet
-        unsafe { LocalFree(HLOCAL(self.ptr.as_ptr() as *mut c_void)) };
+        unsafe { LocalFree(Some(HLOCAL(self.ptr.as_ptr() as *mut c_void))) };
     }
 }
 

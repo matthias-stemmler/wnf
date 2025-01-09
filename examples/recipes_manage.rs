@@ -7,7 +7,7 @@ use std::io::{self, Read};
 
 use tracing::info;
 use tracing_subscriber::filter::LevelFilter;
-use wnf::{CreatableStateLifetime, DataScope, StateCreation, StateNameDescriptor};
+use wnf::{CreatableStateLifetime, DataScope, StateCreation, StateNameDescriptor, GUID};
 
 fn main() -> Result<(), Box<dyn Error>> {
     devutils::ensure_running_as_system()?;
@@ -17,7 +17,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let state = StateCreation::new()
         .lifetime(CreatableStateLifetime::Permanent { persist_data: true })
         .scope(DataScope::Machine)
-        .type_id("1d942789-c358-46fc-a75d-2947c7a8fefa")
+        .type_id(GUID::try_from("1d942789-c358-46fc-a75d-2947c7a8fefa")?)
         .create_static()?;
 
     let exists = state.exists()?;

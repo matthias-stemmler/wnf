@@ -28,7 +28,7 @@ where
     /// Use this method if you want to wait for a state update *once*. In order to execute some logic on every state
     /// update, use the [`subscribe`](OwnedState::subscribe) method.
     ///
-    /// This is an async method. If you are in an sync context, use [`wait_blocking`](OwnedState::wait_blocking).
+    /// This is an async method. If you are in a sync context, use [`wait_blocking`](OwnedState::wait_blocking).
     ///
     /// This method does not make any assumptions on what async executor you use. Note that in contrast to
     /// [`wait_blocking`](OwnedState::wait_blocking), it does not expect a timeout as an argument. In order to
@@ -117,7 +117,7 @@ where
     /// }
     /// ```
     ///
-    /// This is an async method. If you are in an sync context, use
+    /// This is an async method. If you are in a sync context, use
     /// [`wait_until_blocking`](OwnedState::wait_until_blocking).
     ///
     /// This method does not make any assumptions on what async executor you use. Note that in contrast to
@@ -224,7 +224,7 @@ where
     /// }
     /// ```
     ///
-    /// This is an async method. If you are in an sync context, use
+    /// This is an async method. If you are in a sync context, use
     /// [`wait_until_boxed_blocking`](OwnedState::wait_until_boxed_blocking).
     ///
     /// This method does not make any assumptions on what async executor you use. Note that in contrast to

@@ -1,6 +1,6 @@
 use wnf::{
     BorrowedState, BoxedSecurityDescriptor, CreatableStateLifetime, DataScope, OwnedState, StateCreation,
-    StateLifetime, StateNameDescriptor, MAXIMUM_STATE_SIZE,
+    StateLifetime, StateNameDescriptor, GUID, MAXIMUM_STATE_SIZE,
 };
 
 #[test]
@@ -168,19 +168,23 @@ fn create_state_with_type_id() {
     let state = StateCreation::new()
         .lifetime(CreatableStateLifetime::Temporary)
         .scope(DataScope::Machine)
-        .type_id("b75fa6ba-77fd-4790-b825-1715ffefbac8")
+        .type_id(GUID::try_from("b75fa6ba-77fd-4790-b825-1715ffefbac8").unwrap())
         .create_owned()
         .unwrap();
 
     assert!(state.set(&()).is_ok());
 
-    let borrowed_state_with_correct_type_id =
-        BorrowedState::from_state_name_and_type_id(state.state_name(), "b75fa6ba-77fd-4790-b825-1715ffefbac8");
+    let borrowed_state_with_correct_type_id = BorrowedState::from_state_name_and_type_id(
+        state.state_name(),
+        GUID::try_from("b75fa6ba-77fd-4790-b825-1715ffefbac8").unwrap(),
+    );
 
     assert!(borrowed_state_with_correct_type_id.set(&()).is_ok());
 
-    let borrowed_state_with_wrong_type_id =
-        BorrowedState::from_state_name_and_type_id(state.state_name(), "ee26d6d2-53f4-4230-9c9e-88556e82c3d3");
+    let borrowed_state_with_wrong_type_id = BorrowedState::from_state_name_and_type_id(
+        state.state_name(),
+        GUID::try_from("ee26d6d2-53f4-4230-9c9e-88556e82c3d3").unwrap(),
+    );
 
     assert!(borrowed_state_with_wrong_type_id.set(&()).is_err());
 }
