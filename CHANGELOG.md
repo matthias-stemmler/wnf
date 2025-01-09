@@ -6,6 +6,7 @@
 
 - [BREAKING] Updated `windows` dependency to `0.59`
 - [BREAKING] Replaced implementation `GUID: From<&str>` with `GUID: TryFrom<&str>`
+- Increased MSRV to `1.74`
 
 ## [0.5.2] - 2024-11-30
 
