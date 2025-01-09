@@ -46,9 +46,11 @@ impl GUID {
     }
 }
 
-impl From<&str> for GUID {
-    fn from(value: &str) -> Self {
-        Self(value.into())
+impl TryFrom<&str> for GUID {
+    type Error = io::Error;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Ok(Self(value.try_into()?))
     }
 }
 

@@ -19,7 +19,7 @@ fn create_everyone_generic_all() {
             //   `ConvertSecurityDescriptorToStringSecurityDescriptorW`
             // - `self.0` has not been freed yet
             unsafe {
-                LocalFree(HLOCAL(self.0.as_ptr() as *mut c_void));
+                LocalFree(Some(HLOCAL(self.0.as_ptr() as *mut c_void)));
             }
         }
     }
