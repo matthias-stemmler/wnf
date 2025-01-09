@@ -39,5 +39,5 @@ jobs:
         # Example: The `test` cfg was turned into a userspace check-cfg in nightly rustc, while stable cargo still assumed it was a well-known cfg.
         # To mitigate this issue, we set RUSTC_BOOTSTRAP=1 to be able to use unstable flags with stable rustc.
         env:
-          - RUSTC_BOOTSTRAP: 1
+          RUSTC_BOOTSTRAP: 1
         run: cargo udeps
