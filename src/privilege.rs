@@ -2,7 +2,8 @@
 
 use std::io;
 
-use windows::Win32::Foundation::{BOOL, HANDLE, LUID};
+use windows::core::BOOL;
+use windows::Win32::Foundation::{HANDLE, LUID};
 use windows::Win32::Security::{
     LookupPrivilegeValueW, PrivilegeCheck, LUID_AND_ATTRIBUTES, PRIVILEGE_SET, SE_CREATE_PERMANENT_NAME,
     TOKEN_PRIVILEGES_ATTRIBUTES, TOKEN_QUERY,
