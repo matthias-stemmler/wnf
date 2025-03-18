@@ -44,7 +44,7 @@ windows-permissions = { version = "0.2", optional = true }
 zerocopy = { version = "0.8", optional = true }
 
 [dependencies.windows]
-version = "0.60"
+version = "0.61"
 features = [
     "Win32_Foundation",
     "Win32_Security_Authorization",
