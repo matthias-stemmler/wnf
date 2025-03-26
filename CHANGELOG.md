@@ -2,6 +2,10 @@
 
 ## [Unreleased] - (release date)
 
+### Changed
+
+- [BREAKING] Updated `windows` dependency to `0.61`
+
 ## [0.7.0] - 2025-02-24
 
 ### Changed
