@@ -6,7 +6,7 @@
   "rangeStrategy": "update-lockfile",
   "packageRules": [
     {
-      "matchFiles": [
+      "matchFileNames": [
         "Cargo.toml"
       ],
       "matchPackageNames": [
@@ -29,7 +29,7 @@
       "description": "Production dependencies of library should be minimal, so only do major upgrades for dependencies with stable versions"
     },
     {
-      "matchFiles": [
+      "matchFileNames": [
         "Cargo.toml"
       ],
       "matchPackageNames": [
@@ -62,12 +62,17 @@
       "rangeStrategy": "bump"
     },
     {
-      "matchPackageNames": ["zerocopy", "zerocopy-derive"],
+      "matchPackageNames": [
+        "zerocopy",
+        "zerocopy-derive"
+      ],
       "groupName": "zerocopy monorepo",
       "groupSlug": "zerocopy-monorepo"
     },
     {
-      "matchPackageNames": ["rustsec/audit-check"],
+      "matchPackageNames": [
+        "rustsec/audit-check"
+      ],
       "allowedVersions": "<2",
       "description": "v2 does not handle missing lockfiles correctly"
     }
