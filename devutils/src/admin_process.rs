@@ -82,7 +82,7 @@ impl Command {
         unsafe { ShellExecuteExW(&mut shell_execute_info) }?;
 
         if shell_execute_info.hProcess.is_invalid() {
-            return Err(io::Error::new(ErrorKind::Other, "failed to spawn admin process"));
+            return Err(io::Error::other("failed to spawn admin process"));
         }
 
         Ok(Process(shell_execute_info.hProcess))

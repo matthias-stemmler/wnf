@@ -8,7 +8,6 @@ use std::borrow::Borrow;
 use std::convert::Infallible;
 use std::error::Error;
 use std::io;
-use std::io::ErrorKind;
 
 use crate::bytes::NoUninit;
 use crate::read::Read;
@@ -390,7 +389,7 @@ where
     {
         let result = loop {
             let (data, change_stamp) = self.query_as()?.into_data_change_stamp();
-            let result = transform(data).map_err(|err| io::Error::new(ErrorKind::Other, err))?;
+            let result = transform(data).map_err(io::Error::other)?;
             if self.update(result.borrow(), change_stamp)? {
                 break result;
             }

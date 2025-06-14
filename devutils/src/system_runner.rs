@@ -25,7 +25,7 @@
 
 use std::ffi::{OsStr, OsString};
 use std::fmt::{self, Display, Formatter};
-use std::io::{ErrorKind, Read, Write};
+use std::io::{Read, Write};
 use std::process::{Child, Command, Stdio};
 use std::{env, io, process};
 
@@ -183,7 +183,7 @@ impl SystemRunner {
                 system_stderr.create_reading_to(io::stderr())?;
 
                 match self.rerun_as_admin()?.wait()? {
-                    INTERNAL_ERROR_CODE => Err(io::Error::new(ErrorKind::Other, "rerunning as system failed")),
+                    INTERNAL_ERROR_CODE => Err(io::Error::other("rerunning as system failed")),
                     exit_code => process::exit(exit_code),
                 }
             }
@@ -279,10 +279,7 @@ impl SystemProcess {
     fn wait(mut self) -> io::Result<i32> {
         match self.0.wait()?.code().unwrap() {
             exit_code if exit_code == INTERNAL_ERROR_CODE || exit_code >= 0 => Ok(exit_code),
-            exit_code => Err(io::Error::new(
-                ErrorKind::Other,
-                format!("PAExec failed with exit code {exit_code}"),
-            )),
+            exit_code => Err(io::Error::other(format!("PAExec failed with exit code {exit_code}"))),
         }
     }
 }
