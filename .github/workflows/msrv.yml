@@ -17,7 +17,7 @@ jobs:
         uses: dtolnay/rust-toolchain@1.74
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # The Cargo.toml of `bytemuck-derive` cannot be parsed with Cargo 1.74 because it contains the setting `resolver = "3"`.
       # Since `bytemuck-derive` is only used in tests and doctests, which we do not run (nor check) here, we don't need it for the MSRV check.
