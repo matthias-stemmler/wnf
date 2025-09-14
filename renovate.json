@@ -80,8 +80,8 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": [
-        "^\\.github\\/workflows\\/.*\\.yml$"
+      "managerFilePatterns": [
+        "/^\\.github\\/workflows\\/.*\\.yml$/"
       ],
       "matchStrings": [
         "\\s*renovate:\\s*datasource=(?<datasource>.*?)\\s*versioning=(?<versioning>.*?)\\s*depName=(?<depName>.*?)\\s*\\n.*?:\\s*(?<currentValue>.*)\\s*"
