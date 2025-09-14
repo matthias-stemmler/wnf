@@ -2,7 +2,7 @@
 //! [![crates.io](https://img.shields.io/crates/v/wnf.svg)](https://crates.io/crates/wnf)
 //! [![docs.rs](https://img.shields.io/docsrs/wnf)](https://docs.rs/wnf/latest/wnf/)
 //! [![license](https://img.shields.io/crates/l/wnf.svg)](https://github.com/matthias-stemmler/wnf/blob/main/LICENSE-APACHE)
-//! [![rustc 1.74+](https://img.shields.io/badge/rustc-1.74+-lightgrey.svg)](https://blog.rust-lang.org/2023/11/16/Rust-1.74.0.html)
+//! [![rustc 1.82+](https://img.shields.io/badge/rustc-1.82+-lightgrey.svg)](https://blog.rust-lang.org/releases/1.82.0)
 //!
 //! Safe bindings for the Windows Notification Facility
 //!
@@ -345,7 +345,7 @@
 //!
 //! # Minimum Supported Rust Version (MSRV) Policy
 //!
-//! The current MSRV of this crate is `1.74`.
+//! The current MSRV of this crate is `1.82`.
 //!
 //! Increasing the MSRV of this crate is _not_ considered a breaking change. However, in such cases there will be at
 //! least a minor version bump.

@@ -2,7 +2,7 @@
 name = "devutils"
 version = "0.0.0"
 edition = "2021"
-rust-version = "1.74" # should be the same as in wnf, docs and MSRV job
+rust-version = "1.82" # should be the same as in wnf, docs and MSRV job
 publish = false
 
 [dependencies]

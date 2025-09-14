@@ -403,6 +403,6 @@ mod stdio {
     }
 
     fn local_pipe_path(pipe_name: &str) -> OsString {
-        OsString::from(format!(r#"\\.\pipe\{}"#, pipe_name))
+        OsString::from(format!(r#"\\.\pipe\{pipe_name}"#))
     }
 }

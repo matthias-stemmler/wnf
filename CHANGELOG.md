@@ -2,6 +2,11 @@
 
 ## [Unreleased] - (release date)
 
+### Changed
+
+- [BREAKING] Updated `windows` dependency to `0.62`
+- Increased MSRV to `1.82`
+
 ## [0.8.0] - 2025-03-26
 
 ### Changed
