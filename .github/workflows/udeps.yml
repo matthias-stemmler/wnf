@@ -30,7 +30,7 @@ jobs:
         run: cargo install cargo-udeps@${{ env.VERSION_CARGO_UDEPS }}
 
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Check for unused dependencies
         # cargo-udeps uses unstable flags, so we are supposed to use a nightly toolchain.

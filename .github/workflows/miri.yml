@@ -22,7 +22,7 @@ jobs:
         run: cargo miri setup
 
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Run lib tests under Miri
         run: cargo miri test --lib

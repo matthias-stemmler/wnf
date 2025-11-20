@@ -30,7 +30,7 @@ jobs:
         run: cargo install cargo-hack@${{ env.VERSION_CARGO_HACK }}
 
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Check against feature powerset
         run: cargo hack check --feature-powerset --no-dev-deps

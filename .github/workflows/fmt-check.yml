@@ -19,7 +19,7 @@ jobs:
           components: rustfmt
 
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Run format check
         run: cargo fmt --check
