@@ -353,7 +353,7 @@
 //! Each version of this crate will support at least the four latest stable Rust versions at the time it is
 //! published.
 
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![deny(elided_lifetimes_in_paths)]
 #![deny(improper_ctypes)]
 #![deny(improper_ctypes_definitions)]
