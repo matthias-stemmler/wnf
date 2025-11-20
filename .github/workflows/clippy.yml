@@ -19,7 +19,7 @@ jobs:
           components: clippy
 
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Run Clippy
         run: cargo clippy --all-features --all-targets
