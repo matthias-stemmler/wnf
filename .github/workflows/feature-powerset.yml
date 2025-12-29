@@ -7,7 +7,7 @@ on:
 env:
   RUSTFLAGS: --deny warnings
   # renovate: datasource=crate versioning=semver-coerced depName=cargo-hack
-  VERSION_CARGO_HACK: 0.6.39
+  VERSION_CARGO_HACK: 0.6.40
 
 jobs:
   feature-powerset:
