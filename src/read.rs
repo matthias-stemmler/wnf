@@ -153,37 +153,30 @@ where
             ));
         }
 
-        // When MSRV 1.82 is acceptable, we can use `Box::new_uninit` instead
-        let bits = if mem::size_of::<T::Bits>() == 0 {
-            // SAFETY:
-            // The all-zero byte pattern is a valid `T::Bits` because `T::Bits` is zero-sized
-            // (or, alternatively, because `T::Bits: AnyBitPattern`)
-            unsafe { Box::new(mem::zeroed()) }
-        } else {
-            let layout = Layout::new::<T::Bits>();
-
-            // SAFETY:
-            // `layout` has non-zero size
-            let data = unsafe { alloc::alloc(layout) as *mut T::Bits };
+        let bits = {
+            let mut bits = Box::<T::Bits>::new_uninit();
 
             // SAFETY:
             // - `ptr` is valid for reads of `mem::size_of::<T::Bits>()` by the safety condition and `size ==
             //   mem::size_of::<T::Bits>()`
-            // - `data` is valid for writes of `mem::size_of::<T::Bits>()` because it was allocated with that size
-            // - Both `ptr` and `data` are trivially properly aligned as `mem::align_of::<u8>() == 1`
+            // - `bits.as_mut_ptr()` is valid for writes of `mem::size_of::<T::Bits>()` because it was allocated with
+            //   that size
+            // - Both `ptr` and `bits.as_mut_ptr()` are trivially properly aligned as `mem::align_of::<u8>() == 1`
             // - The source and destination regions don't overlap because the source region is within the bounds of a
             //   single allocated object (because `ptr` is valid for reads) while the destination region is a freshly
             //   allocated object
             unsafe {
-                ptr::copy_nonoverlapping(ptr as *const u8, data as *mut u8, mem::size_of::<T::Bits>());
+                ptr::copy_nonoverlapping(
+                    ptr as *const u8,
+                    bits.as_mut_ptr() as *mut u8,
+                    mem::size_of::<T::Bits>(),
+                );
             }
 
             // SAFETY:
-            // - `data` was allocated with the global allocator using the layout of `T::Bits`
-            // - `data` is not aliased
-            // - `data` points to a valid `T::Bits` because the memory range is initialized (by the safety condition)
-            //   and `T::Bits: AnyBitPattern`
-            unsafe { Box::from_raw(data) }
+            // `bits.as_mut_ptr()` points to a valid `T::Bits` because the memory range is initialized (due to the
+            // previous copy) and `T::Bits: AnyBitPattern`
+            unsafe { bits.assume_init() }
         };
 
         if T::is_valid_bit_pattern(&bits) {
