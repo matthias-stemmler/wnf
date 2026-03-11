@@ -6,7 +6,8 @@ on:
 
 env:
   RUSTFLAGS: --deny warnings
-  WNF_SYSTEM_TESTS_ENABLED: 1
+  # System tests cause error "PAExec failed with exit code -1073740791" on GitHub runners
+  WNF_SYSTEM_TESTS_ENABLED: 0
 
 jobs:
   test:
