@@ -4,8 +4,8 @@
 name = "wnf"
 version = "0.9.0"
 authors = ["Matthias Stemmler <matthias.stemmler@gmail.com>"]
-edition = "2021"
-rust-version = "1.82" # should be the same as in devutils, docs and MSRV job
+edition = "2024"
+rust-version = "1.85" # should be the same as in devutils, docs and MSRV job
 description = "Safe bindings for the Windows Notification Facility"
 readme = "crates-io.md"
 repository = "https://github.com/matthias-stemmler/wnf"

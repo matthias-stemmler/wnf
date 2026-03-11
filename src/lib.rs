@@ -2,7 +2,7 @@
 //! [![crates.io](https://img.shields.io/crates/v/wnf.svg)](https://crates.io/crates/wnf)
 //! [![docs.rs](https://img.shields.io/docsrs/wnf)](https://docs.rs/wnf/latest/wnf/)
 //! [![license](https://img.shields.io/crates/l/wnf.svg)](https://github.com/matthias-stemmler/wnf/blob/main/LICENSE-APACHE)
-//! [![rustc 1.82+](https://img.shields.io/badge/rustc-1.82+-lightgrey.svg)](https://blog.rust-lang.org/releases/1.82.0)
+//! [![rustc 1.85+](https://img.shields.io/badge/rustc-1.85+-lightgrey.svg)](https://blog.rust-lang.org/releases/1.85.0)
 //!
 //! Safe bindings for the Windows Notification Facility
 //!
@@ -263,7 +263,7 @@
 //! # }
 //! #
 //! # fn main() -> Result<(), real_std::boxed::Box<dyn real_std::error::Error>> {
-//! use std::io::{stdin, Read};
+//! use std::io::{Read, stdin};
 //!
 //! use wnf::{BorrowedState, DataAccessor, OwnedState, SeenChangeStamp};
 //!
@@ -345,7 +345,7 @@
 //!
 //! # Minimum Supported Rust Version (MSRV) Policy
 //!
-//! The current MSRV of this crate is `1.82`.
+//! The current MSRV of this crate is `1.85`.
 //!
 //! Increasing the MSRV of this crate is _not_ considered a breaking change. However, in such cases there will be at
 //! least a minor version bump.

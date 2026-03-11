@@ -1,11 +1,10 @@
 //! Reading types from state data
 
-use std::alloc::Layout;
 use std::ffi::c_void;
 use std::io::ErrorKind;
 use std::mem::MaybeUninit;
 use std::ptr::NonNull;
-use std::{alloc, io, mem, ptr};
+use std::{io, mem, ptr};
 
 use thiserror::Error;
 
@@ -196,23 +195,7 @@ where
     where
         F: FnMut(*mut c_void, usize) -> io::Result<(usize, Meta)>,
     {
-        // When MSRV 1.82 is acceptable, we can use `Box::new_uninit` instead
-        let mut bits = if mem::size_of::<T::Bits>() == 0 {
-            Box::new(MaybeUninit::uninit())
-        } else {
-            let layout = Layout::new::<T::Bits>();
-
-            // SAFETY:
-            // `layout` has non-zero size
-            let data = unsafe { alloc::alloc(layout) as *mut MaybeUninit<T::Bits> };
-
-            // SAFETY:
-            // - `data` was allocated with the global allocator using the layout of `T::Bits`, which is the same as the
-            //   layout of `MaybeUninit<T::Bits>`
-            // - `data` is not aliased
-            // - `data` points to a valid `MaybeUninit<T::Bits>` because a `MaybeUninit<_>` is always valid
-            unsafe { Box::from_raw(data) }
-        };
+        let mut bits: Box<MaybeUninit<<T as CheckedBitPattern>::Bits>> = Box::new_uninit();
 
         // The precondition of `reader` is satisfied because `bits.as_mut_ptr()` is valid for accesses of `T::Bits`
         let (size, meta) = reader(bits.as_mut_ptr().cast(), mem::size_of::<T::Bits>())?;
@@ -411,9 +394,7 @@ pub enum ReadError {
     },
 
     /// The size of the data isn't a multiple of the size of `T` (for slice data types `[T]`)
-    #[error(
-        "failed to read state data: data has wrong size (expected a multiple of {expected_modulus}, got {actual})"
-    )]
+    #[error("failed to read state data: data has wrong size (expected a multiple of {expected_modulus}, got {actual})")]
     WrongSizeMultiple {
         /// The number the state data size in bytes is expected to be a multiple of
         expected_modulus: usize,

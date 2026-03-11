@@ -2,14 +2,14 @@
 
 use std::io;
 
-use windows::core::BOOL;
 use windows::Win32::Foundation::{HANDLE, LUID};
 use windows::Win32::Security::{
-    LookupPrivilegeValueW, PrivilegeCheck, LUID_AND_ATTRIBUTES, PRIVILEGE_SET, SE_CREATE_PERMANENT_NAME,
+    LUID_AND_ATTRIBUTES, LookupPrivilegeValueW, PRIVILEGE_SET, PrivilegeCheck, SE_CREATE_PERMANENT_NAME,
     TOKEN_PRIVILEGES_ATTRIBUTES, TOKEN_QUERY,
 };
 use windows::Win32::System::SystemServices::PRIVILEGE_SET_ALL_NECESSARY;
 use windows::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
+use windows::core::BOOL;
 
 /// Returns whether the current process has the `SeCreatePermanentPrivilege` privilege
 ///

@@ -5,10 +5,10 @@ use std::io::ErrorKind;
 use std::os::windows::ffi::OsStrExt;
 use std::{io, mem};
 
-use windows::core::PCWSTR;
 use windows::Win32::Foundation::{CloseHandle, HANDLE, WAIT_FAILED};
 use windows::Win32::System::Threading::{GetExitCodeProcess, WaitForSingleObject};
-use windows::Win32::UI::Shell::{ShellExecuteExW, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW};
+use windows::Win32::UI::Shell::{SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW, ShellExecuteExW};
+use windows::core::PCWSTR;
 
 /// A process builder similar to [`std::process::Command`] but spawning processes as Administrator
 ///

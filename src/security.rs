@@ -8,7 +8,7 @@ use std::ops::Deref;
 use std::ptr::NonNull;
 use std::str::FromStr;
 
-use windows::Win32::Foundation::{LocalFree, HLOCAL};
+use windows::Win32::Foundation::{HLOCAL, LocalFree};
 use windows::Win32::Security::Authorization::{ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION};
 use windows::Win32::Security::PSECURITY_DESCRIPTOR;
 

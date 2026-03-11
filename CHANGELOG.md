@@ -2,6 +2,10 @@
 
 ## [Unreleased] - (release date)
 
+### Changed
+
+- Increased MSRV to `1.85`
+
 ## [0.9.0] - 2025-09-14
 
 ### Changed

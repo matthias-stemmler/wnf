@@ -10,7 +10,7 @@ use crate::ntapi;
 use crate::security::{BoxedSecurityDescriptor, SecurityDescriptor};
 use crate::state::{BorrowedState, OwnedState, RawState};
 use crate::state_name::{DataScope, StateLifetime, StateName};
-use crate::type_id::{TypeId, GUID};
+use crate::type_id::{GUID, TypeId};
 
 /// The maximum size of a state in bytes
 ///
