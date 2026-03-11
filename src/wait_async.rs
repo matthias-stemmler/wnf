@@ -592,7 +592,7 @@ where
     T: Read<D> + ?Sized,
 {
     fn call(&mut self, accessor: DataAccessor<'_, T>) {
-        let SharedState { result, ref waker } = &mut *self.shared_state.lock().unwrap();
+        let SharedState { result, waker } = &mut *self.shared_state.lock().unwrap();
         *result = Some(accessor.get_as());
         waker.wake_by_ref();
     }

@@ -1,6 +1,6 @@
 use wnf::{
-    BorrowedState, BoxedSecurityDescriptor, CreatableStateLifetime, DataScope, OwnedState, StateCreation,
-    StateLifetime, StateNameDescriptor, GUID, MAXIMUM_STATE_SIZE,
+    BorrowedState, BoxedSecurityDescriptor, CreatableStateLifetime, DataScope, GUID, MAXIMUM_STATE_SIZE, OwnedState,
+    StateCreation, StateLifetime, StateNameDescriptor,
 };
 
 #[test]
@@ -80,19 +80,23 @@ fn create_state_with_maximum_state_size() {
 
 #[test]
 fn create_state_with_maximum_state_size_at_limit() {
-    assert!(StateCreation::new()
-        .lifetime(CreatableStateLifetime::Temporary)
-        .scope(DataScope::Machine)
-        .maximum_state_size(MAXIMUM_STATE_SIZE)
-        .create_owned::<()>()
-        .is_ok());
+    assert!(
+        StateCreation::new()
+            .lifetime(CreatableStateLifetime::Temporary)
+            .scope(DataScope::Machine)
+            .maximum_state_size(MAXIMUM_STATE_SIZE)
+            .create_owned::<()>()
+            .is_ok()
+    );
 
-    assert!(StateCreation::new()
-        .lifetime(CreatableStateLifetime::Temporary)
-        .scope(DataScope::Machine)
-        .maximum_state_size(MAXIMUM_STATE_SIZE + 1)
-        .create_owned::<()>()
-        .is_err());
+    assert!(
+        StateCreation::new()
+            .lifetime(CreatableStateLifetime::Temporary)
+            .scope(DataScope::Machine)
+            .maximum_state_size(MAXIMUM_STATE_SIZE + 1)
+            .create_owned::<()>()
+            .is_err()
+    );
 }
 
 #[test]

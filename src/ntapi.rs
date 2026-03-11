@@ -8,8 +8,6 @@
 //! higher-level abstractions while functions in the `ntexapi` submodule, whose names start with `Nt`, are more low
 //! level. We use a combination of both, choosing whichever function is more suitable for the task at hand.
 
-#![deny(unsafe_code)]
-
 pub(crate) use ntexapi::*;
 #[cfg(feature = "subscribe")]
 pub(crate) use ntrtl::*;
@@ -26,12 +24,12 @@ pub(crate) const TRACING_TARGET: &str = "wnf::ntapi";
 mod ntexapi {
     use std::ffi::c_void;
 
-    use windows::core::GUID;
     use windows::Win32::Foundation::NTSTATUS;
     use windows::Win32::Security::PSECURITY_DESCRIPTOR;
+    use windows::core::GUID;
 
     #[link(name = "ntdll")]
-    extern "system" {
+    unsafe extern "system" {
         /// Creates a new state
         ///
         /// # Arguments
@@ -192,8 +190,8 @@ mod ntexapi {
 mod ntrtl {
     use std::ffi::c_void;
 
-    use windows::core::GUID;
     use windows::Win32::Foundation::NTSTATUS;
+    use windows::core::GUID;
 
     /// A callback function for a state subscription
     ///
@@ -222,7 +220,7 @@ mod ntrtl {
     ) -> NTSTATUS;
 
     #[link(name = "ntdll")]
-    extern "system" {
+    unsafe extern "system" {
         /// Subscribes to updates of a state
         ///
         /// # Arguments

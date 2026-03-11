@@ -12,7 +12,7 @@ use std::mem::ManuallyDrop;
 use std::ops::Deref;
 
 use crate::state_name::StateName;
-use crate::type_id::{TypeId, GUID};
+use crate::type_id::{GUID, TypeId};
 
 /// An owned state
 ///

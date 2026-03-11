@@ -9,8 +9,8 @@ use std::sync::Mutex;
 use std::{fmt, io, mem, panic, ptr};
 
 use tracing::{debug, trace_span};
-use windows::core::GUID;
 use windows::Win32::Foundation::{NTSTATUS, STATUS_SUCCESS};
+use windows::core::GUID;
 
 use crate::data::{ChangeStamp, StampedData};
 use crate::ntapi;

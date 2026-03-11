@@ -292,15 +292,15 @@ impl PayloadProcess {
         self.0.wait().map(|status| status.code().unwrap())
     }
 
-    fn stdin(&mut self) -> impl Write {
+    fn stdin(&mut self) -> impl Write + use<> {
         self.0.stdin.take().unwrap()
     }
 
-    fn stdout(&mut self) -> impl Read {
+    fn stdout(&mut self) -> impl Read + use<> {
         self.0.stdout.take().unwrap()
     }
 
-    fn stderr(&mut self) -> impl Read {
+    fn stderr(&mut self) -> impl Read + use<> {
         self.0.stderr.take().unwrap()
     }
 }

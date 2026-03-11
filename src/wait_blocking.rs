@@ -75,9 +75,11 @@ where
     ///
     /// {
     ///     let state = Arc::clone(&state);
-    ///     thread::spawn(move || loop {
-    ///         state.apply(|value| value + 1).unwrap();
-    ///         thread::sleep(Duration::from_millis(10));
+    ///     thread::spawn(move || {
+    ///         loop {
+    ///             state.apply(|value| value + 1).unwrap();
+    ///             thread::sleep(Duration::from_millis(10));
+    ///         }
     ///     });
     /// }
     ///
@@ -138,16 +140,18 @@ where
     ///
     /// {
     ///     let state = Arc::clone(&state);
-    ///     thread::spawn(move || loop {
-    ///         state
-    ///             .apply_boxed(|slice| {
-    ///                 let mut vec = slice.into_vec();
-    ///                 vec.push(0);
-    ///                 vec
-    ///             })
-    ///             .unwrap();
+    ///     thread::spawn(move || {
+    ///         loop {
+    ///             state
+    ///                 .apply_boxed(|slice| {
+    ///                     let mut vec = slice.into_vec();
+    ///                     vec.push(0);
+    ///                     vec
+    ///                 })
+    ///                 .unwrap();
     ///
-    ///         thread::sleep(Duration::from_millis(10));
+    ///             thread::sleep(Duration::from_millis(10));
+    ///         }
     ///     });
     /// }
     ///

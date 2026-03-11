@@ -1,7 +1,7 @@
 //! Subscribing on the battery discharge estimate
 
 use std::error::Error;
-use std::io::{stdin, Read};
+use std::io::{Read, stdin};
 
 use wnf::{BorrowedState, DataAccessor, SeenChangeStamp, StateName};
 

@@ -2,7 +2,7 @@
 
 use std::error::Error;
 use std::ffi::OsString;
-use std::io::{self, stdin, Read};
+use std::io::{self, Read, stdin};
 use std::os::windows::ffi::OsStringExt;
 
 use wnf::{BorrowedState, ChangeStamp, DataAccessor, SeenChangeStamp, StateListener, StateName, Subscription};

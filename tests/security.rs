@@ -1,9 +1,9 @@
 use std::ffi::c_void;
 
-use windows::core::PWSTR;
-use windows::Win32::Foundation::{LocalFree, HLOCAL};
+use windows::Win32::Foundation::{HLOCAL, LocalFree};
 use windows::Win32::Security::Authorization::{ConvertSecurityDescriptorToStringSecurityDescriptorW, SDDL_REVISION};
 use windows::Win32::Security::{DACL_SECURITY_INFORMATION, PSECURITY_DESCRIPTOR};
+use windows::core::PWSTR;
 use wnf::{BoxedSecurityDescriptor, SecurityDescriptor};
 
 #[test]

@@ -3,7 +3,7 @@
 use std::error::Error;
 use std::time::Duration;
 
-use tokio::io::{stdin, AsyncReadExt};
+use tokio::io::{AsyncReadExt, stdin};
 use tokio::time;
 use wnf::{BorrowedState, StateName};
 

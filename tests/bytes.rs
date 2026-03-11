@@ -3,7 +3,7 @@
 
 extern crate bytemuck_v1 as bytemuck;
 
-use wnf::{derive_from_bytemuck_v1, derive_from_zerocopy, AnyBitPattern, CheckedBitPattern, NoUninit};
+use wnf::{AnyBitPattern, CheckedBitPattern, NoUninit, derive_from_bytemuck_v1, derive_from_zerocopy};
 
 #[test]
 fn derive_any_bit_pattern_from_bytemuck() {
