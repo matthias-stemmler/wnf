@@ -188,9 +188,9 @@ where
     where
         T: Read<D>,
     {
-        let reader = |ptr, size| {
+        let reader = |ptr, size: usize| {
             let mut change_stamp = ChangeStamp::default();
-            let mut read_size = size as u32;
+            let mut read_size: u32 = size.try_into().expect("WNF buffer size should fit in u32");
 
             // SAFETY:
             // - The pointer in the first argument points to a valid `u64` because it comes from a live reference

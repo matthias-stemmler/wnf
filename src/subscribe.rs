@@ -306,11 +306,19 @@ struct ScopedData {
 }
 
 // SAFETY:
-// The `buffer` pointer is only used for reading data
+// `ScopedData` is `!Send` only because of the `buffer` raw pointer. Sending a `ScopedData` to another thread is safe
+// because:
+// - `buffer` is only dereferenced for reading (via `T::from_buffer` in `DataAccessor::get_as`)
+// - The buffer originates from the OS callback (see the assumption on `WnfUserCallback` in `ntapi`) and remains valid
+//   for the callback's duration; the lifetime parameter on `DataAccessor` prevents access after the callback returns
 unsafe impl Send for ScopedData {}
 
 // SAFETY:
-// The `buffer` pointer is only used for reading data
+// `ScopedData` is `!Sync` only because of the `buffer` raw pointer. Sharing a `&ScopedData` across threads is safe
+// because:
+// - `buffer` is only dereferenced for reading (via `T::from_buffer` in `DataAccessor::get_as`), and concurrent reads
+//   from the same initialized memory are safe
+// - The remaining fields (`buffer_size`, `change_stamp`) are `Copy` types with no interior mutability
 unsafe impl Sync for ScopedData {}
 
 impl ScopedData {
