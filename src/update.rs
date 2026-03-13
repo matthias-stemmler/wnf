@@ -95,7 +95,9 @@ where
     }
 
     fn update_internal(self, data: &T, expected_change_stamp: Option<ChangeStamp>) -> NTSTATUS {
-        let buffer_size = mem::size_of_val(data) as u32;
+        let buffer_size: u32 = mem::size_of_val(data)
+            .try_into()
+            .expect("WNF buffer size should fit in u32");
         let matching_change_stamp = expected_change_stamp.unwrap_or_default().into();
         let check_stamp: u32 = expected_change_stamp.is_some().into();
 
